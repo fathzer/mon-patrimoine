@@ -1,10 +1,12 @@
 import { BasePlacement } from './BasePlacement.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { Categories } from '../core/Categories.js';
 
 export class PeaModule extends BasePlacement {
+  static DEFAULT_CATEGORY = Categories.INVESTMENTS;
+
   constructor(data) {
     super(data);
-    this.category = data.category || 'investments';
     this.totalDeposits = Number(data.totalDeposits) || 0;
     this.currentValue = Number(data.currentValue) || 0;
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
@@ -13,8 +15,7 @@ export class PeaModule extends BasePlacement {
   getEvaluation(fiscalProfile, now = new Date()) {
     const latentGain = Math.max(0, this.currentValue - this.totalDeposits);
     const ageInYears = Math.abs(now - new Date(this.openingDate)) / (1000 * 60 * 60 * 24 * 365.25);
-    const csgRate = fiscalProfile?.customRates?.csgCrds || FISCAL_RATES.CSG_CRDS;
-    const socialCharges = latentGain * csgRate;
+    const socialCharges = latentGain * FISCAL_RATES.CSG_CRDS;
 
     return {
       grossValue: this.currentValue,
@@ -25,11 +26,11 @@ export class PeaModule extends BasePlacement {
   }
 
   toJSON() {
-    return { 
-      ...super.toJSON(), 
-      totalDeposits: this.totalDeposits, 
-      currentValue: this.currentValue, 
-      openingDate: this.openingDate 
+    return {
+      ...super.toJSON(),
+      totalDeposits: this.totalDeposits,
+      currentValue: this.currentValue,
+      openingDate: this.openingDate
     };
   }
 }

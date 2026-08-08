@@ -1,14 +1,23 @@
+import { CategoryValues } from '../core/Categories.js';
+
 export class BasePlacement {
+  static DEFAULT_CATEGORY = null;
+
   constructor(data) {
     if (new.target === BasePlacement) {
       throw new TypeError("Classe abstraite BasePlacement.");
     }
+    if (!this.constructor.DEFAULT_CATEGORY || !CategoryValues.includes(this.constructor.DEFAULT_CATEGORY)) {
+      throw new TypeError(`Invalid DEFAULT_CATEGORY in ${this.constructor.name}. Must be one of: ${CategoryValues.join(', ')}`);
+    }
     this.id = data.id || String(Date.now());
     this.type = data.type;
-    this.category = data.category || 'other';
     this.label = data.label || '';
     this.institution = data.institution || '';
-    this.rawContent = data;
+  }
+
+  getCategory() {
+    return this.constructor.DEFAULT_CATEGORY;
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {
@@ -16,6 +25,11 @@ export class BasePlacement {
   }
 
   toJSON() {
-    return { ...this.rawContent, id: this.id, type: this.type, category: this.category, label: this.label, institution: this.institution };
+    return {
+      id: this.id,
+      type: this.type,
+      label: this.label,
+      institution: this.institution
+    };
   }
 }

@@ -115,7 +115,7 @@ export class DashboardView {
     const categories = ['all', ...(availableCategories || [])];
     return categories.map(catKey => `
       <button class="filter-btn ${this.selectedCategory === catKey ? 'active' : ''}" data-cat="${catKey}">
-        ${I18n.t(`categories.${catKey}`)}
+        ${catKey === 'all' ? I18n.t('filters.all') : I18n.t(`categories.${catKey}`)}
       </button>
     `).join('');
   }
@@ -123,7 +123,7 @@ export class DashboardView {
   _renderAssetRows(evaluations) {
     const filtered = this.selectedCategory === 'all'
       ? evaluations
-      : evaluations.filter(e => e.instance.category === this.selectedCategory);
+      : evaluations.filter(e => e.instance.getCategory() === this.selectedCategory);
 
     if (!filtered || filtered.length === 0) {
       return `<tr><td colspan="4" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
@@ -135,7 +135,7 @@ export class DashboardView {
           <div style="font-weight: 600;">${this.escapeHtml(instance.label)}</div>
           <div style="font-size: 0.8rem; color: var(--text-muted);">${this.escapeHtml(instance.institution)}</div>
         </td>
-        <td><span class="tag-category">${I18n.t(`categories.${instance.category}`)}</span></td>
+        <td><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
         <td><strong>${this.formatCurrency(evaluation.grossValue)}</strong></td>
         <td style="color: var(--accent);"><strong>${this.formatCurrency(evaluation.netValueBeforeIR)}</strong></td>
       </tr>

@@ -15,10 +15,11 @@ export const fr = {
     breakdownTitle: "Répartition par classe d'actifs"
   },
   categories: {
-    all: "Tous les actifs",
-    bank_accounts: "Comptes & Livrets",
-    investments: "Investissements",
-    other: "Autres"
+    bank_accounts: "Comptes courants",
+    investments: "Investissements"
+  },
+  filters: {
+    all: "Tous les actifs"
   },
   actions: {
     addAsset: "+ Ajouter un actif",

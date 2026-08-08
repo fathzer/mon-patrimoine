@@ -9,8 +9,7 @@ export class AppStore extends EventBus {
     mode: 'direct',
     customTmi: 0.30,
     rfr: 0,
-    tmi: 0.30,
-    socialCharges: 0.172
+    tmi: 0.30
   };
 
   constructor(storageManager) {
@@ -115,7 +114,7 @@ export class AppStore extends EventBus {
       totalGross += evaluation.grossValue;
       totalNetBeforeIR += evaluation.netValueBeforeIR;
 
-      const cat = placement.category;
+      const cat = placement.getCategory();
       categoriesSet.add(cat);
       if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
       breakdown[cat].gross += evaluation.grossValue;
