@@ -12,8 +12,11 @@ export class CheckingAccountModule extends BasePlacement {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue,
       socialCharges: 0,
-      taxableIncomeBase: 0,
       latentGain: 0
     };
+  }
+
+  toJSON() {
+    return { ...super.toJSON(), currentValue: this.currentValue };
   }
 }

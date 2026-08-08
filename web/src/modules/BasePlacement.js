@@ -3,10 +3,10 @@ export class BasePlacement {
     if (new.target === BasePlacement) {
       throw new TypeError("Classe abstraite BasePlacement.");
     }
-    this.id = data.id;
+    this.id = data.id || String(Date.now());
     this.type = data.type;
     this.category = data.category || 'other';
-    this.label = data.label || 'Placement sans nom';
+    this.label = data.label || '';
     this.institution = data.institution || '';
     this.rawContent = data;
   }
@@ -16,6 +16,6 @@ export class BasePlacement {
   }
 
   toJSON() {
-    return { ...this.rawContent };
+    return { ...this.rawContent, id: this.id, type: this.type, category: this.category, label: this.label, institution: this.institution };
   }
 }

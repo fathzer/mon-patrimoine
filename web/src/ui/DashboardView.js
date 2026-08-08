@@ -1,11 +1,12 @@
 import { I18n } from '../core/I18n.js';
+import { HelpModalView } from './HelpModalView.js';
+import { SettingsModalView } from './SettingsModalView.js';
 
 export class DashboardView {
   constructor(container, store) {
     this.container = container;
     this.store = store;
     this.selectedCategory = 'all';
-    this.activeModal = null;
   }
 
   showLoading(isLoading) {
@@ -14,28 +15,29 @@ export class DashboardView {
     }
   }
 
-  async render(summary) {
+  render(summary) {
     if (!summary) return;
 
-    const cloudStatus = await this.store.storageManager.getStatus();
+    if (!summary.isAuthenticated) {
+      this._renderAuthScreen();
+      return;
+    }
 
     this.container.innerHTML = `
       <header class="top-bar">
         <h1>${I18n.t('app.title')}</h1>
-        <div class="cloud-status">
-          <span class="text-muted">
-            ${cloudStatus.isConnected 
-              ? I18n.t('cloud.statusConnected', { provider: cloudStatus.providerName })
-              : I18n.t('cloud.statusDisconnected')}
-          </span>
-          <button id="btn-cloud-toggle" class="btn-cloud">
-            ${cloudStatus.isConnected ? I18n.t('cloud.disconnectBtn') : I18n.t('cloud.connectBtn')}
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="btn-settings" class="btn-secondary" title="Réglages du profil fiscal" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
+            ⚙️
           </button>
+          <button id="btn-help" class="btn-secondary" title="Aide et informations" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
+            ❓
+          </button>
+          <button id="btn-logout" class="btn-secondary">${I18n.t('auth.logoutBtn')}</button>
         </div>
       </header>
 
       <main class="main-content">
-        <!-- Bandeau de synthèse Finary -->
         <section class="summary-banner">
           <div class="totals-group">
             <div class="total-item">
@@ -50,18 +52,17 @@ export class DashboardView {
 
           <div class="breakdown-group">
             <h3>${I18n.t('summary.breakdownTitle')}</h3>
-            <div class="breakdown-bars">
-              ${this._renderBreakdownRows(summary.breakdown)}
-            </div>
+            <div>${this._renderBreakdownRows(summary.breakdown)}</div>
           </div>
         </section>
 
-        <!-- Filtres par catégorie -->
-        <nav class="filters-bar" id="filters-bar">
-          ${this._renderFilters(summary.categories)}
-        </nav>
+        <div class="toolbar">
+          <div class="filters-bar">
+            ${this._renderFilters(summary.categories)}
+          </div>
+          <button id="btn-add-asset" class="btn-primary">${I18n.t('actions.addAsset')}</button>
+        </div>
 
-        <!-- Vue en Liste -->
         <section class="asset-table-container">
           <table class="asset-table">
             <thead>
@@ -72,7 +73,7 @@ export class DashboardView {
                 <th>${I18n.t('table.netHeader')}</th>
               </tr>
             </thead>
-            <tbody id="asset-rows">
+            <tbody>
               ${this._renderAssetRows(summary.evaluations)}
             </tbody>
           </table>
@@ -85,19 +86,33 @@ export class DashboardView {
     this._bindEvents(summary);
   }
 
-  _renderBreakdownRows(breakdown) {
-    return Object.entries(breakdown).map(([catKey, val]) => `
-      <div class="breakdown-row">
-        <div class="breakdown-info">
-          <span>${I18n.t(`categories.${catKey}`)}</span>
-          <strong>${this.formatCurrency(val.gross)} (${val.percentage}%)</strong>
+  _renderAuthScreen() {
+    this.container.innerHTML = `
+      <div class="auth-lock-screen">
+        <div class="auth-card">
+          <h2>${I18n.t('auth.welcomeTitle')}</h2>
+          <p class="text-muted" style="margin-bottom: 2rem;">${I18n.t('auth.loginSubtitle')}</p>
+          <button id="btn-login" class="btn-primary" style="width:100%; padding: 0.8rem;">
+            ${I18n.t('auth.loginBtn')}
+          </button>
         </div>
+      </div>
+    `;
+
+    this.container.querySelector('#btn-login')?.addEventListener('click', () => this.store.login());
+  }
+
+  _renderBreakdownRows(breakdown) {
+    return Object.entries(breakdown || {}).map(([catKey, val]) => `
+      <div class="breakdown-row">
+        <span>${I18n.t(`categories.${catKey}`)}</span>
+        <strong>${this.formatCurrency(val.gross)} (${val.percentage}%)</strong>
       </div>
     `).join('');
   }
 
   _renderFilters(availableCategories) {
-    const categories = ['all', ...availableCategories];
+    const categories = ['all', ...(availableCategories || [])];
     return categories.map(catKey => `
       <button class="filter-btn ${this.selectedCategory === catKey ? 'active' : ''}" data-cat="${catKey}">
         ${I18n.t(`categories.${catKey}`)}
@@ -110,15 +125,17 @@ export class DashboardView {
       ? evaluations
       : evaluations.filter(e => e.instance.category === this.selectedCategory);
 
+    if (!filtered || filtered.length === 0) {
+      return `<tr><td colspan="4" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
+    }
+
     return filtered.map(({ instance, evaluation }) => `
       <tr class="asset-row" data-id="${instance.id}">
         <td>
-          <div class="asset-title">${this.escapeHtml(instance.label)}</div>
-          <div class="asset-institution">${this.escapeHtml(instance.institution)}</div>
+          <div style="font-weight: 600;">${this.escapeHtml(instance.label)}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">${this.escapeHtml(instance.institution)}</div>
         </td>
-        <td>
-          <span class="tag-category">${I18n.t(`categories.${instance.category}`)}</span>
-        </td>
+        <td><span class="tag-category">${I18n.t(`categories.${instance.category}`)}</span></td>
         <td><strong>${this.formatCurrency(evaluation.grossValue)}</strong></td>
         <td style="color: var(--accent);"><strong>${this.formatCurrency(evaluation.netValueBeforeIR)}</strong></td>
       </tr>
@@ -126,18 +143,21 @@ export class DashboardView {
   }
 
   _bindEvents(summary) {
-    // Bouton Cloud
-    this.container.querySelector('#btn-cloud-toggle')?.addEventListener('click', async () => {
-      const status = await this.store.storageManager.getStatus();
-      if (status.isConnected) {
-        await this.store.storageManager.disconnectCurrent();
-      } else {
-        await this.store.storageManager.authenticateCurrent();
-      }
-      this.store.init();
+    this.container.querySelector('#btn-logout')?.addEventListener('click', () => this.store.logout());
+
+    // Clic Réglages
+    this.container.querySelector('#btn-settings')?.addEventListener('click', () => {
+      const modalRoot = this.container.querySelector('#modal-root');
+      const settingsModal = new SettingsModalView(modalRoot, this.store);
+      settingsModal.show();
     });
 
-    // Filtres
+    this.container.querySelector('#btn-help')?.addEventListener('click', () => {
+      const modalRoot = this.container.querySelector('#modal-root');
+      const helpModal = new HelpModalView(modalRoot);
+      helpModal.show();
+    });
+
     this.container.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this.selectedCategory = e.currentTarget.dataset.cat;
@@ -145,34 +165,103 @@ export class DashboardView {
       });
     });
 
-    // Clic sur ligne d'actif -> Détail Modal
+    this.container.querySelector('#btn-add-asset')?.addEventListener('click', () => {
+      this._showAssetModal();
+    });
+
     this.container.querySelectorAll('.asset-row').forEach(row => {
       row.addEventListener('click', () => {
-        const id = row.dataset.id;
-        const item = summary.evaluations.find(e => e.instance.id === id);
-        if (item) this._showModal(item);
+        const item = summary.evaluations.find(e => e.instance.id === row.dataset.id);
+        if (item) this._showAssetModal(item.instance);
       });
     });
   }
 
-  _showModal({ instance, evaluation }) {
+  _showAssetModal(placement = null) {
+    const isEdit = !!placement;
     const modalRoot = this.container.querySelector('#modal-root');
+
     modalRoot.innerHTML = `
       <div class="modal-overlay">
         <div class="modal-content">
-          <h2>${I18n.t('modal.detailsTitle')} - ${this.escapeHtml(instance.label)}</h2>
-          <p><strong>Institution :</strong> ${this.escapeHtml(instance.institution)}</p>
-          <p><strong>Valeur Brute :</strong> ${this.formatCurrency(evaluation.grossValue)}</p>
-          <p><strong>Valeur Nette :</strong> ${this.formatCurrency(evaluation.netValueBeforeIR)}</p>
-          ${evaluation.latentGain ? `<p><strong>${I18n.t('modal.latentGain')} :</strong> ${this.formatCurrency(evaluation.latentGain)}</p>` : ''}
-          ${evaluation.socialCharges ? `<p><strong>${I18n.t('modal.socialChargesDeducted')} :</strong> -${this.formatCurrency(evaluation.socialCharges)}</p>` : ''}
-          
-          <button id="close-modal" class="btn-cloud" style="margin-top: 1.5rem;">${I18n.t('modal.closeBtn')}</button>
+          <h2>${isEdit ? I18n.t('form.editTitle') : I18n.t('form.addTitle')}</h2>
+          <form id="asset-form">
+            <div class="form-group">
+              <label>${I18n.t('form.label')}</label>
+              <input type="text" name="label" class="form-control" value="${placement?.label || ''}" required />
+            </div>
+            <div class="form-group">
+              <label>${I18n.t('form.institution')}</label>
+              <input type="text" name="institution" class="form-control" value="${placement?.institution || ''}" required />
+            </div>
+            <div class="form-group">
+              <label>${I18n.t('form.type')}</label>
+              <select name="type" class="form-control" id="type-select" ${isEdit ? 'disabled' : ''}>
+                <option value="checking_account" ${placement?.type === 'checking_account' ? 'selected' : ''}>Compte Courant / Livret</option>
+                <option value="pea" ${placement?.type === 'pea' ? 'selected' : ''}>PEA</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>${I18n.t('form.currentValue')}</label>
+              <input type="number" step="0.01" name="currentValue" class="form-control" value="${placement?.currentValue || 0}" required />
+            </div>
+
+            <div id="pea-extra-fields" style="display: ${placement?.type === 'pea' ? 'block' : 'none'};">
+              <div class="form-group">
+                <label>${I18n.t('form.totalDeposits')}</label>
+                <input type="number" step="0.01" name="totalDeposits" class="form-control" value="${placement?.totalDeposits || 0}" />
+              </div>
+              <div class="form-group">
+                <label>${I18n.t('form.openingDate')}</label>
+                <input type="date" name="openingDate" class="form-control" value="${placement?.openingDate || ''}" />
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              ${isEdit ? `<button type="button" id="btn-delete" class="btn-danger">${I18n.t('actions.delete')}</button>` : '<div></div>'}
+              <div>
+                <button type="button" id="btn-cancel" class="btn-secondary">${I18n.t('actions.cancel')}</button>
+                <button type="submit" class="btn-primary">${I18n.t('actions.save')}</button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     `;
 
-    modalRoot.querySelector('#close-modal').addEventListener('click', () => {
+    const typeSelect = modalRoot.querySelector('#type-select');
+    const peaFields = modalRoot.querySelector('#pea-extra-fields');
+
+    typeSelect.addEventListener('change', (e) => {
+      peaFields.style.display = e.target.value === 'pea' ? 'block' : 'none';
+    });
+
+    modalRoot.querySelector('#btn-cancel').addEventListener('click', () => modalRoot.innerHTML = '');
+
+    if (isEdit) {
+      modalRoot.querySelector('#btn-delete').addEventListener('click', async () => {
+        await this.store.deletePlacement(placement.id);
+        modalRoot.innerHTML = '';
+      });
+    }
+
+    modalRoot.querySelector('#asset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        label: formData.get('label'),
+        institution: formData.get('institution'),
+        type: isEdit ? placement.type : formData.get('type'),
+        currentValue: Number(formData.get('currentValue')),
+        totalDeposits: Number(formData.get('totalDeposits')),
+        openingDate: formData.get('openingDate')
+      };
+
+      if (isEdit) {
+        await this.store.updatePlacement(placement.id, data);
+      } else {
+        await this.store.addPlacement(data);
+      }
       modalRoot.innerHTML = '';
     });
   }

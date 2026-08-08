@@ -7,29 +7,29 @@ export class PeaModule extends BasePlacement {
     this.category = data.category || 'investments';
     this.totalDeposits = Number(data.totalDeposits) || 0;
     this.currentValue = Number(data.currentValue) || 0;
-    this.openingDate = new Date(data.openingDate);
-  }
-
-  getLatentGain() {
-    return Math.max(0, this.currentValue - this.totalDeposits);
-  }
-
-  getAgeInYears(now = new Date()) {
-    return Math.abs(now - this.openingDate) / (1000 * 60 * 60 * 24 * 365.25);
+    this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {
-    const latentGain = this.getLatentGain();
-    const ageInYears = this.getAgeInYears(now);
+    const latentGain = Math.max(0, this.currentValue - this.totalDeposits);
+    const ageInYears = Math.abs(now - new Date(this.openingDate)) / (1000 * 60 * 60 * 24 * 365.25);
     const csgRate = fiscalProfile?.customRates?.csgCrds || FISCAL_RATES.CSG_CRDS;
     const socialCharges = latentGain * csgRate;
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
-      socialCharges: socialCharges,
-      taxableIncomeBase: ageInYears >= 5 ? 0 : latentGain,
-      latentGain: latentGain
+      socialCharges,
+      latentGain
+    };
+  }
+
+  toJSON() {
+    return { 
+      ...super.toJSON(), 
+      totalDeposits: this.totalDeposits, 
+      currentValue: this.currentValue, 
+      openingDate: this.openingDate 
     };
   }
 }

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <!-- Fond arrondi stylisé -->
+  <rect width="64" height="64" rx="14" fill="#2563eb"/>
+  
+  <g fill="#ffffff">
+    <!-- Fronton (Fronton triangulaire supérieur) -->
+    <path d="M 32 12 L 12 24 L 52 24 Z"/>
+    
+    <!-- Architrave (Poutre horizontale sous le fronton) -->
+    <rect x="14" y="26" width="36" height="3" rx="1"/>
+    
+    <!-- Colonnes (4 colonnes de la Bourse) -->
+    <rect x="17" y="31" width="5" height="17" rx="1"/>
+    <rect x="25" y="31" width="5" height="17" rx="1"/>
+    <rect x="34" y="31" width="5" height="17" rx="1"/>
+    <rect x="42" y="31" width="5" height="17" rx="1"/>
+    
+    <!-- Soubassement (Marches / Piédestal) -->
+    <rect x="14" y="49" width="36" height="3" rx="1"/>
+    <rect x="11" y="53" width="42" height="3" rx="1"/>
+  </g>
+</svg>

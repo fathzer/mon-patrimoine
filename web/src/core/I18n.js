@@ -12,7 +12,7 @@ export class I18n {
       if (translation && translation[k] !== undefined) {
         translation = translation[k];
       } else {
-        return key; // Fallback sur la clé
+        return key;
       }
     }
 

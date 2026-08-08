@@ -5,26 +5,15 @@ export class GoogleDriveProvider extends StorageProvider {
     super();
     this.clientId = clientId;
     this.fileName = 'patrimoine_data.json';
-    this.accessToken = null;
+    this.accessToken = localStorage.getItem('gdrive_token') || null;
     this.tokenClient = null;
     this.fileId = null;
   }
 
   async init() {
-    if (!this.clientId) return false;
+    if (!this.clientId) return !!this.accessToken;
     await this.initGis();
-    return new Promise((resolve) => {
-      this.tokenClient.callback = (resp) => {
-        if (resp.error) {
-          this.accessToken = null;
-          resolve(false);
-        } else {
-          this.accessToken = resp.access_token;
-          resolve(true);
-        }
-      };
-      this.tokenClient.requestAccessToken({ prompt: '' });
-    });
+    return !!this.accessToken;
   }
 
   initGis() {
@@ -43,7 +32,8 @@ export class GoogleDriveProvider extends StorageProvider {
   _setupTokenClient(resolve) {
     this.tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: this.clientId,
-      scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+      // On ne conserve UNIQUEMENT drive.file pour supprimer l'écran de choix
+      scope: 'https://www.googleapis.com/auth/drive.file',
       callback: () => {}
     });
     resolve(true);
@@ -55,6 +45,7 @@ export class GoogleDriveProvider extends StorageProvider {
       this.tokenClient.callback = (resp) => {
         if (resp.error) return resolve(false);
         this.accessToken = resp.access_token;
+        localStorage.setItem('gdrive_token', this.accessToken);
         resolve(true);
       };
       this.tokenClient.requestAccessToken({ prompt: 'consent' });
@@ -63,14 +54,19 @@ export class GoogleDriveProvider extends StorageProvider {
 
   async disconnect() {
     this.accessToken = null;
+    localStorage.removeItem('gdrive_token');
   }
 
   async _findFileId() {
     if (this.fileId) return this.fileId;
+    
+    // On recherche à la racine / dans Mon Drive (sans spaces=appDataFolder)
+    const q = encodeURIComponent("name = 'patrimoine_data.json' and trashed = false");
     const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${this.fileName}'`,
+      `https://www.googleapis.com/drive/v3/files?q=${q}`,
       { headers: { Authorization: `Bearer ${this.accessToken}` } }
     );
+    
     const data = await res.json();
     if (data.files && data.files.length > 0) {
       this.fileId = data.files[0].id;
@@ -80,6 +76,7 @@ export class GoogleDriveProvider extends StorageProvider {
   }
 
   async loadData() {
+    if (!this.accessToken) return null;
     const fileId = await this._findFileId();
     if (!fileId) return null;
     const res = await fetch(
@@ -90,6 +87,7 @@ export class GoogleDriveProvider extends StorageProvider {
   }
 
   async saveData(data) {
+    if (!this.accessToken) return false;
     const fileId = await this._findFileId();
     const content = JSON.stringify(data, null, 2);
 
@@ -107,7 +105,11 @@ export class GoogleDriveProvider extends StorageProvider {
       );
       return res.ok;
     } else {
-      const metadata = { name: this.fileName, parents: ['appDataFolder'] };
+      const metadata = { 
+        name: this.fileName,
+        mimeType: 'application/json'
+      };
+      
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
       form.append('file', new Blob([content], { type: 'application/json' }));
@@ -120,13 +122,16 @@ export class GoogleDriveProvider extends StorageProvider {
           body: form
         }
       );
+      
       const createdFile = await res.json();
-      this.fileId = createdFile.id;
+      if (res.ok && createdFile.id) {
+        this.fileId = createdFile.id;
+      }
       return res.ok;
     }
   }
 
   async getStatus() {
-    return { isConnected: !!this.accessToken, userEmail: '', providerName: 'Google Drive' };
+    return { isConnected: !!this.accessToken, providerName: 'Google Drive' };
   }
 }
