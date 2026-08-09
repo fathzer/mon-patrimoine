@@ -1,5 +1,3 @@
-import { I18n } from '../core/I18n.js';
-
 export class HelpModalView {
   constructor(container) {
     this.container = container;
@@ -51,6 +49,8 @@ export class HelpModalView {
                   <ul class="help-provider-list">
                     <li><strong>Déplacement libre :</strong> Vous pouvez renommer et déplacer ce fichier dans le dossier de votre choix. L'application continuera de le retrouver grâce à son identifiant unique.</li>
                     <li><strong>Isolation stricte :</strong> L'accès accordé à l'application est limité exclusivement aux fichiers qu'elle a elle-même créés (périmètre <code>drive.file</code>). Elle n'a aucun accès au reste de vos documents.</li>
+                    <li><strong>Pourquoi l'email est demandé :</strong> L'application a besoin de votre adresse email uniquement pour permettre le renouvellement automatique du jeton d'accès sans vous demander de vous reconnecter. Cet email n'est stocké que localement dans votre navigateur et n'est jamais transmis à nos serveurs.</li>
+                    <li><strong>Fenêtre furtive :</strong> Lors du renouvellement automatique du jeton d'accès (toutes les heures), Google peut afficher brièvement une fenêtre de confirmation pour des raisons de sécurité. Ce comportement est imposé par Google et ne peut être désactivé. La fenêtre s'affiche furtivement puis se ferme automatiquement.</li>
                   </ul>
                 </div>
               </div>
