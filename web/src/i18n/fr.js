@@ -60,6 +60,11 @@ export const fr = {
     enterTmi: "Saisir votre TMI",
     nonTaxable: "Non imposable",
     rfrLabel: "Revenu Fiscal de Référence (RFR)",
-    calculatedTmi: "TMI calculé :"
+    calculatedTmi: "TMI calculé :",
+    pfuSection: "Prélèvement Forfaitaire Unique (PFU)",
+    pfuMode: "Mode d'imposition des plus-values :",
+    pfuEnabled: "PFU (Flat Tax)",
+    pfuDisabled: "Barème progressif de l'IR",
+    pfuHint: "Le PFU applique un taux forfaitaire. Option par défaut, mais vous pouvez opter pour le barème progressif si plus avantageux. Ce barême ouvre aussi droit dans certains cas à déduction du revenu imposable de la CSG déductible "
   }
 };

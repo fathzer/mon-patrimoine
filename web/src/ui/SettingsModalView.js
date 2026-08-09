@@ -135,6 +135,30 @@ export class SettingsModalView {
               </div>
             </section>
 
+            <!-- SECTION 3 : PFU -->
+            <section class="help-section">
+              <h3 class="help-section-title">
+                💰 ${I18n.t('settings.pfuSection')}
+              </h3>
+
+              <div style="margin-bottom: 1rem;">
+                <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">${I18n.t('settings.pfuMode')}</label>
+                <div style="display: flex; gap: 1.5rem;">
+                  <label style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                    <input type="radio" name="usePfu" value="true" ${profile.usePfu === true ? 'checked' : ''} />
+                    ${I18n.t('settings.pfuEnabled')} (${(FISCAL_RATES.PFU_IR_RATE * 100).toFixed(1)}% IR + ${(FISCAL_RATES.CSG_CRDS * 100).toFixed(1)}% PS)
+                  </label>
+                  <label style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                    <input type="radio" name="usePfu" value="false" ${profile.usePfu === false ? 'checked' : ''} />
+                    ${I18n.t('settings.pfuDisabled')}
+                  </label>
+                </div>
+                <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                  ${I18n.t('settings.pfuHint')} (${(FISCAL_RATES.PFU_CSG_REDUCTION_RATE * 100).toFixed(1)}%).
+                </small>
+              </div>
+            </section>
+
             <div class="modal-actions help-modal-footer">
               <button type="button" id="btn-cancel-settings" class="btn-secondary">
                 ${I18n.t('actions.cancel')}
@@ -177,7 +201,7 @@ export class SettingsModalView {
 
     const updateParts = () => {
       const status = statusSelect.value;
-      const children = parseInt(childrenInput.value || 0, 10);
+      const children = Number.parseInt(childrenInput.value || 0, 10);
       partsInput.value = SettingsModalView.calculateDefaultParts(status, children);
       updateRfrCalculation();
     };
@@ -199,8 +223,8 @@ export class SettingsModalView {
     });
 
     const updateRfrCalculation = () => {
-      const rfr = parseFloat(rfrInput.value || 0);
-      const parts = parseFloat(partsInput.value || 1);
+      const rfr = Number.parseFloat(rfrInput.value || 0);
+      const parts = Number.parseFloat(partsInput.value || 1);
       const tmi = SettingsModalView.calculateTmiFromRfr(rfr, parts);
       if (calculatedTmiDisplay) {
         calculatedTmiDisplay.textContent = `${Math.round(tmi * 100)} %`;
@@ -216,15 +240,17 @@ export class SettingsModalView {
       const selectedMode = formData.get('mode');
       
       const maritalStatus = formData.get('maritalStatus');
-      const childrenCount = parseInt(formData.get('childrenCount') || 0, 10);
-      const fiscalParts = parseFloat(formData.get('fiscalParts') || 1);
-      const rfr = parseFloat(formData.get('rfr') || 0);
-      const customTmi = parseFloat(formData.get('customTmi') || 0.30);
+      const childrenCount = Number.parseInt(formData.get('childrenCount') || 0, 10);
+      const fiscalParts = Number.parseFloat(formData.get('fiscalParts') || 1);
+      const rfr = Number.parseFloat(formData.get('rfr') || 0);
+      const customTmi = Number.parseFloat(formData.get('customTmi') || 0.30);
 
       const effectiveTmi = selectedMode === 'rfr' 
         ? SettingsModalView.calculateTmiFromRfr(rfr, fiscalParts)
         : customTmi;
 
+      const usePfuValue = formData.get('usePfu');
+      const usePfu = usePfuValue ? usePfuValue === 'true' : profile.usePfu;
       const profileData = {
         maritalStatus,
         childrenCount,
@@ -232,7 +258,8 @@ export class SettingsModalView {
         mode: selectedMode,
         rfr,
         customTmi,
-        tmi: effectiveTmi
+        tmi: effectiveTmi,
+        usePfu
       };
 
       this.store.updateTaxProfile(profileData);

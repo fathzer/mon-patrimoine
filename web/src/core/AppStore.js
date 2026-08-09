@@ -9,7 +9,8 @@ export class AppStore extends EventBus {
     mode: 'direct',
     customTmi: 0.30,
     rfr: 0,
-    tmi: 0.30
+    tmi: 0.30,
+    usePfu: true
   };
 
   constructor(storageManager) {
