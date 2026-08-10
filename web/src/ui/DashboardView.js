@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { HelpModalView } from './HelpModalView.js';
 import { SettingsModalView } from './SettingsModalView.js';
+import { PlacementModalView } from './PlacementModalView.js';
 
 export class DashboardView {
   constructor(container, store) {
@@ -129,17 +130,23 @@ export class DashboardView {
       return `<tr><td colspan="4" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
     }
 
-    return filtered.map(({ instance, evaluation }) => `
+    return filtered.map(({ instance, evaluation }) => {
+      const institutionHtml = instance.institution
+        ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this.escapeHtml(instance.institution)}</div>`
+        : '';
+
+      return `
       <tr class="asset-row" data-id="${instance.id}">
         <td>
           <div style="font-weight: 600;">${this.escapeHtml(instance.label)}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">${this.escapeHtml(instance.institution)}</div>
+          ${institutionHtml}
         </td>
         <td><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
         <td><strong>${this.formatCurrency(evaluation.grossValue)}</strong></td>
         <td style="color: var(--accent);"><strong>${this.formatCurrency(evaluation.netValueBeforeIR)}</strong></td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
 
   _bindEvents(summary) {
@@ -178,92 +185,9 @@ export class DashboardView {
   }
 
   _showAssetModal(placement = null) {
-    const isEdit = !!placement;
     const modalRoot = this.container.querySelector('#modal-root');
-
-    modalRoot.innerHTML = `
-      <div class="modal-overlay">
-        <div class="modal-content">
-          <h2>${isEdit ? I18n.t('form.editTitle') : I18n.t('form.addTitle')}</h2>
-          <form id="asset-form">
-            <div class="form-group">
-              <label>${I18n.t('form.label')}</label>
-              <input type="text" name="label" class="form-control" value="${placement?.label || ''}" required />
-            </div>
-            <div class="form-group">
-              <label>${I18n.t('form.institution')}</label>
-              <input type="text" name="institution" class="form-control" value="${placement?.institution || ''}" required />
-            </div>
-            <div class="form-group">
-              <label>${I18n.t('form.type')}</label>
-              <select name="type" class="form-control" id="type-select" ${isEdit ? 'disabled' : ''}>
-                <option value="checking_account" ${placement?.type === 'checking_account' ? 'selected' : ''}>Compte Courant / Livret</option>
-                <option value="pea" ${placement?.type === 'pea' ? 'selected' : ''}>PEA</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>${I18n.t('form.currentValue')}</label>
-              <input type="number" step="0.01" name="currentValue" class="form-control" value="${placement?.currentValue || 0}" required />
-            </div>
-
-            <div id="pea-extra-fields" style="display: ${placement?.type === 'pea' ? 'block' : 'none'};">
-              <div class="form-group">
-                <label>${I18n.t('form.totalDeposits')}</label>
-                <input type="number" step="0.01" name="totalDeposits" class="form-control" value="${placement?.totalDeposits || 0}" />
-              </div>
-              <div class="form-group">
-                <label>${I18n.t('form.openingDate')}</label>
-                <input type="date" name="openingDate" class="form-control" value="${placement?.openingDate || ''}" />
-              </div>
-            </div>
-
-            <div class="modal-actions">
-              ${isEdit ? `<button type="button" id="btn-delete" class="btn-danger">${I18n.t('actions.delete')}</button>` : '<div></div>'}
-              <div>
-                <button type="button" id="btn-cancel" class="btn-secondary">${I18n.t('actions.cancel')}</button>
-                <button type="submit" class="btn-primary">${I18n.t('actions.save')}</button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    `;
-
-    const typeSelect = modalRoot.querySelector('#type-select');
-    const peaFields = modalRoot.querySelector('#pea-extra-fields');
-
-    typeSelect.addEventListener('change', (e) => {
-      peaFields.style.display = e.target.value === 'pea' ? 'block' : 'none';
-    });
-
-    modalRoot.querySelector('#btn-cancel').addEventListener('click', () => modalRoot.innerHTML = '');
-
-    if (isEdit) {
-      modalRoot.querySelector('#btn-delete').addEventListener('click', async () => {
-        await this.store.deletePlacement(placement.id);
-        modalRoot.innerHTML = '';
-      });
-    }
-
-    modalRoot.querySelector('#asset-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const data = {
-        label: formData.get('label'),
-        institution: formData.get('institution'),
-        type: isEdit ? placement.type : formData.get('type'),
-        currentValue: Number(formData.get('currentValue')),
-        totalDeposits: Number(formData.get('totalDeposits')),
-        openingDate: formData.get('openingDate')
-      };
-
-      if (isEdit) {
-        await this.store.updatePlacement(placement.id, data);
-      } else {
-        await this.store.addPlacement(data);
-      }
-      modalRoot.innerHTML = '';
-    });
+    const placementModal = new PlacementModalView(modalRoot, this.store);
+    placementModal.show(placement);
   }
 
   formatCurrency(amount) {

@@ -16,7 +16,8 @@ export const fr = {
   },
   categories: {
     bank_accounts: "Comptes courants",
-    investments: "Investissements"
+    investments: "Investissements",
+    savings: "Livrets"
   },
   filters: {
     all: "Tous les actifs"
@@ -38,11 +39,15 @@ export const fr = {
     editTitle: "Éditer l'actif",
     label: "Nom du placement",
     institution: "Établissement",
-    type: "Type de placement",
+    typeLabel: "Type de placement",
     category: "Catégorie",
     currentValue: "Valeur actuelle (€)",
     totalDeposits: "Total des versements (€)",
-    openingDate: "Date d'ouverture"
+    openingDate: "Date d'ouverture",
+    types: {
+      checking_account: "Compte Courant",
+      pea: "PEA"
+    }
   },
   settings: {
     title: "Réglages - Profil Fiscal",
