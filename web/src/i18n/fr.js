@@ -17,7 +17,7 @@ export const fr = {
   categories: {
     bank_accounts: "Comptes courants",
     investments: "Investissements",
-    savings: "Livrets"
+    saving_accounts: "Livrets"
   },
   filters: {
     all: "Tous les actifs"
@@ -37,16 +37,26 @@ export const fr = {
   form: {
     addTitle: "Ajouter un actif",
     editTitle: "Éditer l'actif",
-    label: "Nom du placement",
+    label: "Nom",
     institution: "Établissement",
     typeLabel: "Type de placement",
     category: "Catégorie",
     currentValue: "Valeur actuelle (€)",
+    cardBalance: "En cours carte (€)",
     totalDeposits: "Total des versements (€)",
     openingDate: "Date d'ouverture",
+    grossRate: "Taux brut (%)",
+    taxExempt: "Exonéré de prélèvement",
+    taxExemptTooltip: "Sont exonérés de prélèvements : Livret A, LDDS, Livret Jeune, Livret d'Épargne Populaire, Livret Bleu. Attention, les PEL et CEL ne sont pas gérés ici, mais dans la rubrique 'Épargne Logement'.",
+    interestAmount: "Montant des intérêts (€)",
+    promotionalInterest: "Intérêts promotionnels (€)",
+    calculator: "Calculer",
+    closeCalculator: "Fermer",
+    interestRateWarning: "Attention, les taux ou l'encours peuvent avoir évolué en cours d'année, le calcul fait l'hypothèse qu'ils sont constants depuis le 1er janvier.",
     types: {
       checking_account: "Compte Courant",
-      pea: "PEA"
+      pea: "PEA",
+      savings_account: "Livret"
     }
   },
   settings: {

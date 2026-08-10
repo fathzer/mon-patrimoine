@@ -1,9 +1,14 @@
 import { BasePlacement } from './BasePlacement.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
 import { Categories } from '../core/Categories.js';
+import { PeaEditor } from '../ui/editors/PeaEditor.js';
 
 export class PeaModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.INVESTMENTS;
+
+  static getEditorClass() {
+    return PeaEditor;
+  }
 
   constructor(data) {
     super(data);

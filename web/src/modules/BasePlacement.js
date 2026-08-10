@@ -1,7 +1,12 @@
 import { CategoryValues } from '../core/Categories.js';
+import { BasePlacementEditor } from '../ui/editors/BasePlacementEditor.js';
 
 export class BasePlacement {
   static DEFAULT_CATEGORY = null;
+
+  static getEditorClass() {
+    return BasePlacementEditor;
+  }
 
   constructor(data) {
     if (new.target === BasePlacement) {
