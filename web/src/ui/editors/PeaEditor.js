@@ -16,7 +16,7 @@ export class PeaEditor extends BasePlacementEditor {
       </div>
       <div class="form-group">
         <label>${I18n.t('form.openingDate')}</label>
-        <input type="date" name="openingDate" class="form-control" value="${placement?.openingDate || ''}" />
+        <input type="date" name="openingDate" class="form-control" value="${placement?.openingDate || ''}" required />
       </div>
     `;
     this.container.appendChild(field);
@@ -33,7 +33,10 @@ export class PeaEditor extends BasePlacementEditor {
   isValid() {
     if (!super.isValid()) return false;
     const currentValue = this.container.querySelector('input[name="currentValue"]');
-    return currentValue ? currentValue.checkValidity() : true;
+    const openingDate = this.container.querySelector('input[name="openingDate"]');
+    const currentValueValid = currentValue ? currentValue.checkValidity() : true;
+    const openingDateValid = openingDate ? openingDate.checkValidity() : true;
+    return currentValueValid && openingDateValid;
   }
 
   getData() {

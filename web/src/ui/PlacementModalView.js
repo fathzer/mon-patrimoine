@@ -21,6 +21,7 @@ export class PlacementModalView {
               <select name="type" class="form-control" id="type-select" ${isEdit ? 'disabled' : ''}>
                 <option value="checking_account" ${placement?.type === 'checking_account' ? 'selected' : ''}>${I18n.t('form.types.checking_account')}</option>
                 <option value="savings_account" ${placement?.type === 'savings_account' ? 'selected' : ''}>${I18n.t('form.types.savings_account')}</option>
+                <option value="home_savings" ${placement?.type === 'home_savings' ? 'selected' : ''}>${I18n.t('form.types.home_savings')}</option>
                 <option value="pea" ${placement?.type === 'pea' ? 'selected' : ''}>${I18n.t('form.types.pea')}</option>
               </select>
             </div>
@@ -29,6 +30,8 @@ export class PlacementModalView {
               <input type="text" name="label" class="form-control" value="${placement?.label || ''}" required />
             </div>
             <div id="editor-container"></div>
+
+            <div id="submit-errors" style="color: var(--danger); font-size: 0.8rem; min-height: 1.2rem; margin-bottom: 0.5rem;"></div>
 
             <div class="modal-actions">
               ${isEdit ? `<button type="button" id="btn-delete" class="btn-danger">${I18n.t('actions.delete')}</button>` : '<div></div>'}
@@ -60,10 +63,37 @@ export class PlacementModalView {
   _updateSubmitState() {
     const form = this.container.querySelector('#asset-form');
     const typeSelect = this.container.querySelector('#type-select');
+    const labelInput = this.container.querySelector('input[name="label"]');
+    const isLabelValid = labelInput ? labelInput.value.trim().length > 0 : false;
+    const editorIsValid = this._editor ? this._editor.isValid() : false;
+    const isFormValid = form?.checkValidity() && typeSelect.checkValidity() && editorIsValid;
+    const isValid = isLabelValid && isFormValid;
 
-    const isValid = form?.checkValidity() && typeSelect.checkValidity() && this._editor?.isValid();
+    const errors = this._collectValidationErrors(isLabelValid, form, typeSelect, editorIsValid);
+    const errorsContainer = this.container.querySelector('#submit-errors');
+    if (errorsContainer) {
+      errorsContainer.textContent = errors.join(' - ');
+    }
+
     const submitBtn = this.container.querySelector('#btn-save');
     if (submitBtn) submitBtn.disabled = !isValid;
+  }
+
+  _collectValidationErrors(isLabelValid, form, typeSelect, editorIsValid) {
+    const errors = [];
+    if (!isLabelValid) {
+      errors.push(I18n.t('form.errors.label'));
+    }
+    if (form) {
+      form.querySelectorAll('input, select, textarea').forEach(input => {
+        if (!input.checkValidity()) {
+          const key = `form.errors.${input.name}`;
+          const message = I18n.t(key) === key ? I18n.t('form.errors.generic') : I18n.t(key);
+          errors.push(message);
+        }
+      });
+    }
+    return [...new Set(errors)];
   }
 
   _bindEvents(placement, isEdit) {

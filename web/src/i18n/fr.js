@@ -53,10 +53,21 @@ export const fr = {
     calculator: "Calculer",
     closeCalculator: "Fermer",
     interestRateWarning: "Attention, les taux ou l'encours peuvent avoir évolué en cours d'année, le calcul fait l'hypothèse qu'ils sont constants depuis le 1er janvier.",
+    errors: {
+      label: "Nom requis",
+      institution: "Établissement requis",
+      currentValue: "Valeur actuelle requise",
+      openingDate: "Date d'ouverture incorrecte",
+      generic: "Champ requis"
+    },
+    homeSavingsType: "Type d'épargne logement",
+    pel: "PEL",
+    cel: "CEL",
     types: {
       checking_account: "Compte Courant",
       pea: "PEA",
-      savings_account: "Livret"
+      savings_account: "Livret",
+      home_savings: "Épargne Logement"
     }
   },
   settings: {

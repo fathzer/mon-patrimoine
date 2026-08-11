@@ -8,12 +8,28 @@ export class BasePlacementEditor {
 
   render(placement = null) {
     this.container.innerHTML = `
+      ${this._renderBeforeInstitution(placement)}
+      ${this._renderInstitution(placement)}
+      ${this._renderAfterInstitution(placement)}
+    `;
+    this._bindEvents();
+  }
+
+  _renderBeforeInstitution(placement) {
+    return '';
+  }
+
+  _renderInstitution(placement) {
+    return `
       <div class="form-group">
         <label>${I18n.t('form.institution')}</label>
         <input type="text" name="institution" class="form-control" value="${placement?.institution || ''}" required />
       </div>
     `;
-    this._bindEvents();
+  }
+
+  _renderAfterInstitution(placement) {
+    return '';
   }
 
   _bindEvents() {
