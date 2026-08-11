@@ -12,7 +12,9 @@ export const fr = {
   summary: {
     totalGross: "Patrimoine Brut",
     totalNet: "Patrimoine Net Estimé",
-    breakdownTitle: "Répartition par classe d'actifs"
+    breakdownTitle: "Répartition par classe d'actifs",
+    gross: "Brut",
+    net: "Net"
   },
   categories: {
     bank_accounts: "Comptes courants",

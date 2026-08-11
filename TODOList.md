@@ -8,3 +8,5 @@
 
 ## Ajout de test case pour les calculs de prélèvements
 
+## Ajout d'autres StorageProvider (pCLoud, One Drive, etc...)
+
