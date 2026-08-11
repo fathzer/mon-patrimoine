@@ -12,10 +12,20 @@
 
 body {
   margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   font-family: 'Inter', sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
   font-size: 14px;
+}
+
+#app-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 
 .top-bar {
@@ -25,6 +35,7 @@ body {
   padding: 1rem 2rem;
   border-bottom: 1px solid var(--card-border);
   background: var(--card-bg);
+  flex-shrink: 0;
 }
 
 .top-bar h1 {
@@ -35,8 +46,14 @@ body {
 
 .main-content {
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 
 .auth-lock-screen {
@@ -66,6 +83,7 @@ body {
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 2rem;
+  flex-shrink: 0;
 }
 
 .totals-group {
@@ -119,6 +137,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .filters-bar {
@@ -185,7 +204,11 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  overflow: hidden;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .asset-table {
@@ -195,13 +218,16 @@ body {
 }
 
 .asset-table th {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--card-bg);
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.8rem;
   text-transform: uppercase;
   padding: 1rem;
   border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .asset-table td {
