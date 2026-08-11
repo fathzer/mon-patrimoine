@@ -1,3 +1,4 @@
+import { I18n } from './core/I18n.js';
 import { StorageManager } from './storage/StorageManager.js';
 import { AppStore } from './core/AppStore.js';
 import { DashboardView } from './ui/DashboardView.js';
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   store.on('state:changed', (summary) => dashboard.render(summary));
   store.on('state:loading', (isLoading) => dashboard.showLoading(isLoading));
+  store.on('save:error', () => window.alert(I18n.t('alerts.saveError')));
 
   await store.init();
 });

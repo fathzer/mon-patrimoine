@@ -57,37 +57,40 @@ export class AppStore extends EventBus {
     this.emit('state:changed', this.getGlobalSummary());
   }
 
-  async addPlacement(placementData) {
+  addPlacement(placementData) {
     const instance = PlacementFactory.create(placementData);
     this.state.placements.push(instance);
-    await this._persistAndEmit();
+    this._persistAndEmit();
   }
 
-  async updatePlacement(id, placementData) {
+  updatePlacement(id, placementData) {
     const index = this.state.placements.findIndex(p => p.id === id);
     if (index !== -1) {
       this.state.placements[index] = PlacementFactory.create({ ...placementData, id });
-      await this._persistAndEmit();
+      this._persistAndEmit();
     }
   }
 
-  async deletePlacement(id) {
+  deletePlacement(id) {
     this.state.placements = this.state.placements.filter(p => p.id !== id);
-    await this._persistAndEmit();
+    this._persistAndEmit();
   }
 
-  async _persistAndEmit() {
+  _persistAndEmit() {
     const payload = {
       version: "1.0",
       taxProfile: this.state.taxProfile,
       placements: this.state.placements.map(p => p.toJSON())
     };
-    try {
-      await this.storageManager.save(payload);
-      console.log('Data successfully saved:', payload);
-    } catch (error) {
-      console.error('Failed to save data:', error);
-    }
+    this.storageManager.save(payload)
+      .then((ok) => {
+        if (!ok) throw new Error('Storage reported a failed save');
+        console.log('Data successfully saved:', payload);
+      })
+      .catch((error) => {
+        console.error('Failed to save data:', error);
+        this.emit('save:error', error);
+      });
     const globalSummary = this.getGlobalSummary();
     console.log('Emitting state:changed with:', globalSummary);
     this.emit('state:changed', globalSummary);
@@ -143,13 +146,13 @@ export class AppStore extends EventBus {
     return this.state.taxProfile;
   }
 
-  async updateTaxProfile(newTaxProfile) {
+  updateTaxProfile(newTaxProfile) {
     this.state.taxProfile = {
       ...this.getTaxProfile(),
       ...newTaxProfile
     };
 
-    await this._persistAndEmit();
+    this._persistAndEmit();
   }
 
   _getDefaultData() {

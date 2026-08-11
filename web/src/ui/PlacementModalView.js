@@ -109,13 +109,13 @@ export class PlacementModalView {
     this.container.querySelector('#btn-cancel')?.addEventListener('click', () => this.container.innerHTML = '');
 
     if (isEdit) {
-      this.container.querySelector('#btn-delete')?.addEventListener('click', async () => {
-        await this.store.deletePlacement(placement.id);
+      this.container.querySelector('#btn-delete')?.addEventListener('click', () => {
+        this.store.deletePlacement(placement.id);
         this.container.innerHTML = '';
       });
     }
 
-    this.container.querySelector('#asset-form')?.addEventListener('submit', async (e) => {
+    this.container.querySelector('#asset-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const type = isEdit ? placement.type : this.container.querySelector('#type-select').value;
       const editorData = this._editor ? this._editor.getData() : {};
@@ -126,9 +126,9 @@ export class PlacementModalView {
       };
 
       if (isEdit) {
-        await this.store.updatePlacement(placement.id, data);
+        this.store.updatePlacement(placement.id, data);
       } else {
-        await this.store.addPlacement(data);
+        this.store.addPlacement(data);
       }
       this.container.innerHTML = '';
     });

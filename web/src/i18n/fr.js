@@ -70,6 +70,9 @@ export const fr = {
       home_savings: "Épargne Logement"
     }
   },
+  alerts: {
+    saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées."
+  },
   settings: {
     title: "Réglages - Profil Fiscal",
     familySection: "Situation Familiale & Foyer Fiscal",
