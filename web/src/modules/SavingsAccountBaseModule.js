@@ -1,5 +1,6 @@
 import { BasePlacement } from './BasePlacement.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
 
 export class SavingsAccountBaseModule extends BasePlacement {
@@ -17,12 +18,16 @@ export class SavingsAccountBaseModule extends BasePlacement {
     const totalInterest = this.interestAmount + this.promotionalInterest;
     const grossValue = this.currentValue + totalInterest;
     const socialCharges = this.taxExempt ? 0 : totalInterest * FISCAL_RATES.CSG_CRDS;
+    const imposition = this.taxExempt
+      ? 0
+      : TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest });
 
     return {
       grossValue,
       netValueBeforeIR: grossValue - socialCharges,
       socialCharges,
-      latentGain: totalInterest
+      latentGain: totalInterest,
+      imposition
     };
   }
 

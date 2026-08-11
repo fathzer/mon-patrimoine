@@ -1,5 +1,6 @@
 import { BasePlacement } from './BasePlacement.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
 import { PeaEditor } from '../ui/editors/PeaEditor.js';
 
@@ -21,12 +22,16 @@ export class PeaModule extends BasePlacement {
     const latentGain = Math.max(0, this.currentValue - this.totalDeposits);
     const ageInYears = Math.abs(now - new Date(this.openingDate)) / (1000 * 60 * 60 * 24 * 365.25);
     const socialCharges = latentGain * FISCAL_RATES.CSG_CRDS;
+    const imposition = ageInYears < 5
+      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain })
+      : 0;
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain
+      latentGain,
+      imposition
     };
   }
 

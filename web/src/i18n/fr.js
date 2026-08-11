@@ -37,6 +37,8 @@ export const fr = {
     assetHeader: "Actif / Établissement",
     categoryHeader: "Catégorie",
     grossHeader: "Valeur Brute",
+    socialHeader: "Prélmts Sociaux",
+    taxHeader: "Impôts",
     netHeader: "Valeur Nette Est."
   },
   form: {

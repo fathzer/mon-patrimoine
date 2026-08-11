@@ -1,6 +1,7 @@
 import { SavingsAccountBaseModule } from './SavingsAccountBaseModule.js';
 import { HomeSavingsEditor } from '../ui/editors/HomeSavingsEditor.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 
 const CSG_2018_THRESHOLD = new Date('2018-01-01T00:00:00');
 
@@ -23,11 +24,24 @@ export class HomeSavingsModule extends SavingsAccountBaseModule {
     const socialRate = this._getSocialChargesRate(now);
     const socialCharges = totalInterest * socialRate;
 
+    const openingDate = new Date(this.openingDate);
+    const openingMidnight = new Date(openingDate.getFullYear(), openingDate.getMonth(), openingDate.getDate());
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const twelfthAnniversary = new Date(openingMidnight);
+    twelfthAnniversary.setFullYear(twelfthAnniversary.getFullYear() + 12);
+
+    const isPfuEligible = openingMidnight >= CSG_2018_THRESHOLD
+      || (this.homeSavingsType === 'pel' && nowMidnight > twelfthAnniversary);
+    const imposition = isPfuEligible
+      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest })
+      : 0;
+
     return {
       grossValue,
       netValueBeforeIR: grossValue - socialCharges,
       socialCharges,
-      latentGain: totalInterest
+      latentGain: totalInterest,
+      imposition
     };
   }
 

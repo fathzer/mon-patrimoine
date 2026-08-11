@@ -31,8 +31,11 @@ export class AssetTableView {
             <tr>
               <th>${I18n.t('table.assetHeader')}</th>
               <th>${I18n.t('table.categoryHeader')}</th>
-              <th>${I18n.t('table.grossHeader')}</th>
-              <th>${I18n.t('table.netHeader')}</th>
+              <th style="text-align: right;">${I18n.t('table.grossHeader')}</th>
+              <th style="text-align: right;">${I18n.t('table.socialHeader')}</th>
+              <th style="text-align: right;">${I18n.t('table.taxHeader')}</th>
+              <th style="text-align: right;">${I18n.t('table.netHeader')}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -60,7 +63,7 @@ export class AssetTableView {
       : evaluations.filter(e => e.instance.getCategory() === this.selectedCategory);
 
     if (!filtered || filtered.length === 0) {
-      return `<tr><td colspan="4" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
+      return `<tr><td colspan="7" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
     }
 
     return filtered.map(({ instance, evaluation }) => {
@@ -75,8 +78,11 @@ export class AssetTableView {
           ${institutionHtml}
         </td>
         <td><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
-        <td><strong>${this._formatCurrency(evaluation.grossValue)}</strong></td>
-        <td style="color: var(--accent);"><strong>${this._formatCurrency(evaluation.netValueBeforeIR)}</strong></td>
+        <td style="text-align: right;"><strong>${this._formatCurrency(evaluation.grossValue)}</strong></td>
+        <td style="text-align: right;">${this._formatCurrency(evaluation.socialCharges)}</td>
+        <td style="text-align: right;">${this._formatCurrency(evaluation.imposition)}</td>
+        <td style="text-align: right; color: var(--accent);"><strong>${this._formatCurrency(evaluation.netValueBeforeIR - (evaluation.imposition ?? 0))}</strong></td>
+        <td style="text-align: center;">${this._renderFiscalIcon(evaluation)}</td>
       </tr>
     `;
     }).join('');
@@ -107,7 +113,18 @@ export class AssetTableView {
   }
 
   _formatCurrency(amount) {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount || 0);
+    if (amount == null || amount === 0) {
+      return '';
+    }
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+  }
+
+  _renderFiscalIcon(evaluation) {
+    const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
+    if (evaluation.grossValue === netValue) {
+      return '';
+    }
+    return `<span style="cursor: help; color: var(--text-muted); font-weight: 600;">?</span>`;
   }
 
   _escapeHtml(str) {

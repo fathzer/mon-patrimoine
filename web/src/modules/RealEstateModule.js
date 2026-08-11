@@ -1,6 +1,7 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { RealEstateEditor } from '../ui/editors/RealEstateEditor.js';
 
 const STANDARD_SOCIAL_RATE = FISCAL_RATES.CSG_CRDS;
@@ -31,7 +32,8 @@ export class RealEstateModule extends BasePlacement {
         grossValue: this.currentValue,
         netValueBeforeIR: this.currentValue,
         socialCharges: 0,
-        latentGain: 0
+        latentGain: 0,
+        imposition: 0
       };
     }
 
@@ -41,11 +43,18 @@ export class RealEstateModule extends BasePlacement {
     const taxableGain = gain * (1 - reductionRate);
     const socialCharges = taxableGain * STANDARD_SOCIAL_RATE;
 
+    const irReductionRate = holdingYears <= 5 ? 0 : Math.min((holdingYears - 5) * 0.06, 1);
+    const irBase = gain * (1 - irReductionRate);
+    const imposition = irBase > 0
+      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: irBase, tauxSpecifique: 0.19 })
+      : 0;
+
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain: gain
+      latentGain: gain,
+      imposition
     };
   }
 

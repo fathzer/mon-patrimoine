@@ -20,7 +20,8 @@ export class CheckingAccountModule extends BasePlacement {
       grossValue: this.currentValue,
       netValueBeforeIR: Math.max(0, this.currentValue - this.cardBalance),
       socialCharges: 0,
-      latentGain: 0
+      latentGain: 0,
+      imposition: 0
     };
   }
 
