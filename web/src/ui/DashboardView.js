@@ -28,6 +28,12 @@ export class DashboardView {
       <header class="top-bar">
         <h1>${I18n.t('app.title')}</h1>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="btn-import" class="btn-secondary" title="${I18n.t('actions.import')}" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
+            📥
+          </button>
+          <button id="btn-export" class="btn-secondary" title="${I18n.t('actions.export')}" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
+            📤
+          </button>
           <button id="btn-settings" class="btn-secondary" title="Réglages du profil fiscal" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
             ⚙️
           </button>
@@ -37,6 +43,8 @@ export class DashboardView {
           <button id="btn-logout" class="btn-secondary">${I18n.t('auth.logoutBtn')}</button>
         </div>
       </header>
+
+      <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
       <main class="main-content">
         <section class="summary-banner">
@@ -152,6 +160,17 @@ export class DashboardView {
   _bindEvents(summary) {
     this.container.querySelector('#btn-logout')?.addEventListener('click', () => this.store.logout());
 
+    this.container.querySelector('#btn-export')?.addEventListener('click', () => this._exportData());
+
+    this.container.querySelector('#btn-import')?.addEventListener('click', () => {
+      this.container.querySelector('#input-import')?.click();
+    });
+
+    this.container.querySelector('#input-import')?.addEventListener('change', (e) => {
+      this._importFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
     // Clic Réglages
     this.container.querySelector('#btn-settings')?.addEventListener('click', () => {
       const modalRoot = this.container.querySelector('#modal-root');
@@ -188,6 +207,34 @@ export class DashboardView {
     const modalRoot = this.container.querySelector('#modal-root');
     const placementModal = new PlacementModalView(modalRoot, this.store);
     placementModal.show(placement);
+  }
+
+  _exportData() {
+    const payload = this.store.getExportPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'patrimoine_data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  _importFile(file) {
+    if (!file) return;
+    file.text()
+      .then(rawData => {
+        try {
+          this.store.importData(JSON.parse(rawData));
+        } catch (error) {
+          console.error('Import failed:', error);
+          window.alert(I18n.t('alerts.importError'));
+        }
+      })
+      .catch((error) => {
+        console.error('Import failed:', error);
+        window.alert(I18n.t('alerts.importError'));
+      });
   }
 
   formatCurrency(amount) {

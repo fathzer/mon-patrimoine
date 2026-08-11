@@ -76,12 +76,16 @@ export class AppStore extends EventBus {
     this._persistAndEmit();
   }
 
-  _persistAndEmit() {
-    const payload = {
+  getExportPayload() {
+    return {
       version: "1.0",
       taxProfile: this.state.taxProfile,
       placements: this.state.placements.map(p => p.toJSON())
     };
+  }
+
+  _persistAndEmit() {
+    const payload = this.getExportPayload();
     this.storageManager.save(payload)
       .then((ok) => {
         if (!ok) throw new Error('Storage reported a failed save');
@@ -152,6 +156,11 @@ export class AppStore extends EventBus {
       ...newTaxProfile
     };
 
+    this._persistAndEmit();
+  }
+
+  importData(rawData) {
+    this._hydrateState(rawData);
     this._persistAndEmit();
   }
 

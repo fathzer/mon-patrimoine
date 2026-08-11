@@ -26,7 +26,9 @@ export const fr = {
     addAsset: "+ Ajouter un actif",
     save: "Enregistrer",
     cancel: "Annuler",
-    delete: "Supprimer"
+    delete: "Supprimer",
+    "import": "Importer",
+    "export": "Exporter"
   },
   table: {
     assetHeader: "Actif / Établissement",
@@ -71,7 +73,8 @@ export const fr = {
     }
   },
   alerts: {
-    saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées."
+    saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",
+    importError: "Le fichier sélectionné n'est pas valide ou n'a pas pu être lu."
   },
   settings: {
     title: "Réglages - Profil Fiscal",
