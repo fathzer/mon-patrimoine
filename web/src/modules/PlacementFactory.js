@@ -2,12 +2,14 @@ import { CheckingAccountModule } from './CheckingAccountModule.js';
 import { PeaModule } from './PeaModule.js';
 import { SavingsAccountModule } from './SavingsAccountModule.js';
 import { HomeSavingsModule } from './HomeSavingsModule.js';
+import { RealEstateModule } from './RealEstateModule.js';
 
 const MODULE_REGISTRY = {
   checking_account: CheckingAccountModule,
   pea: PeaModule,
   savings_account: SavingsAccountModule,
-  home_savings: HomeSavingsModule
+  home_savings: HomeSavingsModule,
+  real_estate: RealEstateModule
 };
 
 export class PlacementFactory {

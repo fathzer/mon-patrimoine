@@ -19,7 +19,8 @@ export const fr = {
   categories: {
     bank_accounts: "Comptes courants",
     investments: "Investissements",
-    saving_accounts: "Livrets"
+    saving_accounts: "Livrets",
+    real_estate: "Immobilier"
   },
   filters: {
     all: "Tous les actifs"
@@ -67,11 +68,16 @@ export const fr = {
     homeSavingsType: "Type d'épargne logement",
     pel: "PEL",
     cel: "CEL",
+    primaryResidence: "Résidence principale",
+    acquisitionDate: "Date d'acquisition",
+    acquisitionPrice: "Prix d'acquisition (€)",
+    multiplePrimaryResidenceWarning: "Attention : une autre résidence principale est déjà déclarée.",
     types: {
       checking_account: "Compte Courant",
       pea: "PEA",
       savings_account: "Livret",
-      home_savings: "Épargne Logement"
+      home_savings: "Épargne Logement",
+      real_estate: "Immobilier"
     }
   },
   alerts: {

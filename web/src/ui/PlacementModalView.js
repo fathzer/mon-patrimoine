@@ -22,6 +22,7 @@ export class PlacementModalView {
                 <option value="checking_account" ${placement?.type === 'checking_account' ? 'selected' : ''}>${I18n.t('form.types.checking_account')}</option>
                 <option value="savings_account" ${placement?.type === 'savings_account' ? 'selected' : ''}>${I18n.t('form.types.savings_account')}</option>
                 <option value="home_savings" ${placement?.type === 'home_savings' ? 'selected' : ''}>${I18n.t('form.types.home_savings')}</option>
+                <option value="real_estate" ${placement?.type === 'real_estate' ? 'selected' : ''}>${I18n.t('form.types.real_estate')}</option>
                 <option value="pea" ${placement?.type === 'pea' ? 'selected' : ''}>${I18n.t('form.types.pea')}</option>
               </select>
             </div>
@@ -55,7 +56,7 @@ export class PlacementModalView {
     const currentType = isEdit ? placement.type : this.container.querySelector('#type-select')?.value || 'checking_account';
     const EditorClass = PlacementFactory.getEditorClass(currentType);
 
-    this._editor = new EditorClass(editorContainer);
+    this._editor = new EditorClass(editorContainer, this.store);
     this._editor.render(placement);
     this._editor.onValidityChange(() => this._updateSubmitState());
   }
