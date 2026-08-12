@@ -49,6 +49,9 @@ export const fr = {
     typeLabel: "Type de placement",
     category: "Catégorie",
     currentValue: "Valeur actuelle (€)",
+    currentCtoValue: "Valeur totale actuelle, y compris le solde espèces (€)",
+    acquisitionValue: "Valeur d'acquisition (€)",
+    cashBalance: "Solde espèces (€)",
     cardBalance: "En cours carte (€)",
     totalDeposits: "Total des versements (€)",
     openingDate: "Date d'ouverture",
@@ -77,6 +80,7 @@ export const fr = {
     types: {
       checking_account: "Compte Courant",
       pea: "PEA",
+      cto: "Compte-Titres Ordinaire",
       savings_account: "Livret",
       home_savings: "Épargne Logement",
       real_estate: "Immobilier"
