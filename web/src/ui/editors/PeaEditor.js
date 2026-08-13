@@ -1,5 +1,6 @@
 import { BasePlacementEditor } from './BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
+import { getPeaTaxExplanation } from '../../i18n/peaTaxExplanation.js';
 
 export class PeaEditor extends BasePlacementEditor {
   render(placement = null) {
@@ -46,5 +47,9 @@ export class PeaEditor extends BasePlacementEditor {
       totalDeposits: Number(this.container.querySelector('input[name="totalDeposits"]')?.value) || 0,
       openingDate: this.container.querySelector('input[name="openingDate"]')?.value || ''
     };
+  }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return getPeaTaxExplanation(placement, fiscalProfile);
   }
 }

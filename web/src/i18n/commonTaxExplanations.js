@@ -1,4 +1,8 @@
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { HelpPopover } from '../ui/HelpPopover.js';
+
+HelpPopover.register('help-pfu', (fiscalProfile) => getPfuExplanation(fiscalProfile));
+HelpPopover.register('help-gains-latents', () => 'Le gain latent est la différence entre la valeur actuelle d\'un placement et le total des versements effectués.');
 
 export function getPfuExplanation(fiscalProfile) {
   const pfuRate = (FISCAL_RATES.PFU_IR_RATE * 100).toFixed(1);
@@ -16,14 +20,15 @@ export function getPfuExplanation(fiscalProfile) {
 <p>Dans votre cas, l'impôt sur le revenu est calculé ${incomeTaxWording}.</p>`;
 }
 
-export function getTaxDisclaimer() {
+export function getTaxDisclaimer(extraContent = '') {
   return getWarning(`
     <p>
       Cette application ne met pas en œuvre un moteur d'imposition au barème complet. Les calculs fiscaux présentés sont simplifiés et approximatifs.
     </p>
     <p>
-      Ils ne tiennent pas compte de l'ensemble des règles, abattements, seuils ou situations particulières applicables à votre situation. Ils ne peuvent en aucun cas se substituer à un avis fiscal personnalisé.
+      Ils sont calculés indépendamment de vos autres revenus de placement et ne tiennent pas compte de l'ensemble des règles, abattements, seuils globaux ou situations particulières applicables à votre situation. Ils ne peuvent en aucun cas se substituer à un avis fiscal personnalisé.
     </p>
+    ${extraContent}
   `);
 }
 
@@ -34,4 +39,12 @@ export function getWarning(content) {
     ${content}
   </div>
 </section>`;
+}
+
+export function getPfuHelpPopover(fiscalProfile, label = 'PFU') {
+  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: fiscalProfile });
+}
+
+export function getLatentGainsHelpPopover(label = 'gain latent') {
+  return HelpPopover.getHtml({ contentKey: 'help-gains-latents', label });
 }
