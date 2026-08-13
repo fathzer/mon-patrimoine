@@ -1,7 +1,7 @@
-import { getPfuExplanation, getTaxDisclaimer } from './commonTaxExplanations.js';
+import { getTaxDisclaimer, getPfuHelpPopover, formatPercentage } from './commonTaxExplanations.js';
 
 export function getSavingsAccountTaxExplanation(placement, fiscalProfile) {
-  const socialRate = (placement.getSocialChargesRate() * 100).toFixed(1);
+  const socialRate = formatPercentage(placement.getSocialChargesRate());
   const taxExempt = placement.taxExempt !== false;
   const taxDisclaimer = fiscalProfile?.usePfu ? '' : getTaxDisclaimer();
 
@@ -19,11 +19,10 @@ export function getSavingsAccountTaxExplanation(placement, fiscalProfile) {
   <h2>Livret d'épargne</h2>
   <p>Ce placement est soumis à l'impôt sur le revenu et aux prélèvements sociaux sur la base des intérêts bruts de l'année.</p>
   <h3>Prélèvements sociaux</h3>
-  <p>Les intérêts sont soumis aux prélèvements sociaux au taux de ${socialRate}%.</p>
+  <p>Les intérêts sont soumis aux prélèvements sociaux au taux de ${socialRate}.</p>
 
   <h3>Imposition à l'impôt sur le revenu</h3>
-  <p>Les intérêts sont soumis à l'impôt sur le revenu.</p>
-  ${getPfuExplanation(fiscalProfile)}
+  <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover()}.</p>
   ${taxDisclaimer}
 </div>
 `;

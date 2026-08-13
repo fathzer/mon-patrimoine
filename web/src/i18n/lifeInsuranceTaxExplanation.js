@@ -1,5 +1,5 @@
 import { FISCAL_RATES } from '../fiscality/rates.js';
-import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover } from './commonTaxExplanations.js';
+import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage } from './commonTaxExplanations.js';
 
 const UC_SOCIAL_RATE = FISCAL_RATES.OLD_CSG_CRDS * 100;
 const PFU_BEFORE_8Y = FISCAL_RATES.PFU_IR_RATE * 100;
@@ -14,9 +14,9 @@ const REFORM_DATE = '27/09/2017';
 export function getLifeInsuranceTaxExplanation(placement, fiscalProfile) {
   const years = placement.getContractYears(new Date());
   const pre2017 = placement.isPre2017Contract();
-  const socialRate = UC_SOCIAL_RATE.toFixed(1);
-  const pfuLow = PFU_AFTER_8Y_LOW.toFixed(1);
-  const pfuHigh = PFU_AFTER_8Y_HIGH.toFixed(1);
+  const socialRate = formatPercentage(UC_SOCIAL_RATE);
+  const pfuLow = formatPercentage(PFU_AFTER_8Y_LOW);
+  const pfuHigh = formatPercentage(PFU_AFTER_8Y_HIGH);
   const allowance = fiscalProfile?.maritalStatus === 'single' ? ALLOWANCE_SINGLE : ALLOWANCE_COUPLE;
   const incomeTaxWording = fiscalProfile?.usePfu
     ? 'au Prélèvement Forfaitaire Unique (PFU)'
@@ -26,7 +26,7 @@ export function getLifeInsuranceTaxExplanation(placement, fiscalProfile) {
 <div class="tax-explanation">
   <h2>Assurance-vie</h2>
   <h3>Prélèvements sociaux</h3>
-  <p>Les prélèvements sociaux bénéficient d'un taux de ${socialRate}% appliqué sur le ${getLatentGainsHelpPopover()}.</p>
+  <p>Les prélèvements sociaux bénéficient d'un taux de ${socialRate} appliqué sur le ${getLatentGainsHelpPopover()}.</p>
   <ul>
     <li>Les prélèvements sociaux sur les supports en UC sont effectués au moment de la liquidation.</li>
     <li>Pour les fonds en euros, les prélèvements sont effectués chaque année par l'assureur. Au moment de la liquidation, seuls sont dus les prélèvements sur les gains de l'année en cours.</li>
@@ -38,8 +38,8 @@ export function getLifeInsuranceTaxExplanation(placement, fiscalProfile) {
   <p>Les contrats de plus de 8 ans bénéficient :
     <ul>
       <li>d'un abattement annuel de ${ALLOWANCE_SINGLE.toLocaleString('fr-FR')} € pour une personne seule et ${ALLOWANCE_COUPLE.toLocaleString('fr-FR')} € pour un couple. Ce montant est déduit de la base imposable.</li>
-      <li>d'un taux de PFU réduit à ${pfuLow}% pour tous les versements effectués avant le ${REFORM_DATE}. Les versements ultérieurs bénéficient de ce taux réduit dans la limite de ${PREMIUM_THRESHOLD.toLocaleString('fr-FR')} €.
-      <br>Au delà de ce plafond, le taux normal de PFU de ${pfuHigh}% s'applique.</li>
+      <li>d'un taux de PFU réduit à ${pfuLow} pour tous les versements effectués avant le ${REFORM_DATE}. Les versements ultérieurs bénéficient de ce taux réduit dans la limite de ${PREMIUM_THRESHOLD.toLocaleString('fr-FR')} €.
+      <br>Au delà de ce plafond, le taux normal de PFU de ${pfuHigh} s'applique.</li>
     </ul>
   </p>
 

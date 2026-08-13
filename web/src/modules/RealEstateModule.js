@@ -4,10 +4,12 @@ import { FISCAL_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { RealEstateEditor } from '../ui/editors/RealEstateEditor.js';
 
-const STANDARD_SOCIAL_RATE = FISCAL_RATES.CSG_CRDS;
+const STANDARD_SOCIAL_RATE = FISCAL_RATES.OLD_CSG_CRDS;
 const YEAR_6_21_REDUCTION = 0.0165;
 const YEAR_22_REDUCTION = 0.016;
 const YEAR_23_30_REDUCTION = 0.09;
+const INCOME_TAX_RATE = 0.19;
+const INCOME_TAX_REDUCTION_RATE = 0.06;
 const REDUCTION_AT_21 = 16 * YEAR_6_21_REDUCTION;
 const REDUCTION_AT_22 = REDUCTION_AT_21 + YEAR_22_REDUCTION;
 
@@ -84,7 +86,31 @@ export class RealEstateModule extends BasePlacement {
 
   getIncomeTaxReduction(years) {
     if (years <= 5) return 0;
-    return Math.min((years - 5) * 0.06, 1);
+    return Math.min((years - 5) * INCOME_TAX_REDUCTION_RATE, 1);
+  }
+
+  getSocialChargesRate() {
+    return STANDARD_SOCIAL_RATE;
+  }
+
+  getIncomeTaxRate() {
+    return INCOME_TAX_RATE;
+  }
+
+  getIncomeTaxReductionRate() {
+    return INCOME_TAX_REDUCTION_RATE;
+  }
+
+  getYear6To21ReductionRate() {
+    return YEAR_6_21_REDUCTION;
+  }
+
+  getYear22ReductionRate() {
+    return YEAR_22_REDUCTION;
+  }
+
+  getYear23To30ReductionRate() {
+    return YEAR_23_30_REDUCTION;
   }
 
   toJSON() {

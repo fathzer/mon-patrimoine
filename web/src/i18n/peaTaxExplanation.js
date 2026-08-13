@@ -1,9 +1,12 @@
-import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover } from './commonTaxExplanations.js';
+import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning } from './commonTaxExplanations.js';
 
 export function getPeaTaxExplanation(placement, fiscalProfile) {
   const years = placement.getHoldingYears(new Date());
   const exemptFromIncomeTax = placement.isExemptFromIncomeTax(new Date());
-  const socialRate = (placement.getSocialChargesRate() * 100).toFixed(2);
+  const socialRate = formatPercentage(placement.getSocialChargesRate());
+  const pre2018Warning = placement.isPre2018()
+    ? getWarning("<p>Pour les PEA ouverts avant 2018, comme celui-ci, les prélèvements sociaux peuvent dépendre de la date d'acquisition des gains et de taux historiques. Le montant calculé ici peut donc différer du montant réellement dû.</p>")
+    : '';
 
   let incomeTaxSection;
   if (exemptFromIncomeTax) {
@@ -21,7 +24,8 @@ export function getPeaTaxExplanation(placement, fiscalProfile) {
   <h2>Plan d'Épargne en Actions (PEA)</h2>
 
   <h3>Prélèvements sociaux</h3>
-  <p>Le ${getLatentGainsHelpPopover()} est soumis aux prélèvements sociaux au taux de ${socialRate}%.</p>
+  <p>Le ${getLatentGainsHelpPopover()} est soumis aux prélèvements sociaux au taux de ${socialRate}.</p>
+  ${pre2018Warning}
 
   <h3>Imposition à l'impôt sur le revenu</h3>
   <p>L'imposition d'un PEA dépend de l'ancienneté du contrat :</p>

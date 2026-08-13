@@ -33,12 +33,16 @@ export class PeaModule extends BasePlacement {
     return this.getHoldingYears(now) >= 5;
   }
 
+  isPre2018() {
+    return this.openingDate && this.openingDate < '2018-01-01';
+  }
+
   getLatentGain() {
     return Math.max(0, this.currentValue - this.totalDeposits);
   }
 
   getSocialChargesRate() {
-    return FISCAL_RATES.OLD_CSG_CRDS;
+    return FISCAL_RATES.CSG_CRDS;
   }
 
   getSocialCharges() {
