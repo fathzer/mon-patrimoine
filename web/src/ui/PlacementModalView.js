@@ -1,5 +1,6 @@
 import { I18n } from '../core/I18n.js';
 import { PlacementFactory } from '../modules/PlacementFactory.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
 
 export class PlacementModalView {
   constructor(container, store) {
@@ -112,9 +113,11 @@ export class PlacementModalView {
     this.container.querySelector('#btn-cancel')?.addEventListener('click', () => this.container.innerHTML = '');
 
     if (isEdit) {
-      this.container.querySelector('#btn-delete')?.addEventListener('click', () => {
-        this.store.deletePlacement(placement.id);
-        this.container.innerHTML = '';
+      this.container.querySelector('#btn-delete')?.addEventListener('click', async () => {
+        if (await ConfirmDialog.ask(I18n.t('actions.confirmDelete'), this.container)) {
+          this.store.deletePlacement(placement.id);
+          this.container.innerHTML = '';
+        }
       });
     }
 

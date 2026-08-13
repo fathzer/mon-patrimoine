@@ -31,6 +31,7 @@ export const fr = {
     save: "Enregistrer",
     cancel: "Annuler",
     delete: "Supprimer",
+    confirmDelete: "Êtes-vous sûr de vouloir supprimer ce placement ?",
     "import": "Importer",
     "export": "Exporter"
   },

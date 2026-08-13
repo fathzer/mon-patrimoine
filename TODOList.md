@@ -5,6 +5,8 @@
 
 ## Prendre en compte les frais d'acquisition et les travaux dans les résidences secondaires.
 
+## Amélioration des possibilités de tri et de filtre des placements
+
 ## Ajout de nouveaux types de comptes (PERECO, actions gratuites, etc ...)
 
 ## Faire une revue complète des taux de prélèvements sociaux, il semble qu'on ne puisse avoir auune confiance en ChatGPT en la matière' :-(

@@ -16,9 +16,10 @@ export class CheckingAccountModule extends BasePlacement {
   }
 
   getEvaluation() {
+    const grossValue = this.currentValue - this.cardBalance;
     return {
-      grossValue: this.currentValue,
-      netValueBeforeIR: Math.max(0, this.currentValue - this.cardBalance),
+      grossValue: grossValue,
+      netValueBeforeIR: grossValue,
       socialCharges: 0,
       latentGain: 0,
       imposition: 0
