@@ -394,11 +394,11 @@ body {
   border-radius: 6px;
 }
 
-.help-disclaimer-text {
+.help-disclaimer-box p {
   margin: 0 0 0.5rem 0;
 }
 
-.help-disclaimer-text:last-child {
+.help-disclaimer-box p:last-child {
   margin: 0;
 }
 

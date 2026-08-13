@@ -1,5 +1,6 @@
 import { BasePlacementEditor } from './BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
+import { getCtoTaxExplanation } from '../../i18n/ctoTaxExplanation.js';
 
 export class CtoEditor extends BasePlacementEditor {
   _renderAfterInstitution(placement) {
@@ -40,5 +41,9 @@ export class CtoEditor extends BasePlacementEditor {
       acquisitionValue: Number(this.container.querySelector('input[name="acquisitionValue"]')?.value) || 0,
       cashBalance: Number(this.container.querySelector('input[name="cashBalance"]')?.value) || 0
     };
+  }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return getCtoTaxExplanation(fiscalProfile);
   }
 }

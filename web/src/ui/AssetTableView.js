@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { PlacementFactory } from '../modules/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
 
 export class AssetTableView {
@@ -82,7 +83,7 @@ export class AssetTableView {
         <td style="text-align: right;">${this._formatCurrency(evaluation.socialCharges)}</td>
         <td style="text-align: right;">${this._formatCurrency(evaluation.imposition)}</td>
         <td style="text-align: right; color: var(--accent);"><strong>${this._formatCurrency(evaluation.netValueBeforeIR - (evaluation.imposition ?? 0))}</strong></td>
-        <td style="text-align: center;">${this._renderFiscalIcon(evaluation)}</td>
+        <td style="text-align: center;">${this._renderFiscalIcon(evaluation, instance)}</td>
       </tr>
     `;
     }).join('');
@@ -102,13 +103,60 @@ export class AssetTableView {
     });
 
     this.container.querySelectorAll('.asset-row').forEach(row => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.tax-help-btn')) return;
         const item = this.summary.evaluations.find(e => e.instance.id === row.dataset.id);
         if (item) {
           const placementModal = new PlacementModalView(this.modalRoot, this.store);
           placementModal.show(item.instance);
         }
       });
+    });
+
+    this.container.querySelectorAll('.tax-help-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = this.summary.evaluations.find(ev => ev.instance.id === btn.dataset.id);
+        if (item) {
+          this._showTaxExplanation(item);
+        }
+      });
+    });
+  }
+
+  _showTaxExplanation(item) {
+    const EditorClass = PlacementFactory.getEditorClass(item.instance.type);
+    const tempContainer = document.createElement('div');
+    const editor = new EditorClass(tempContainer, this.store);
+    let content;
+    try {
+      content = editor.buildTaxExplanation(item.instance, this.store.getTaxProfile());
+    } catch {
+      content = '<p class="text-muted">Tax explanation is not available for this placement type yet.</p>';
+    }
+
+    this.modalRoot.innerHTML = `
+      <div class="modal-overlay">
+        <div class="modal-content help-modal-content">
+          <h2>${I18n.t('taxExplanation.title')}</h2>
+          <div class="help-modal-body">
+            ${content}
+          </div>
+          <div class="modal-actions help-modal-footer">
+            <button type="button" id="btn-close-tax" class="btn-primary">${I18n.t('form.closeCalculator')}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const close = () => {
+      this.modalRoot.innerHTML = '';
+    };
+
+    this.modalRoot.querySelector('#btn-close-tax')?.addEventListener('click', close);
+    const overlay = this.modalRoot.querySelector('.modal-overlay');
+    overlay?.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
     });
   }
 
@@ -119,12 +167,12 @@ export class AssetTableView {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   }
 
-  _renderFiscalIcon(evaluation) {
+  _renderFiscalIcon(evaluation, instance) {
     const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
     if (evaluation.grossValue === netValue) {
       return '';
     }
-    return `<span style="cursor: help; color: var(--text-muted); font-weight: 600;">?</span>`;
+    return `<button type="button" class="tax-help-btn" data-id="${instance.id}" title="${I18n.t('taxExplanation.title')}" style="background: none; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer;">?</button>`;
   }
 
   _escapeHtml(str) {

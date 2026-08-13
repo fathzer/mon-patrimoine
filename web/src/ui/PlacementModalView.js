@@ -25,6 +25,7 @@ export class PlacementModalView {
                 <option value="real_estate" ${placement?.type === 'real_estate' ? 'selected' : ''}>${I18n.t('form.types.real_estate')}</option>
                 <option value="pea" ${placement?.type === 'pea' ? 'selected' : ''}>${I18n.t('form.types.pea')}</option>
                 <option value="cto" ${placement?.type === 'cto' ? 'selected' : ''}>${I18n.t('form.types.cto')}</option>
+                <option value="life_insurance" ${placement?.type === 'life_insurance' ? 'selected' : ''}>${I18n.t('form.types.life_insurance')}</option>
               </select>
             </div>
             <div class="form-group">

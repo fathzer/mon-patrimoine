@@ -56,4 +56,8 @@ export class BasePlacementEditor {
     const input = this.container.querySelector('input[name="institution"]');
     return { institution: input ? input.value : '' };
   }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    throw new Error('buildTaxExplanation() must be implemented by subclass');
+  }
 }

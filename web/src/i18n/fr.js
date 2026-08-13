@@ -20,6 +20,7 @@ export const fr = {
     bank_accounts: "Comptes courants",
     investments: "Investissements",
     saving_accounts: "Livrets",
+    life_insurance: "Assurance-vie",
     real_estate: "Immobilier"
   },
   filters: {
@@ -52,6 +53,10 @@ export const fr = {
     currentCtoValue: "Valeur totale actuelle, y compris le solde espèces (€)",
     acquisitionValue: "Valeur d'acquisition (€)",
     cashBalance: "Solde espèces (€)",
+    totalPremiums: "Total des primes versées (€)",
+    pre2017Premiums: "Primes versées avant le 27/09/2017 (€)",
+    euroFundsValue: "Valeur actuelle des fonds en euros (€)",
+    lifeInsuranceWarning: "Attention, le calcul des prélèvements sociaux et impôts est approximatif. Celui-ci dépend de l'historique des versements et arbitrages survenus au cours de la vie de votre assurance-vie",
     cardBalance: "En cours carte (€)",
     totalDeposits: "Total des versements (€)",
     openingDate: "Date d'ouverture",
@@ -83,7 +88,8 @@ export const fr = {
       cto: "Compte-Titres Ordinaire",
       savings_account: "Livret",
       home_savings: "Épargne Logement",
-      real_estate: "Immobilier"
+      real_estate: "Immobilier",
+      life_insurance: "Assurance-vie"
     }
   },
   alerts: {
@@ -112,5 +118,8 @@ export const fr = {
     pfuEnabled: "PFU (Flat Tax)",
     pfuDisabled: "Barème progressif de l'IR",
     pfuHint: "Le PFU applique un taux forfaitaire. Option par défaut, mais vous pouvez opter pour le barème progressif si plus avantageux. Ce barême ouvre aussi droit dans certains cas à déduction du revenu imposable de la CSG déductible "
+  },
+  taxExplanation: {
+    title: "Explication fiscale"
   }
 };

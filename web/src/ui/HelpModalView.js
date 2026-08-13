@@ -92,10 +92,10 @@ export class HelpModalView {
                 ⚠️ Limitation de responsabilité
               </h3>
               <div class="help-disclaimer-box">
-                <p class="help-disclaimer-text">
+                <p>
                   Cet outil est mis à disposition à titre purement indicatif et personnel afin d'aider à la simulation et au suivi de patrimoine.
                 </p>
-                <p class="help-disclaimer-text">
+                <p>
                   Malgré tout le soin apporté à la précision des algorithmes et des règles fiscales (PEA, CSG/CRDS, PFU...), des inexactitudes ou évolutions réglementaires peuvent survenir. Les estimations fournies ne constituent en aucun cas des conseils financiers, juridiques ou fiscaux officiels. L'auteur décline toute responsabilité quant à l'utilisation faite de ces données ou aux décisions financières qui en découleraient.
                 </p>
               </div>
