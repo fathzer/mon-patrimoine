@@ -38,12 +38,12 @@ export class RealEstateModule extends BasePlacement {
     }
 
     const gain = Math.max(0, this.currentValue - this.acquisitionPrice);
-    const holdingYears = this._getHoldingYears(now);
-    const reductionRate = this._getReductionRate(holdingYears);
+    const holdingYears = this.getHoldingYears(now);
+    const reductionRate = this.getReductionRate(holdingYears);
     const taxableGain = gain * (1 - reductionRate);
     const socialCharges = taxableGain * STANDARD_SOCIAL_RATE;
 
-    const irReductionRate = holdingYears <= 5 ? 0 : Math.min((holdingYears - 5) * 0.06, 1);
+    const irReductionRate = this.getIncomeTaxReduction(holdingYears);
     const irBase = gain * (1 - irReductionRate);
     const imposition = irBase > 0
       ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: irBase, tauxSpecifique: 0.19 })
@@ -58,7 +58,7 @@ export class RealEstateModule extends BasePlacement {
     };
   }
 
-  _getHoldingYears(now) {
+  getHoldingYears(now) {
     if (!this.acquisitionDate) return 0;
 
     const acquisition = new Date(this.acquisitionDate);
@@ -73,13 +73,18 @@ export class RealEstateModule extends BasePlacement {
     return Math.max(0, years);
   }
 
-  _getReductionRate(years) {
+  getReductionRate(years) {
     if (years <= 5) return 0;
     if (years <= 21) return Math.min((years - 5) * YEAR_6_21_REDUCTION, REDUCTION_AT_21);
 
     let reduction = REDUCTION_AT_22;
     reduction += Math.max(0, years - 22) * YEAR_23_30_REDUCTION;
     return Math.min(reduction, 1);
+  }
+
+  getIncomeTaxReduction(years) {
+    if (years <= 5) return 0;
+    return Math.min((years - 5) * 0.06, 1);
   }
 
   toJSON() {

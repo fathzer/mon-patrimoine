@@ -1,8 +1,8 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
 import { getPfuExplanation, getTaxDisclaimer, getLatentGainsHelpPopover } from './commonTaxExplanations.js';
 
-export function getCtoTaxExplanation(fiscalProfile) {
-  const socialRate = (FISCAL_RATES.CSG_CRDS * 100).toFixed(1);
+export function getCtoTaxExplanation(placement, fiscalProfile) {
+  const socialRate = (placement.getSocialChargesRate() * 100).toFixed(1);
+
   return `
 <div class="tax-explanation">
   <h3>Compte-titres ordinaire (CTO)</h3>

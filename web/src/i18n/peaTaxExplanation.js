@@ -1,23 +1,9 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
-import { getPfuExplanation, getTaxDisclaimer, getLatentGainsHelpPopover } from './commonTaxExplanations.js';
-
-function getContractYears(placement) {
-  if (!placement?.openingDate) return 0;
-  const now = new Date();
-  const opening = new Date(placement.openingDate);
-  let years = now.getFullYear() - opening.getFullYear();
-  const monthDiff = now.getMonth() - opening.getMonth();
-  const dayDiff = now.getDate() - opening.getDate();
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    years--;
-  }
-  return Math.max(0, years);
-}
+import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover } from './commonTaxExplanations.js';
 
 export function getPeaTaxExplanation(placement, fiscalProfile) {
-  const years = getContractYears(placement);
-  const socialRate = (FISCAL_RATES.CSG_CRDS * 100).toFixed(1);
-  const exemptFromIncomeTax = years >= 5;
+  const years = placement.getHoldingYears(new Date());
+  const exemptFromIncomeTax = placement.isExemptFromIncomeTax(new Date());
+  const socialRate = (placement.getSocialChargesRate() * 100).toFixed(2);
 
   let incomeTaxSection;
   if (exemptFromIncomeTax) {
@@ -29,6 +15,7 @@ export function getPeaTaxExplanation(placement, fiscalProfile) {
       ${taxDisclaimer}
     `;
   }
+
   return `
 <div class="tax-explanation">
   <h2>Plan d'Épargne en Actions (PEA)</h2>
@@ -39,7 +26,7 @@ export function getPeaTaxExplanation(placement, fiscalProfile) {
   <h3>Imposition à l'impôt sur le revenu</h3>
   <p>L'imposition d'un PEA dépend de l'ancienneté du contrat :</p>
   <ul>
-    <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu, selon le mode de taxation choisi (PFU ou barème progressif).</li>
+    <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</li>
     <li><b>Après 5 ans</b> : les gains sont exonérés d'impôt sur le revenu.</li>
   </ul>
   ${incomeTaxSection}

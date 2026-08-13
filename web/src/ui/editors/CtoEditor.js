@@ -44,6 +44,6 @@ export class CtoEditor extends BasePlacementEditor {
   }
 
   buildTaxExplanation(placement, fiscalProfile) {
-    return getCtoTaxExplanation(fiscalProfile);
+    return getCtoTaxExplanation(placement, fiscalProfile);
   }
 }

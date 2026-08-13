@@ -18,20 +18,50 @@ export class PeaModule extends BasePlacement {
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
   }
 
+  getHoldingYears(now = new Date()) {
+    const opening = new Date(this.openingDate);
+    let years = now.getFullYear() - opening.getFullYear();
+    const monthDiff = now.getMonth() - opening.getMonth();
+    const dayDiff = now.getDate() - opening.getDate();
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      years--;
+    }
+    return Math.max(0, years);
+  }
+
+  isExemptFromIncomeTax(now = new Date()) {
+    return this.getHoldingYears(now) >= 5;
+  }
+
+  getLatentGain() {
+    return Math.max(0, this.currentValue - this.totalDeposits);
+  }
+
+  getSocialChargesRate() {
+    return FISCAL_RATES.OLD_CSG_CRDS;
+  }
+
+  getSocialCharges() {
+    return this.getLatentGain() * this.getSocialChargesRate();
+  }
+
+  getImposition(fiscalProfile, now = new Date()) {
+    if (this.isExemptFromIncomeTax(now)) {
+      return 0;
+    }
+    const latentGain = this.getLatentGain();
+    return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain });
+  }
+
   getEvaluation(fiscalProfile, now = new Date()) {
-    const latentGain = Math.max(0, this.currentValue - this.totalDeposits);
-    const ageInYears = Math.abs(now - new Date(this.openingDate)) / (1000 * 60 * 60 * 24 * 365.25);
-    const socialCharges = latentGain * FISCAL_RATES.CSG_CRDS;
-    const imposition = ageInYears < 5
-      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain })
-      : 0;
+    const socialCharges = this.getSocialCharges();
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain,
-      imposition
+      latentGain: this.getLatentGain(),
+      imposition: this.getImposition(fiscalProfile, now)
     };
   }
 

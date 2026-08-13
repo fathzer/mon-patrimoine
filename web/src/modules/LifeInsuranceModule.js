@@ -32,11 +32,15 @@ export class LifeInsuranceModule extends BasePlacement {
     this.euroFundsValue = Number(data.euroFundsValue) || 0;
   }
 
+  isPre2017Contract() {
+    return this._isPre2017Contract(this.openingDate);
+  }
+
   _isPre2017Contract(dateString) {
     return dateString && dateString < REFORM_DATE;
   }
 
-  _getContractYears(now) {
+  getContractYears(now = new Date()) {
     const opening = new Date(this.openingDate);
     let years = now.getFullYear() - opening.getFullYear();
     const monthDiff = now.getMonth() - opening.getMonth();
@@ -47,30 +51,42 @@ export class LifeInsuranceModule extends BasePlacement {
     return Math.max(0, years);
   }
 
-  getEvaluation(fiscalProfile, now = new Date()) {
-    const totalGain = Math.max(0, this.currentValue - this.totalPremiums);
+  getLatentGain() {
+    return Math.max(0, this.currentValue - this.totalPremiums);
+  }
+
+  getSocialCharges() {
+    const totalGain = this.getLatentGain();
+    const euroShare = this.currentValue > 0 ? this.euroFundsValue / this.currentValue : 0;
+    const ucShare = 1 - euroShare;
+    const ucGain = totalGain * ucShare;
+    return ucGain * UC_SOCIAL_RATE;
+  }
+
+  getImposition(fiscalProfile, now = new Date()) {
+    const totalGain = this.getLatentGain();
+    if (totalGain <= 0) {
+      return 0;
+    }
     const euroShare = this.currentValue > 0 ? this.euroFundsValue / this.currentValue : 0;
     const ucShare = 1 - euroShare;
     const preShare = this.totalPremiums > 0 ? this.pre2017Premiums / this.totalPremiums : 0;
     const postShare = 1 - preShare;
+    const contractYears = this.getContractYears(now);
+    return contractYears < 8
+      ? this._computePre8YearsImposition(fiscalProfile, totalGain, totalGain * ucShare)
+      : this._computePost8YearsImposition(fiscalProfile, totalGain, ucShare, preShare, postShare);
+  }
 
-    const ucGain = totalGain * ucShare;
-    const socialCharges = ucGain * UC_SOCIAL_RATE;
-
-    const contractYears = this._getContractYears(now);
-    let imposition = 0;
-    if (totalGain > 0) {
-      imposition = contractYears < 8
-        ? this._computePre8YearsImposition(fiscalProfile, totalGain, ucGain)
-        : this._computePost8YearsImposition(fiscalProfile, totalGain, ucShare, preShare, postShare);
-    }
+  getEvaluation(fiscalProfile, now = new Date()) {
+    const socialCharges = this.getSocialCharges();
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain: totalGain,
-      imposition
+      latentGain: this.getLatentGain(),
+      imposition: this.getImposition(fiscalProfile, now)
     };
   }
 

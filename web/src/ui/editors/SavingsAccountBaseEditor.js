@@ -1,5 +1,6 @@
 import { BasePlacementEditor } from './BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
+import { getSavingsAccountTaxExplanation } from '../../i18n/savingsAccountTaxExplanation.js';
 
 export class SavingsAccountBaseEditor extends BasePlacementEditor {
   _renderAfterInstitution(placement) {
@@ -121,5 +122,9 @@ export class SavingsAccountBaseEditor extends BasePlacementEditor {
       currentValue: Number(this.container.querySelector('input[name="currentValue"]')?.value) || 0,
       interestAmount: Number(this.container.querySelector('input[name="interestAmount"]')?.value) || 0
     };
+  }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return getSavingsAccountTaxExplanation(placement, fiscalProfile);
   }
 }

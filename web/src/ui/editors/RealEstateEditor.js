@@ -1,5 +1,6 @@
 import { BasePlacementEditor } from './BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
+import { getRealEstateTaxExplanation } from '../../i18n/realEstateTaxExplanation.js';
 
 export class RealEstateEditor extends BasePlacementEditor {
   constructor(container, store) {
@@ -121,5 +122,9 @@ export class RealEstateEditor extends BasePlacementEditor {
       acquisitionDate,
       acquisitionPrice
     };
+  }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return getRealEstateTaxExplanation(placement);
   }
 }

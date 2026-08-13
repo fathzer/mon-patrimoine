@@ -1,17 +1,22 @@
-import { SavingsAccountBaseModule } from './SavingsAccountBaseModule.js';
+import { BasePlacement } from './BasePlacement.js';
 import { HomeSavingsEditor } from '../ui/editors/HomeSavingsEditor.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
+import { Categories } from '../core/Categories.js';
 
 const CSG_2018_THRESHOLD = new Date('2018-01-01T00:00:00');
 
-export class HomeSavingsModule extends SavingsAccountBaseModule {
+export class HomeSavingsModule extends BasePlacement {
+  static DEFAULT_CATEGORY = Categories.SAVING_ACCOUNTS;
+
   static getEditorClass() {
     return HomeSavingsEditor;
   }
 
   constructor(data) {
     super(data);
+    this.currentValue = Number(data.currentValue) || 0;
+    this.interestAmount = Number(data.interestAmount) || 0;
     this.homeSavingsType = data.homeSavingsType || 'pel';
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
     this.taxExempt = false;
@@ -67,6 +72,10 @@ export class HomeSavingsModule extends SavingsAccountBaseModule {
   toJSON() {
     return {
       ...super.toJSON(),
+      currentValue: this.currentValue,
+      interestAmount: this.interestAmount,
+      promotionalInterest: this.promotionalInterest,
+      taxExempt: this.taxExempt,
       homeSavingsType: this.homeSavingsType,
       openingDate: this.openingDate
     };

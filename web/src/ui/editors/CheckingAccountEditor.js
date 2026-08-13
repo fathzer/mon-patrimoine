@@ -39,4 +39,8 @@ export class CheckingAccountEditor extends BasePlacementEditor {
       cardBalance: Number(this.container.querySelector('input[name="cardBalance"]')?.value) || 0
     };
   }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return '';
+  }
 }

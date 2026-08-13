@@ -11,26 +11,9 @@ const ALLOWANCE_COUPLE = 9200;
 const PREMIUM_THRESHOLD = 150000;
 const REFORM_DATE = '27/09/2017';
 
-function getContractYears(placement) {
-  if (!placement?.openingDate) return 0;
-  const now = new Date();
-  const opening = new Date(placement.openingDate);
-  let years = now.getFullYear() - opening.getFullYear();
-  const monthDiff = now.getMonth() - opening.getMonth();
-  const dayDiff = now.getDate() - opening.getDate();
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    years--;
-  }
-  return Math.max(0, years);
-}
-
-function isPre2017Contract(placement) {
-  return placement?.openingDate && placement.openingDate < '2017-09-27';
-}
-
 export function getLifeInsuranceTaxExplanation(placement, fiscalProfile) {
-  const years = getContractYears(placement);
-  const pre2017 = isPre2017Contract(placement);
+  const years = placement.getContractYears(new Date());
+  const pre2017 = placement.isPre2017Contract();
   const socialRate = UC_SOCIAL_RATE.toFixed(1);
   const pfuLow = PFU_AFTER_8Y_LOW.toFixed(1);
   const pfuHigh = PFU_AFTER_8Y_HIGH.toFixed(1);
@@ -52,7 +35,7 @@ export function getLifeInsuranceTaxExplanation(placement, fiscalProfile) {
 
   <h3>Imposition à l'impôt sur le revenu</h3>
   <p>Le ${getLatentGainsHelpPopover()} est soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</p>
-  <p>Les contrats de plus de 8 ans bénéficient : 
+  <p>Les contrats de plus de 8 ans bénéficient :
     <ul>
       <li>d'un abattement annuel de ${ALLOWANCE_SINGLE.toLocaleString('fr-FR')} € pour une personne seule et ${ALLOWANCE_COUPLE.toLocaleString('fr-FR')} € pour un couple. Ce montant est déduit de la base imposable.</li>
       <li>d'un taux de PFU réduit à ${pfuLow}% pour tous les versements effectués avant le ${REFORM_DATE}. Les versements ultérieurs bénéficient de ce taux réduit dans la limite de ${PREMIUM_THRESHOLD.toLocaleString('fr-FR')} €.

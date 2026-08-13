@@ -18,19 +18,34 @@ export class CtoModule extends BasePlacement {
     this.currentValue = Number(data.currentValue) || 0;
   }
 
-  getEvaluation(fiscalProfile) {
-    const latentGain = Math.max(0, this.currentValue - this.acquisitionValue - this.cashBalance);
-    const socialCharges = latentGain * FISCAL_RATES.CSG_CRDS;
-    const imposition = latentGain > 0
+  getLatentGain() {
+    return Math.max(0, this.currentValue - this.acquisitionValue - this.cashBalance);
+  }
+
+  getSocialChargesRate() {
+    return FISCAL_RATES.CSG_CRDS;
+  }
+
+  getSocialCharges() {
+    return this.getLatentGain() * this.getSocialChargesRate();
+  }
+
+  getImposition(fiscalProfile) {
+    const latentGain = this.getLatentGain();
+    return latentGain > 0
       ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain })
       : 0;
+  }
+
+  getEvaluation(fiscalProfile) {
+    const socialCharges = this.getSocialCharges();
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain,
-      imposition
+      latentGain: this.getLatentGain(),
+      imposition: this.getImposition(fiscalProfile)
     };
   }
 
