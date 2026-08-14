@@ -24,6 +24,10 @@ export function formatPercentage(value) {
   return (value * 100).toLocaleString('fr-FR')+'%';
 }
 
+export function formatCurrency(value) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+}
+
 export function getTaxDisclaimer(extraContent = '') {
   return getWarning(`
     <p>

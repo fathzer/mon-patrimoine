@@ -12,6 +12,9 @@ const INCOME_TAX_RATE = 0.19;
 const INCOME_TAX_REDUCTION_RATE = 0.06;
 const REDUCTION_AT_21 = 16 * YEAR_6_21_REDUCTION;
 const REDUCTION_AT_22 = REDUCTION_AT_21 + YEAR_22_REDUCTION;
+export const FIVE_YEARS_LIMIT = 5;
+export const ACQUISITION_FEES_FLAT_RATE = 0.075;
+export const WORKS_FLAT_RATE = 0.15;
 
 export class RealEstateModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.REAL_ESTATE;
@@ -26,6 +29,8 @@ export class RealEstateModule extends BasePlacement {
     this.currentValue = Number(data.currentValue) || 0;
     this.acquisitionDate = data.acquisitionDate || '';
     this.acquisitionPrice = Number(data.acquisitionPrice) || 0;
+    this.acquisitionFees = Number(data.acquisitionFees ?? data.acquisitionFeesAmount) || 0;
+    this.works = Number(data.works ?? data.worksAmount) || 0;
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {
@@ -39,23 +44,25 @@ export class RealEstateModule extends BasePlacement {
       };
     }
 
-    const gain = Math.max(0, this.currentValue - this.acquisitionPrice);
+    const grossGain = Math.max(0, this.currentValue - this.acquisitionPrice);
+    const totalDeductions = this.getTotalDeductions(now);
+    const netGain = Math.max(0, grossGain - totalDeductions);
     const holdingYears = this.getHoldingYears(now);
     const reductionRate = this.getReductionRate(holdingYears);
-    const taxableGain = gain * (1 - reductionRate);
+    const taxableGain = netGain * (1 - reductionRate);
     const socialCharges = taxableGain * STANDARD_SOCIAL_RATE;
 
     const irReductionRate = this.getIncomeTaxReduction(holdingYears);
-    const irBase = gain * (1 - irReductionRate);
+    const irBase = netGain * (1 - irReductionRate);
     const imposition = irBase > 0
-      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: irBase, tauxSpecifique: 0.19 })
+      ? irBase * INCOME_TAX_RATE
       : 0;
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain: gain,
+      latentGain: netGain,
       imposition
     };
   }
@@ -75,9 +82,26 @@ export class RealEstateModule extends BasePlacement {
     return Math.max(0, years);
   }
 
+  getDeductibleAcquisitionFees() {
+    if (this.primaryResidence) return 0;
+    if (this.acquisitionFees > 0) return this.acquisitionFees;
+    return this.acquisitionPrice * ACQUISITION_FEES_FLAT_RATE;
+  }
+
+  getDeductibleWorks(now = new Date()) {
+    if (this.primaryResidence) return 0;
+    if (this.works > 0) return this.works;
+    const holdingYears = this.getHoldingYears(now);
+    return holdingYears >= FIVE_YEARS_LIMIT ? this.acquisitionPrice * WORKS_FLAT_RATE : 0;
+  }
+
+  getTotalDeductions(now = new Date()) {
+    return this.getDeductibleAcquisitionFees() + this.getDeductibleWorks(now);
+  }
+
   getReductionRate(years) {
-    if (years <= 5) return 0;
-    if (years <= 21) return Math.min((years - 5) * YEAR_6_21_REDUCTION, REDUCTION_AT_21);
+    if (years <= FIVE_YEARS_LIMIT) return 0;
+    if (years <= 21) return Math.min((years - FIVE_YEARS_LIMIT) * YEAR_6_21_REDUCTION, REDUCTION_AT_21);
 
     let reduction = REDUCTION_AT_22;
     reduction += Math.max(0, years - 22) * YEAR_23_30_REDUCTION;
@@ -85,8 +109,8 @@ export class RealEstateModule extends BasePlacement {
   }
 
   getIncomeTaxReduction(years) {
-    if (years <= 5) return 0;
-    return Math.min((years - 5) * INCOME_TAX_REDUCTION_RATE, 1);
+    if (years <= FIVE_YEARS_LIMIT) return 0;
+    return Math.min((years - FIVE_YEARS_LIMIT) * INCOME_TAX_REDUCTION_RATE, 1);
   }
 
   getSocialChargesRate() {
@@ -119,7 +143,9 @@ export class RealEstateModule extends BasePlacement {
       primaryResidence: this.primaryResidence,
       currentValue: this.currentValue,
       acquisitionDate: this.acquisitionDate,
-      acquisitionPrice: this.acquisitionPrice
+      acquisitionPrice: this.acquisitionPrice,
+      acquisitionFees: this.acquisitionFees,
+      works: this.works
     };
   }
 }

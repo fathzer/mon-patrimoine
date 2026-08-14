@@ -82,6 +82,8 @@ export const fr = {
     primaryResidence: "Résidence principale",
     acquisitionDate: "Date d'acquisition",
     acquisitionPrice: "Prix d'acquisition (€)",
+    acquisitionFees: "Frais d'acquisition (sur justificatifs)",
+    works: "Travaux éligibles (sur justificatifs)",
     multiplePrimaryResidenceWarning: "Attention : une autre résidence principale est déjà déclarée.",
     types: {
       checking_account: "Compte Courant",

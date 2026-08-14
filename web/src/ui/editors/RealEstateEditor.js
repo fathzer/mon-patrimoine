@@ -19,6 +19,8 @@ export class RealEstateEditor extends BasePlacementEditor {
     const required = isPrimary ? '' : 'required';
     const acquisitionDateValue = placement?.acquisitionDate || '';
     const acquisitionPriceValue = placement?.acquisitionPrice || 0;
+    const acquisitionFeesValue = placement?.acquisitionFees || 0;
+    const worksValue = placement?.works || 0;
 
     return `
       <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
@@ -41,6 +43,14 @@ export class RealEstateEditor extends BasePlacementEditor {
           <label>${I18n.t('form.acquisitionPrice')}</label>
           <input type="number" step="0.01" name="acquisitionPrice" class="form-control" value="${acquisitionPriceValue}" ${required} ${disabled} />
         </div>
+        <div class="form-group">
+          <label>${I18n.t('form.acquisitionFees')}</label>
+          <input type="number" step="0.01" name="acquisitionFees" class="form-control" value="${acquisitionFeesValue}" ${disabled} />
+        </div>
+        <div class="form-group">
+          <label>${I18n.t('form.works')}</label>
+          <input type="number" step="0.01" name="works" class="form-control" value="${worksValue}" ${disabled} />
+        </div>
       </div>
     `;
   }
@@ -49,7 +59,7 @@ export class RealEstateEditor extends BasePlacementEditor {
     const primaryResidence = this.container.querySelector('input[name="primaryResidence"]');
     primaryResidence?.addEventListener('change', () => this._onPrimaryResidenceChange());
 
-    ['currentValue', 'acquisitionDate', 'acquisitionPrice'].forEach(name => {
+    ['currentValue', 'acquisitionDate', 'acquisitionPrice', 'acquisitionFees', 'works'].forEach(name => {
       const input = this.container.querySelector(`input[name="${name}"]`);
       input?.addEventListener('input', () => this._notifyValidityChange());
     });
@@ -60,6 +70,8 @@ export class RealEstateEditor extends BasePlacementEditor {
     const details = this.container.querySelector('#acquisition-details');
     const dateInput = this.container.querySelector('input[name="acquisitionDate"]');
     const priceInput = this.container.querySelector('input[name="acquisitionPrice"]');
+    const feesInput = this.container.querySelector('input[name="acquisitionFees"]');
+    const worksInput = this.container.querySelector('input[name="works"]');
     const isPrimary = primaryResidence?.checked ?? false;
 
     if (details) details.style.display = isPrimary ? 'none' : 'block';
@@ -72,6 +84,14 @@ export class RealEstateEditor extends BasePlacementEditor {
       priceInput.disabled = isPrimary;
       priceInput.required = !isPrimary;
       if (isPrimary) priceInput.value = 0;
+    }
+    if (feesInput) {
+      feesInput.disabled = isPrimary;
+      if (isPrimary) feesInput.value = 0;
+    }
+    if (worksInput) {
+      worksInput.disabled = isPrimary;
+      if (isPrimary) worksInput.value = 0;
     }
 
     this._updatePrimaryResidenceWarning();
@@ -120,7 +140,9 @@ export class RealEstateEditor extends BasePlacementEditor {
       primaryResidence,
       currentValue: Number(this.container.querySelector('input[name="currentValue"]')?.value) || 0,
       acquisitionDate,
-      acquisitionPrice
+      acquisitionPrice,
+      acquisitionFees: primaryResidence ? 0 : (Number(this.container.querySelector('input[name="acquisitionFees"]')?.value) || 0),
+      works: primaryResidence ? 0 : (Number(this.container.querySelector('input[name="works"]')?.value) || 0)
     };
   }
 
