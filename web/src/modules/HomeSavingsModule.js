@@ -4,7 +4,7 @@ import { FISCAL_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
 
-const CSG_2018_THRESHOLD = new Date('2018-01-01T00:00:00');
+export const CSG_2018_THRESHOLD = new Date('2018-01-01T00:00:00');
 
 export class HomeSavingsModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.SAVING_ACCOUNTS;
