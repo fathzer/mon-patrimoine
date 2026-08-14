@@ -24,7 +24,6 @@ const EDITOR_CASES = [
   { name: "LifeInsuranceEditor", EditorClass: LifeInsuranceEditor, placement: new LifeInsuranceModule({ label: 'Test', currentValue: 50000, totalPremiums: 40000, pre2017Premiums: 0, euroFundsValue: 45000, openingDate: '2020-01-01' }) },
   { name: "PeaEditor", EditorClass: PeaEditor, placement: new PeaModule({ label: 'Test', currentValue: 10000, totalDeposits: 8000, openingDate: '2020-01-01' }) },
   { name: "RealEstateEditor", EditorClass: RealEstateEditor, placement: new RealEstateModule({ label: 'Test', currentValue: 300000, acquisitionPrice: 250000, primaryResidence: false }) },
-  { name: "SavingsAccountBaseEditor", EditorClass: SavingsAccountBaseEditor, placement: new SavingsAccountModule({ label: 'Test', currentValue: 1000, interestAmount: 50 }) },
   { name: "SavingsAccountEditor", EditorClass: SavingsAccountEditor, placement: new SavingsAccountModule({ label: 'Test', currentValue: 1000, interestAmount: 50 }) }
 ];
 

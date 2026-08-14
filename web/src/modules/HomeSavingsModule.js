@@ -23,50 +23,79 @@ export class HomeSavingsModule extends BasePlacement {
     this.promotionalInterest = 0;
   }
 
-  getEvaluation(fiscalProfile, now = new Date()) {
-    const totalInterest = this.interestAmount + this.promotionalInterest;
-    const grossValue = this.currentValue + totalInterest;
-    const socialRate = this._getSocialChargesRate(now);
-    const socialCharges = totalInterest * socialRate;
+  getTotalInterest() {
+    return this.interestAmount + this.promotionalInterest;
+  }
 
+  _getOpeningMidnight() {
     const openingDate = new Date(this.openingDate);
-    const openingMidnight = new Date(openingDate.getFullYear(), openingDate.getMonth(), openingDate.getDate());
-    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return new Date(openingDate.getFullYear(), openingDate.getMonth(), openingDate.getDate());
+  }
+
+  _getNowMidnight(now = new Date()) {
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+
+  _getTwelfthAnniversary() {
+    const openingMidnight = this._getOpeningMidnight();
     const twelfthAnniversary = new Date(openingMidnight);
     twelfthAnniversary.setFullYear(twelfthAnniversary.getFullYear() + 12);
+    return twelfthAnniversary;
+  }
 
-    const isPfuEligible = openingMidnight >= CSG_2018_THRESHOLD
+  isOlderThanTwelveYears(now = new Date()) {
+    const nowMidnight = this._getNowMidnight(now);
+    const twelfthAnniversary = this._getTwelfthAnniversary();
+    return nowMidnight > twelfthAnniversary;
+  }
+
+  isOpenedBefore2018() {
+    return this._getOpeningMidnight() < CSG_2018_THRESHOLD;
+  }
+
+  getSocialChargesRate(now = new Date()) {
+    if (this.homeSavingsType === 'cel') {
+      return this.isOpenedBefore2018() ? FISCAL_RATES.OLD_CSG_CRDS : FISCAL_RATES.CSG_CRDS;
+    }
+
+    if (this.isOpenedBefore2018()) {
+      return this.isOlderThanTwelveYears(now) ? FISCAL_RATES.CSG_CRDS : FISCAL_RATES.OLD_CSG_CRDS;
+    }
+
+    return FISCAL_RATES.CSG_CRDS;
+  }
+
+  isPfuEligible(now = new Date()) {
+    const nowMidnight = this._getNowMidnight(now);
+    const twelfthAnniversary = this._getTwelfthAnniversary();
+    return !this.isOpenedBefore2018()
       || (this.homeSavingsType === 'pel' && nowMidnight > twelfthAnniversary);
-    const imposition = isPfuEligible
-      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest })
-      : 0;
+  }
+
+  getSocialCharges(now = new Date()) {
+    return this.getTotalInterest() * this.getSocialChargesRate(now);
+  }
+
+  getImposition(fiscalProfile, now = new Date()) {
+    if (!this.isPfuEligible(now)) {
+      return 0;
+    }
+    const totalInterest = this.getTotalInterest();
+    return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest });
+  }
+
+  getEvaluation(fiscalProfile, now = new Date()) {
+    const totalInterest = this.getTotalInterest();
+    const grossValue = this.currentValue + totalInterest;
+    const socialCharges = this.getSocialCharges(now);
 
     return {
       grossValue,
       netValueBeforeIR: grossValue - socialCharges,
       socialCharges,
       latentGain: totalInterest,
-      imposition
+      imposition: this.getImposition(fiscalProfile, now)
     };
-  }
-
-  _getSocialChargesRate(now) {
-    const openingDate = new Date(this.openingDate);
-    const openingMidnight = new Date(openingDate.getFullYear(), openingDate.getMonth(), openingDate.getDate());
-
-    if (this.homeSavingsType === 'cel') {
-      return openingMidnight < CSG_2018_THRESHOLD ? FISCAL_RATES.OLD_CSG_CRDS : FISCAL_RATES.CSG_CRDS;
-    }
-
-    if (openingMidnight >= CSG_2018_THRESHOLD) {
-      return FISCAL_RATES.CSG_CRDS;
-    }
-
-    const twelfthAnniversary = new Date(openingMidnight);
-    twelfthAnniversary.setFullYear(twelfthAnniversary.getFullYear() + 12);
-    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    return nowMidnight <= twelfthAnniversary ? FISCAL_RATES.OLD_CSG_CRDS : FISCAL_RATES.CSG_CRDS;
   }
 
   toJSON() {

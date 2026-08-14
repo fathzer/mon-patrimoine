@@ -1,5 +1,6 @@
 import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
 import { I18n } from '../../core/I18n.js';
+import { getHomeSavingsTaxExplanation } from '../../i18n/homeSavingsTaxExplanation.js';
 
 export class HomeSavingsEditor extends SavingsAccountBaseEditor {
   _renderBeforeInstitution(placement) {
@@ -61,5 +62,9 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
       taxExempt: false,
       promotionalInterest: 0
     };
+  }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return getHomeSavingsTaxExplanation(placement, fiscalProfile);
   }
 }

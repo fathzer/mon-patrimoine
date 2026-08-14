@@ -1,4 +1,5 @@
 import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
+import { getSavingsAccountTaxExplanation } from '../../i18n/savingsAccountTaxExplanation.js';
 import { I18n } from '../../core/I18n.js';
 
 export class SavingsAccountEditor extends SavingsAccountBaseEditor {
@@ -53,5 +54,9 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
       taxExempt,
       promotionalInterest: taxExempt ? 0 : (Number(this.container.querySelector('input[name="promotionalInterest"]')?.value) || 0)
     };
+  }
+
+  buildTaxExplanation(placement, fiscalProfile) {
+    return getSavingsAccountTaxExplanation(placement, fiscalProfile);
   }
 }

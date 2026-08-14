@@ -123,8 +123,4 @@ export class SavingsAccountBaseEditor extends BasePlacementEditor {
       interestAmount: Number(this.container.querySelector('input[name="interestAmount"]')?.value) || 0
     };
   }
-
-  buildTaxExplanation(placement, fiscalProfile) {
-    return getSavingsAccountTaxExplanation(placement, fiscalProfile);
-  }
 }
