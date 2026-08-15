@@ -1,7 +1,6 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
 import { FISCAL_RATES } from '../fiscality/rates.js';
-import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { RealEstateEditor } from '../ui/editors/RealEstateEditor.js';
 
 const STANDARD_SOCIAL_RATE = FISCAL_RATES.OLD_CSG_CRDS;
@@ -12,6 +11,7 @@ const INCOME_TAX_RATE = 0.19;
 const INCOME_TAX_REDUCTION_RATE = 0.06;
 const REDUCTION_AT_21 = 16 * YEAR_6_21_REDUCTION;
 const REDUCTION_AT_22 = REDUCTION_AT_21 + YEAR_22_REDUCTION;
+
 export const FIVE_YEARS_LIMIT = 5;
 export const ACQUISITION_FEES_FLAT_RATE = 0.075;
 export const WORKS_FLAT_RATE = 0.15;
@@ -29,6 +29,7 @@ export class RealEstateModule extends BasePlacement {
     this.currentValue = Number(data.currentValue) || 0;
     this.acquisitionDate = data.acquisitionDate || '';
     this.acquisitionPrice = Number(data.acquisitionPrice) || 0;
+    this.freeAcquisition = data.freeAcquisition === true;
     this.acquisitionFees = Number(data.acquisitionFees ?? data.acquisitionFeesAmount) || 0;
     this.works = Number(data.works ?? data.worksAmount) || 0;
   }
@@ -85,6 +86,7 @@ export class RealEstateModule extends BasePlacement {
   getDeductibleAcquisitionFees() {
     if (this.primaryResidence) return 0;
     if (this.acquisitionFees > 0) return this.acquisitionFees;
+    if (this.freeAcquisition) return 0;
     return this.acquisitionPrice * ACQUISITION_FEES_FLAT_RATE;
   }
 
@@ -100,8 +102,8 @@ export class RealEstateModule extends BasePlacement {
   }
 
   getReductionRate(years) {
-    if (years <= FIVE_YEARS_LIMIT) return 0;
-    if (years <= 21) return Math.min((years - FIVE_YEARS_LIMIT) * YEAR_6_21_REDUCTION, REDUCTION_AT_21);
+    if (years <= 5) return 0;
+    if (years <= 21) return Math.min((years - 5) * YEAR_6_21_REDUCTION, REDUCTION_AT_21);
 
     let reduction = REDUCTION_AT_22;
     reduction += Math.max(0, years - 22) * YEAR_23_30_REDUCTION;
@@ -109,8 +111,8 @@ export class RealEstateModule extends BasePlacement {
   }
 
   getIncomeTaxReduction(years) {
-    if (years <= FIVE_YEARS_LIMIT) return 0;
-    return Math.min((years - FIVE_YEARS_LIMIT) * INCOME_TAX_REDUCTION_RATE, 1);
+    if (years <= 5) return 0;
+    return Math.min((years - 5) * INCOME_TAX_REDUCTION_RATE, 1);
   }
 
   getSocialChargesRate() {
@@ -144,6 +146,7 @@ export class RealEstateModule extends BasePlacement {
       currentValue: this.currentValue,
       acquisitionDate: this.acquisitionDate,
       acquisitionPrice: this.acquisitionPrice,
+      freeAcquisition: this.freeAcquisition,
       acquisitionFees: this.acquisitionFees,
       works: this.works
     };

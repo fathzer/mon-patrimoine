@@ -82,6 +82,7 @@ export const fr = {
     primaryResidence: "Résidence principale",
     acquisitionDate: "Date d'acquisition",
     acquisitionPrice: "Prix d'acquisition (€)",
+    freeAcquisition: "Acquisition à titre gratuit",
     acquisitionFees: "Frais d'acquisition (sur justificatifs)",
     works: "Travaux éligibles (sur justificatifs)",
     multiplePrimaryResidenceWarning: "Attention : une autre résidence principale est déjà déclarée.",

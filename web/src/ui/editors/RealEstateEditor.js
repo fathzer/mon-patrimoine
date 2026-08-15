@@ -1,6 +1,7 @@
 import { BasePlacementEditor } from './BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { getRealEstateTaxExplanation } from '../../i18n/realEstateTaxExplanation.js';
+import { getRealEstateTaxExplanation, getAcquisitionFeesHelp } from '../../i18n/realEstateTaxExplanation.js';
+import { HelpPopover } from '../HelpPopover.js';
 
 export class RealEstateEditor extends BasePlacementEditor {
   constructor(container, store) {
@@ -19,6 +20,7 @@ export class RealEstateEditor extends BasePlacementEditor {
     const required = isPrimary ? '' : 'required';
     const acquisitionDateValue = placement?.acquisitionDate || '';
     const acquisitionPriceValue = placement?.acquisitionPrice || 0;
+    const freeAcquisition = placement?.freeAcquisition === true;
     const acquisitionFeesValue = placement?.acquisitionFees || 0;
     const worksValue = placement?.works || 0;
 
@@ -37,10 +39,16 @@ export class RealEstateEditor extends BasePlacementEditor {
       <div id="acquisition-details" style="display: ${displayDetails};">
         <div class="form-group">
           <label>${I18n.t('form.acquisitionDate')}</label>
-          <input type="date" name="acquisitionDate" class="form-control" value="${acquisitionDateValue}" ${required} ${disabled} />
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <input type="date" name="acquisitionDate" class="form-control" value="${acquisitionDateValue}" ${required} ${disabled} style="flex: 1;" />
+            <div style="display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
+              <input type="checkbox" name="freeAcquisition" id="free-acquisition" ${freeAcquisition ? 'checked' : ''} ${disabled} />
+              <label for="free-acquisition" style="margin: 0;">${I18n.t('form.freeAcquisition')}</label>
+            </div>
+          </div>
         </div>
         <div class="form-group">
-          <label>${I18n.t('form.acquisitionPrice')}</label>
+          <label>${I18n.t('form.acquisitionPrice')} ${getAcquisitionFeesHelp('?')}</label>
           <input type="number" step="0.01" name="acquisitionPrice" class="form-control" value="${acquisitionPriceValue}" ${required} ${disabled} />
         </div>
         <div class="form-group">
@@ -67,35 +75,36 @@ export class RealEstateEditor extends BasePlacementEditor {
 
   _onPrimaryResidenceChange() {
     const primaryResidence = this.container.querySelector('input[name="primaryResidence"]');
-    const details = this.container.querySelector('#acquisition-details');
-    const dateInput = this.container.querySelector('input[name="acquisitionDate"]');
-    const priceInput = this.container.querySelector('input[name="acquisitionPrice"]');
-    const feesInput = this.container.querySelector('input[name="acquisitionFees"]');
-    const worksInput = this.container.querySelector('input[name="works"]');
     const isPrimary = primaryResidence?.checked ?? false;
 
+    const details = this.container.querySelector('#acquisition-details');
     if (details) details.style.display = isPrimary ? 'none' : 'block';
-    if (dateInput) {
-      dateInput.disabled = isPrimary;
-      dateInput.required = !isPrimary;
-      if (isPrimary) dateInput.value = '';
-    }
-    if (priceInput) {
-      priceInput.disabled = isPrimary;
-      priceInput.required = !isPrimary;
-      if (isPrimary) priceInput.value = 0;
-    }
-    if (feesInput) {
-      feesInput.disabled = isPrimary;
-      if (isPrimary) feesInput.value = 0;
-    }
-    if (worksInput) {
-      worksInput.disabled = isPrimary;
-      if (isPrimary) worksInput.value = 0;
-    }
+
+    this._configureField('acquisitionDate', isPrimary, { reset: '', required: true });
+    this._configureField('acquisitionPrice', isPrimary, { reset: 0, required: true });
+    this._configureField('acquisitionFees', isPrimary, { reset: 0 });
+    this._configureField('works', isPrimary, { reset: 0 });
+    this._configureCheckbox('freeAcquisition', isPrimary);
 
     this._updatePrimaryResidenceWarning();
     this._notifyValidityChange();
+  }
+
+  _configureField(name, isPrimary, options) {
+    const input = this.container.querySelector(`input[name="${name}"]`);
+    if (!input) return;
+
+    input.disabled = isPrimary;
+    if (options.required) input.required = !isPrimary;
+    if (isPrimary && 'reset' in options) input.value = options.reset;
+  }
+
+  _configureCheckbox(name, isPrimary) {
+    const input = this.container.querySelector(`input[name="${name}"]`);
+    if (!input) return;
+
+    input.disabled = isPrimary;
+    if (isPrimary) input.checked = false;
   }
 
   _updatePrimaryResidenceWarning() {
@@ -141,6 +150,7 @@ export class RealEstateEditor extends BasePlacementEditor {
       currentValue: Number(this.container.querySelector('input[name="currentValue"]')?.value) || 0,
       acquisitionDate,
       acquisitionPrice,
+      freeAcquisition: primaryResidence ? false : (this.container.querySelector('input[name="freeAcquisition"]')?.checked ?? false),
       acquisitionFees: primaryResidence ? 0 : (Number(this.container.querySelector('input[name="acquisitionFees"]')?.value) || 0),
       works: primaryResidence ? 0 : (Number(this.container.querySelector('input[name="works"]')?.value) || 0)
     };
