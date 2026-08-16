@@ -1,15 +1,11 @@
 import { EventBus } from './EventBus.js';
+import { Household } from '../fiscality/Household.js';
 import { PlacementFactory } from '../modules/PlacementFactory.js';
 
 export class AppStore extends EventBus {
   static DEFAULT_TAX_PROFILE = {
-    maritalStatus: 'single',
-    childrenCount: 0,
-    fiscalParts: 1,
-    mode: 'direct',
-    customTmi: 0.30,
-    rfr: 0,
-    tmi: 0.30,
+    household: new Household(),
+    taxableIncome: 0,
     usePfu: true
   };
 
@@ -101,8 +97,21 @@ export class AppStore extends EventBus {
   }
 
   _hydrateState(rawData) {
-    this.state.taxProfile = rawData.taxProfile || this.state.taxProfile;
+    this.state.taxProfile = this._normalizeTaxProfile(rawData.taxProfile);
     this.state.placements = (rawData.placements || []).map(pData => PlacementFactory.create(pData));
+  }
+
+  _normalizeTaxProfile(taxProfile = {}) {
+    const current = this.getTaxProfile();
+    const household = taxProfile.household ?? current.household;
+    const taxableIncome = Number.isFinite(taxProfile.taxableIncome) ? taxProfile.taxableIncome : current.taxableIncome;
+    const usePfu = typeof taxProfile.usePfu === 'boolean' ? taxProfile.usePfu : current.usePfu;
+
+    return {
+      household: Household.from(household),
+      taxableIncome,
+      usePfu
+    };
   }
 
   getGlobalSummary() {
@@ -151,10 +160,7 @@ export class AppStore extends EventBus {
   }
 
   updateTaxProfile(newTaxProfile) {
-    this.state.taxProfile = {
-      ...this.getTaxProfile(),
-      ...newTaxProfile
-    };
+    this.state.taxProfile = this._normalizeTaxProfile(newTaxProfile);
 
     this._persistAndEmit();
   }

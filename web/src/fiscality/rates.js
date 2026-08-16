@@ -1,6 +1,9 @@
-export const FISCAL_RATES = {
+export const SOCIAL_CONTRIBUTION_RATES = {
   OLD_CSG_CRDS: 0.172,
-  CSG_CRDS: 0.186,
+  CSG_CRDS: 0.186
+};
+
+export const FISCAL_RATES = {
   PFU_IR_RATE: 0.128,
   PFU_CSG_REDUCTION_RATE: 0.068,
   INCOME_TAX_BRACKETS: [
@@ -9,5 +12,17 @@ export const FISCAL_RATES = {
     { limit: 84577, rate: 0.30 },
     { limit: 181917, rate: 0.41 },
     { limit: Infinity, rate: 0.45 }
-  ]
+  ],
+  EXTRA_PARTS: {
+    CHILD: 0.5,
+    CEILING: {
+      CHILD: 1807,
+      SINGLE_PARENT: 4182
+    }
+  },
+  DECOTE: {
+    rate: 0.4525,
+    limit_single: 897,
+    limit_couple: 1483
+  }
 };

@@ -1,9 +1,9 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { CSG_2018_THRESHOLD } from '../modules/HomeSavingsModule.js';
 import { formatPercentage, getPfuHelpPopover, getTaxDisclaimer } from './commonTaxExplanations.js';
 
-const OLD_RATE = formatPercentage(FISCAL_RATES.OLD_CSG_CRDS);
-const NEW_RATE = formatPercentage(FISCAL_RATES.CSG_CRDS);
+const OLD_RATE = formatPercentage(SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS);
+const NEW_RATE = formatPercentage(SOCIAL_CONTRIBUTION_RATES.CSG_CRDS);
 const TRIGGER_AGE = 12;
 
 let csg2018Date;

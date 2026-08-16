@@ -1,6 +1,6 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { CtoEditor } from '../ui/editors/CtoEditor.js';
 
@@ -23,7 +23,7 @@ export class CtoModule extends BasePlacement {
   }
 
   getSocialChargesRate() {
-    return FISCAL_RATES.CSG_CRDS;
+    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
   }
 
   getSocialCharges() {

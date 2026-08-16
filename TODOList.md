@@ -14,6 +14,9 @@
 - Globalement, il faudrait revoir le calcul de l'imposition, notamment pour pouvoir passer une liste de couple "montants"/"taux de PFU" (utile dans le cas des assurances vie).
 - Attention, en cas de non PFU, la CSG déductible est déduite des revenus pas des impôts (qui ne peuvent donc pas passer sous 0)
 
+## Il y a une énorme problème dans la synchronisation des données
+Quand la sauvegarde échoue et qu'on se reconnecte, il semble qu'on remplace les données actuelles par les données sauvegardées. Il faudrait prévoir un mécanisme de synchro (içône qui informe du statut de synchronisation, retry auto le cas échéant, détection des conflits).
+
 ## Faire une revue complète des taux de prélèvements sociaux :
   - Il semble qu'on ne puisse avoir auune confiance en ChatGPT en la matière' :-(
   - Il faut s'assurer que le module appele bien le module fiscal et n'applique pas le taux PFU (par exemple) dans son coin sans vérifier le profil fiscal de l'utilisateur.

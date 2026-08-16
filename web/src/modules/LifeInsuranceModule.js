@@ -1,11 +1,11 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { FISCAL_RATES, SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { LifeInsuranceEditor } from '../ui/editors/LifeInsuranceEditor.js';
 
 const REFORM_DATE = '2017-09-27';
-export const UC_SOCIAL_RATE = FISCAL_RATES.OLD_CSG_CRDS;
+export const UC_SOCIAL_RATE = SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
 export const PFU_BEFORE_8Y = FISCAL_RATES.PFU_IR_RATE;
 export const PFU_AFTER_8Y_PRE_2017 = 0.075;
 const PFU_AFTER_8Y_POST_2017_LOW = 0.075;
@@ -98,7 +98,7 @@ export class LifeInsuranceModule extends BasePlacement {
   }
 
   _computePost8YearsImposition(fiscalProfile, totalGain, ucShare, preShare, postShare) {
-    const isCouple = COUPLE_STATUSES.has(fiscalProfile?.maritalStatus);
+    const isCouple = COUPLE_STATUSES.has(fiscalProfile?.household?.maritalStatus);
     const allowance = isCouple ? ALLOWANCE_COUPLE : ALLOWANCE_SINGLE;
     const taxableGain = Math.max(0, totalGain - allowance);
     if (taxableGain <= 0) {

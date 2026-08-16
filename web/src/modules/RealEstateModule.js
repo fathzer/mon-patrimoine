@@ -1,9 +1,9 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { RealEstateEditor } from '../ui/editors/RealEstateEditor.js';
 
-const STANDARD_SOCIAL_RATE = FISCAL_RATES.OLD_CSG_CRDS;
+const STANDARD_SOCIAL_RATE = SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
 const YEAR_6_21_REDUCTION = 0.0165;
 const YEAR_22_REDUCTION = 0.016;
 const YEAR_23_30_REDUCTION = 0.09;

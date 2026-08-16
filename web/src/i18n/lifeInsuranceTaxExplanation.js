@@ -12,7 +12,7 @@ export function getLifeInsuranceTaxExplanation(placement, fiscalProfile) {
   const pre2017 = placement.isPre2017Contract();
   const socialRate = formatPercentage(UC_SOCIAL_RATE);
   const pfuLow = formatPercentage(PFU_AFTER_8Y_PRE_2017);
-  const allowance = fiscalProfile?.maritalStatus === 'single' ? ALLOWANCE_SINGLE : ALLOWANCE_COUPLE;
+  const allowance = fiscalProfile?.household?.maritalStatus === 'single' ? ALLOWANCE_SINGLE : ALLOWANCE_COUPLE;
   const incomeTaxWording = fiscalProfile?.usePfu
     ? 'au Prélèvement Forfaitaire Unique (PFU)'
     : "au barème progressif de l'impôt sur le revenu";

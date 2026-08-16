@@ -1,6 +1,6 @@
 import { BasePlacement } from './BasePlacement.js';
 import { SavingsAccountEditor } from '../ui/editors/SavingsAccountEditor.js';
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
 
@@ -24,7 +24,7 @@ export class SavingsAccountModule extends BasePlacement {
   }
 
   getSocialChargesRate() {
-    return FISCAL_RATES.CSG_CRDS;
+    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
   }
 
   getSocialCharges() {

@@ -1,6 +1,6 @@
 import { BasePlacement } from './BasePlacement.js';
 import { HomeSavingsEditor } from '../ui/editors/HomeSavingsEditor.js';
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
 
@@ -55,14 +55,14 @@ export class HomeSavingsModule extends BasePlacement {
 
   getSocialChargesRate(now = new Date()) {
     if (this.homeSavingsType === 'cel') {
-      return this.isOpenedBefore2018() ? FISCAL_RATES.OLD_CSG_CRDS : FISCAL_RATES.CSG_CRDS;
+      return this.isOpenedBefore2018() ? SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS : SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
     }
 
     if (this.isOpenedBefore2018()) {
-      return this.isOlderThanTwelveYears(now) ? FISCAL_RATES.CSG_CRDS : FISCAL_RATES.OLD_CSG_CRDS;
+      return this.isOlderThanTwelveYears(now) ? SOCIAL_CONTRIBUTION_RATES.CSG_CRDS : SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
     }
 
-    return FISCAL_RATES.CSG_CRDS;
+    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
   }
 
   isPfuEligible(now = new Date()) {
