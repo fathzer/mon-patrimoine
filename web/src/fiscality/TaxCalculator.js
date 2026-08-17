@@ -1,16 +1,45 @@
 import { FISCAL_RATES } from './rates.js';
 
+/**
+ * Computes income tax and family fiscal metrics for French households.
+ */
 export class TaxCalculator {
-  static calculateTax(profile, options) {
-    //TODO A corriger (Tout est faux dans le cas hors PFU, en plus il doit manquer les déductions du revenu de la CSG déductible)
-    const base = options?.assietteImposition ?? 0;
+  /**
+   * Computes global income tax across multiple incomes. Not implemented yet.
+   * @param {Object} profile - the tax profile
+   * @param {...Object} incomes - placement income details
+   * @returns {number} total tax (stub)
+   */
+  static calculateGobalTax(profile, ...incomes) {
+    let rni = profile?.taxableIncome ?? 0;
+    let tax = 0;
+
+    for (const income of incomes) {
+      const base = income?.assietteImposition ?? 0;
+      if (base <= 0) {
+        continue;
+      }
+      // TODO: implement per-income tax and aggregate it
+    }
+
+    return tax;
+  }
+
+  /**
+   * Computes tax for a specific placement income using the chosen tax mode.
+   * @param {Object} profile - the tax profile
+   * @param {Object} income - placement income details
+   * @returns {number} tax amount for this income
+   */
+  static calculateTax(profile, income) {
+    const base = income?.assietteImposition ?? 0;
     if (base <= 0) {
       return 0;
     }
 
-    const eligiblePfu = options?.eligiblePfu ?? false;
-    const deductionRevenus = options?.deductionRevenus ?? 0;
-    const tauxSpecifique = options?.tauxSpecifique;
+    const eligiblePfu = income?.eligiblePfu ?? false;
+    const deductionRevenus = income?.deductionRevenus ?? 0;
+    const tauxSpecifique = income?.tauxSpecifique;
 
     let taxableBase = base;
     if (deductionRevenus > 0) {
@@ -18,37 +47,44 @@ export class TaxCalculator {
       taxableBase = Math.max(0, taxableBase - deduction);
     }
 
-    let rate;
+    let rate = -1;
     if (eligiblePfu && profile?.usePfu) {
-      rate = FISCAL_RATES.PFU_IR_RATE;
+      rate = tauxSpecifique == null ? FISCAL_RATES.PFU_IR_RATE : tauxSpecifique;
     } else if (tauxSpecifique != null) {
       rate = tauxSpecifique;
-    } else {
-      const { tmi } = this.computeFiscalMetrics(profile);
-      rate = tmi;
     }
 
-    return Math.max(0, taxableBase * rate);
+    if (rate > 0) {
+      return Math.max(0, taxableBase * rate);
+    }
+    //TODO A corriger (Tout est faux dans le cas hors PFU, en plus il doit manquer les déductions du revenu de la CSG déductible)
+
+    const { tmi } = this.computeFiscalMetrics(profile);
+    return taxableBase * tmi;
   }
 
+  /**
+   * Computes the fiscal metrics displayed in the UI.
+   * @param {Object} profile - tax profile containing household and taxableIncome
+   * @returns {{parts: number, halfPartReductionCeiling: number, tmi: number}} summary
+   */
   static computeFiscalMetrics(profile) {
-    const childrenCount = profile?.household?.childrenCount ?? 0;
-    const alternateChildrenCount = profile?.household?.alternateChildrenCount ?? 0;
-    const isSingleParent = profile?.household?.isSingleParent ?? false;
-    const parentsParts = this._getParentsParts(profile?.household?.maritalStatus);
+    const household = profile?.household;
     const taxableIncome = Number.isFinite(profile?.taxableIncome) ? profile.taxableIncome : 0;
-
-    const equivalentChildren = childrenCount + alternateChildrenCount * FISCAL_RATES.EXTRA_PARTS.CHILD;
-    const childParts = this._computeChildParts(equivalentChildren);
-    const { bonus, discount } = this._computeSingleParentAdjustment(childrenCount, alternateChildrenCount, isSingleParent);
-    const parts = parentsParts + childParts + bonus;
+    const parentsParts = this._getParentsParts(household?.maritalStatus);
+    const { extraParts, ceiling } = this._computeChildrenImpact(household);
+    const parts = parentsParts + extraParts;
     const tmi = this._computeTmi(taxableIncome, parts);
 
-    const halfPartReductionCeiling = childParts * 2 * FISCAL_RATES.EXTRA_PARTS.CEILING.CHILD + discount;
-
-    return { parts, halfPartReductionCeiling, tmi };
+    return { parts, halfPartReductionCeiling: ceiling, tmi };
   }
 
+  /**
+   * Computes raw income tax for a given taxable income and number of parts.
+   * @param {number} taxableIncome - total taxable income
+   * @param {number} parts - number of fiscal parts
+   * @returns {{rawTax: number, tmi: number}} raw tax and marginal rate
+   */
   static computeRawTax(taxableIncome, parts) {
     if (parts <= 0 || taxableIncome <= 0) {
       return { rawTax: 0, tmi: 0 };
@@ -71,53 +107,118 @@ export class TaxCalculator {
     return { rawTax: taxPerPart * parts, tmi };
   }
 
+  /**
+   * Convenience method to compute the final tax from a Household and a net taxable income.
+   * @param {Object} household - household object
+   * @param {number} rni - revenu net imposable
+   * @param {number} [year] - ignored for now; present for API consistency
+   * @returns {{finalTax: number, decote: number, tmi: number, extraPartsBenefit: number}}
+   */
+  static calculate(household, rni, year = new Date().getFullYear()) {
+    if (!household || !Number.isFinite(rni)) {
+      throw new Error('Household and RNI are required');
+    }
+    const fiscalMetrics = this.computeFiscalMetrics({ household, taxableIncome: rni });
+    const parentsParts = this._getParentsParts(household.maritalStatus);
+    const extraParts = fiscalMetrics.parts - parentsParts;
+    return this.computeFinalTax(rni, household.maritalStatus, extraParts, fiscalMetrics.halfPartReductionCeiling);
+  }
+
+  /**
+   * Computes the final tax including extra parts cap and decote.
+   * @param {number} taxableIncome - total taxable income
+   * @param {string} maritalStatus - 'single' or 'married'
+   * @param {number} extraParts - number of extra parts generated by children
+   * @param {number} reductionCeiling - cap on the extra parts benefit
+   * @returns {{finalTax: number, decote: number, tmi: number, extraPartsBenefit: number}}
+   */
   static computeFinalTax(taxableIncome, maritalStatus, extraParts, reductionCeiling) {
     const parentsParts = this._getParentsParts(maritalStatus);
     const totalParts = parentsParts + extraParts;
     const withExtra = this.computeRawTax(taxableIncome, totalParts);
     const withoutExtra = this.computeRawTax(taxableIncome, parentsParts);
-    const cappedRaw = withoutExtra.rawTax - reductionCeiling;
+    const cappedRaw = Math.max(0, withoutExtra.rawTax - reductionCeiling);
     const selected = withExtra.rawTax >= cappedRaw ? withExtra : { rawTax: cappedRaw, tmi: withoutExtra.tmi };
     const rawTax = selected.rawTax;
     const tmi = selected.tmi;
-    const decoteLimit = maritalStatus === 'married'
-      ? FISCAL_RATES.DECOTE.limit_couple
-      : FISCAL_RATES.DECOTE.limit_single;
-    const decote = Math.round(Math.max(0, decoteLimit - FISCAL_RATES.DECOTE.rate * rawTax));
+    const decote = this._computeDecote(rawTax, maritalStatus);
     const finalTax = Math.round(Math.max(0, rawTax - decote));
     const extraPartsBenefit = Math.max(0, withoutExtra.rawTax - rawTax);
     return { finalTax, decote, tmi, extraPartsBenefit };
   }
 
+  /**
+   * Returns the number of parent-only fiscal parts.
+   * @param {string} maritalStatus - 'single' or 'married'
+   * @returns {number} 1 for single, 2 for married
+   */
   static _getParentsParts(maritalStatus) {
     return maritalStatus === 'married' ? 2 : 1;
   }
 
-  static _computeChildParts(equivalentChildren) {
-    const childPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
-    if (equivalentChildren <= 2) {
-      return equivalentChildren * childPart;
+  /**
+   * Computes the extra parts and reduction ceiling generated by children.
+   * @param {Object} household - household with children and single parent flags
+   * @returns {{extraParts: number, ceiling: number}}
+   */
+  static _computeChildrenImpact(household) {
+    const childrenCount = household?.childrenCount ?? 0;
+    const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
+    const isSingleParent = household?.isSingleParent ?? false;
+
+    const childCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.CHILD;
+    const singleParentCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.SINGLE_PARENT;
+
+    let childParts = 0;
+    const totalChildren = childrenCount + alternateChildrenCount;
+
+    // Exclusive children are considered first, then alternated ones.
+    // The first two children grant 0.5 part each; subsequent children grant 1 part.
+    // An alternated child receives half of the part it would have as exclusive.
+    for (let i = 1; i <= totalChildren; i += 1) {
+      const isAlternate = i > childrenCount;
+      const fullPart = i <= 2 ? 0.5 : 1;
+      const part = isAlternate ? fullPart / 2 : fullPart;
+      childParts += part;
     }
-    const firstTwoParts = 2 * childPart;
-    return firstTwoParts + (equivalentChildren - 2) * firstTwoParts;
+
+    // Single parent extra part: half if at least one exclusive child, quarter otherwise.
+    let bonus = 0;
+    let discount = 0;
+    if (isSingleParent) {
+      if (childrenCount > 0) {
+        bonus = 0.5;
+        discount = singleParentCeiling;
+      } else if (alternateChildrenCount > 0) {
+        bonus = 0.25;
+        discount = singleParentCeiling / 2;
+      }
+    }
+
+    const extraParts = childParts + bonus;
+    const ceiling = childParts * 2 * childCeiling + discount;
+    return { extraParts, ceiling };
   }
 
-  static _computeSingleParentAdjustment(childrenCount, alternateChildrenCount, isSingleParent) {
-    const { CHILD, CEILING } = FISCAL_RATES.EXTRA_PARTS;
-    if (!isSingleParent) {
-      return { bonus: 0, discount: 0 };
-    }
-    if (childrenCount > 0) {
-      const bonus = CHILD;
-      return { bonus, discount: bonus * 2 * CEILING.SINGLE_PARENT };
-    }
-    if (alternateChildrenCount > 0) {
-      const bonus = CHILD / 2;
-      return { bonus, discount: bonus * 2 * CEILING.SINGLE_PARENT };
-    }
-    return { bonus: 0, discount: 0 };
+  /**
+   * Computes the decote for a raw tax amount and marital status.
+   * @param {number} rawTax - tax before decote
+   * @param {string} maritalStatus - 'single' or 'married'
+   * @returns {number} rounded decote amount
+   */
+  static _computeDecote(rawTax, maritalStatus) {
+    const decoteLimit = maritalStatus === 'married'
+      ? FISCAL_RATES.DECOTE.limit_couple
+      : FISCAL_RATES.DECOTE.limit_single;
+    return Math.round(Math.max(0, decoteLimit - FISCAL_RATES.DECOTE.rate * rawTax));
   }
 
+  /**
+   * Computes the marginal income tax rate (TMI) from taxable income and parts.
+   * @param {number} taxableIncome - total taxable income
+   * @param {number} parts - number of fiscal parts
+   * @returns {number} marginal tax rate
+   */
   static _computeTmi(taxableIncome, parts) {
     if (parts <= 0 || taxableIncome <= 0) {
       return 0;

@@ -1,6 +1,8 @@
 
 # TODO List
 
+## Réutiliser la méthode TaxxCalculator.calculate là où c'est pertinent
+
 ## Corriger l'explicitations des calculs de l'assurance vie (la fin est ... bizarre).
 
 ## Dans le module Livrets, on doit pouvoir saisir des intérêts nets (c'est ce que donne Bousobank ... je ne sais pas comment ils ont le profil fiscal ...).

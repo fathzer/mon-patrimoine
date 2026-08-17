@@ -17,7 +17,7 @@ export const FISCAL_RATES = {
     CHILD: 0.5,
     CEILING: {
       CHILD: 1807,
-      SINGLE_PARENT: 4182
+      SINGLE_PARENT: 2455
     }
   },
   DECOTE: {
