@@ -145,6 +145,21 @@ body {
   align-items: center;
   margin-bottom: 1rem;
   flex-shrink: 0;
+  gap: 1rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.filter-summaries {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .filters-bar {
@@ -168,6 +183,68 @@ body {
   background: var(--accent-blue);
   color: white;
   border-color: var(--accent-blue);
+}
+
+.filter-summaries .filter-btn {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.filter-summaries .filter-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.filter-summaries .filter-btn .filter-mark,
+.filter-summaries .filter-btn .filter-clear {
+  margin-right: 0.35rem;
+  font-weight: 700;
+}
+
+.filter-popup {
+  position: fixed;
+  z-index: 10000;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  color: var(--text-main);
+}
+
+.filter-popup-header {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+
+.filter-popup-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-popup-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.filter-popup-option input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.filter-clear {
+  margin-right: 0.35rem;
+  font-weight: 700;
 }
 
 .btn-primary {

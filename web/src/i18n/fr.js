@@ -24,7 +24,11 @@ export const fr = {
     real_estate: "Immobilier"
   },
   filters: {
-    all: "Tous les actifs"
+    all: "Tous les actifs",
+    categories: "Type d'actif",
+    institutions: "Établissement",
+    withoutInstitution: "Sans établissement",
+    clearAll: "Effacer les filtres"
   },
   actions: {
     addAsset: "+ Ajouter un actif",

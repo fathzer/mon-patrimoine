@@ -2,10 +2,16 @@ import { I18n } from '../core/I18n.js';
 import { PlacementFactory } from '../modules/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
 
+const NO_INSTITUTION_KEY = '__NONE__';
+
 export class AssetTableView {
   constructor(store) {
     this.store = store;
-    this.selectedCategory = 'all';
+    this.selectedCategories = new Set();
+    this.selectedInstitutions = new Set();
+    this.activePopup = null;
+    this._onDocClick = null;
+    this._onDocKeydown = null;
     this.container = null;
     this.summary = null;
     this.modalRoot = null;
@@ -16,14 +22,15 @@ export class AssetTableView {
   }
 
   render(summary, modalRoot) {
+    this._closePopup();
     this.summary = summary;
     this.modalRoot = modalRoot;
     this.container.innerHTML = `
       <div class="toolbar">
-        <div class="filters-bar">
-          ${this._renderFilters(summary.categories)}
+        ${this._renderFilterBar(summary)}
+        <div class="toolbar-actions">
+          <button id="btn-add-asset" class="btn-primary">${I18n.t('actions.addAsset')}</button>
         </div>
-        <button id="btn-add-asset" class="btn-primary">${I18n.t('actions.addAsset')}</button>
       </div>
 
       <section class="asset-table-container">
@@ -46,22 +53,65 @@ export class AssetTableView {
       </section>
     `;
 
-    this._bindEvents();
+    this._bindStaticEvents();
+    this._bindTableEvents();
   }
 
-  _renderFilters(availableCategories) {
-    const categories = ['all', ...(availableCategories || [])];
-    return categories.map(catKey => `
-      <button class="filter-btn ${this.selectedCategory === catKey ? 'active' : ''}" data-cat="${catKey}">
-        ${catKey === 'all' ? I18n.t('filters.all') : I18n.t(`categories.${catKey}`)}
+  _renderFilterBar(summary) {
+    return `
+      <div class="filter-summaries">
+        ${this._renderFilterButton('categories', I18n.t('filters.categories'), 'btn-filter-categories')}
+        ${this._renderFilterButton('institutions', I18n.t('filters.institutions'), 'btn-filter-institutions')}
+      </div>
+    `;
+  }
+
+  _renderFilterButton(group, defaultLabel, id) {
+    const isActive = this._isFilterActive(group);
+    return `
+      <button id="${id}" class="filter-btn ${isActive ? 'active' : ''}" type="button">
+        ${this._renderFilterButtonContent(group, defaultLabel)}
       </button>
-    `).join('');
+    `;
+  }
+
+  _renderFilterButtonContent(group, defaultLabel) {
+    if (this._isFilterActive(group)) {
+      return `<span class="filter-clear" data-group="${group}">×</span><span class="filter-summary-label">${this._escapeHtml(defaultLabel)}</span>`;
+    }
+    return `<span class="filter-mark">+</span><span class="filter-summary-label">${this._escapeHtml(defaultLabel)}</span>`;
+  }
+
+  _isFilterActive(group) {
+    return group === 'categories'
+      ? this.selectedCategories.size > 0
+      : this.selectedInstitutions.size > 0;
+  }
+
+  _getInstitutionOptions(evaluations) {
+    const options = new Map();
+    for (const { instance } of evaluations || []) {
+      const raw = (instance.institution || '').trim();
+      const key = raw || NO_INSTITUTION_KEY;
+      const label = raw || I18n.t('filters.withoutInstitution');
+      if (!options.has(key)) {
+        options.set(key, { key, label });
+      }
+    }
+    const result = Array.from(options.values());
+    const none = result.find(o => o.key === NO_INSTITUTION_KEY);
+    const others = result.filter(o => o.key !== NO_INSTITUTION_KEY).sort((a, b) => a.label.localeCompare(b.label));
+    return none ? [none, ...others] : others;
   }
 
   _renderAssetRows(evaluations) {
-    const filtered = this.selectedCategory === 'all'
-      ? evaluations
-      : evaluations.filter(e => e.instance.getCategory() === this.selectedCategory);
+    const filtered = (evaluations || []).filter(({ instance }) => {
+      const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
+      const raw = (instance.institution || '').trim();
+      const instKey = raw || NO_INSTITUTION_KEY;
+      const instMatch = this.selectedInstitutions.size === 0 || this.selectedInstitutions.has(instKey);
+      return catMatch && instMatch;
+    });
 
     if (!filtered || filtered.length === 0) {
       return `<tr><td colspan="7" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
@@ -89,19 +139,32 @@ export class AssetTableView {
     }).join('');
   }
 
-  _bindEvents() {
+  _bindStaticEvents() {
     this.container.querySelector('#btn-add-asset')?.addEventListener('click', () => {
       const placementModal = new PlacementModalView(this.modalRoot, this.store);
       placementModal.show();
     });
 
-    this.container.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.selectedCategory = e.currentTarget.dataset.cat;
-        this.render(this.summary, this.modalRoot);
-      });
+    this.container.querySelector('#btn-filter-categories')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target.closest('.filter-clear')) {
+        this._clearFilter('categories');
+      } else {
+        this._togglePopup('categories', e.currentTarget);
+      }
     });
 
+    this.container.querySelector('#btn-filter-institutions')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target.closest('.filter-clear')) {
+        this._clearFilter('institutions');
+      } else {
+        this._togglePopup('institutions', e.currentTarget);
+      }
+    });
+  }
+
+  _bindTableEvents() {
     this.container.querySelectorAll('.asset-row').forEach(row => {
       row.addEventListener('click', (e) => {
         if (e.target.closest('.tax-help-btn')) return;
@@ -122,6 +185,138 @@ export class AssetTableView {
         }
       });
     });
+  }
+
+  _clearFilter(group) {
+    if (group === 'categories') {
+      this.selectedCategories.clear();
+    } else {
+      this.selectedInstitutions.clear();
+    }
+    this._closePopup();
+    this._applyFilters();
+  }
+
+  _applyFilters() {
+    const tbody = this.container.querySelector('tbody');
+    if (tbody) {
+      tbody.innerHTML = this._renderAssetRows(this.summary.evaluations);
+    }
+    this._updateFilterButtons();
+    this._bindTableEvents();
+  }
+
+  _updateFilterButtons() {
+    const catBtn = this.container.querySelector('#btn-filter-categories');
+    if (catBtn) {
+      catBtn.classList.toggle('active', this._isFilterActive('categories'));
+      catBtn.innerHTML = this._renderFilterButtonContent('categories', I18n.t('filters.categories'));
+    }
+    const instBtn = this.container.querySelector('#btn-filter-institutions');
+    if (instBtn) {
+      instBtn.classList.toggle('active', this._isFilterActive('institutions'));
+      instBtn.innerHTML = this._renderFilterButtonContent('institutions', I18n.t('filters.institutions'));
+    }
+  }
+
+  _togglePopup(group, trigger) {
+    if (this.activePopup && this.activePopup.dataset.group === group) {
+      this._closePopup();
+    } else {
+      this._showPopup(group, trigger);
+    }
+  }
+
+  _showPopup(group, trigger) {
+    this._closePopup();
+    const options = group === 'categories'
+      ? (this.summary.categories || []).map(catKey => ({ key: catKey, label: I18n.t(`categories.${catKey}`) }))
+      : this._getInstitutionOptions(this.summary.evaluations);
+
+    const popup = document.createElement('div');
+    popup.className = 'filter-popup';
+    popup.dataset.group = group;
+    popup.innerHTML = `
+      <div class="filter-popup-header">${this._escapeHtml(I18n.t(`filters.${group}`))}</div>
+      <div class="filter-popup-options">
+        ${options.map(({ key, label }) => `
+          <label class="filter-popup-option">
+            <input type="checkbox" class="filter-popup-check" data-value="${this._escapeHtml(key)}" ${this._isSelected(group, key) ? 'checked' : ''}>
+            <span>${this._escapeHtml(label)}</span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+    this.activePopup = popup;
+    this._positionPopup(popup, trigger);
+    this._bindPopupListeners();
+    this._bindDocumentListeners();
+  }
+
+  _bindPopupListeners() {
+    if (!this.activePopup) return;
+    this.activePopup.addEventListener('click', (e) => e.stopPropagation());
+    this.activePopup.addEventListener('change', (e) => {
+      if (e.target.classList.contains('filter-popup-check')) {
+        const group = this.activePopup.dataset.group;
+        const value = e.target.dataset.value;
+        const set = group === 'categories' ? this.selectedCategories : this.selectedInstitutions;
+        if (e.target.checked) {
+          set.add(value);
+        } else {
+          set.delete(value);
+        }
+        this._applyFilters();
+      }
+    });
+  }
+
+  _bindDocumentListeners() {
+    this._onDocClick = () => this._closePopup();
+    this._onDocKeydown = (e) => { if (e.key === 'Escape') this._closePopup(); };
+    document.addEventListener('click', this._onDocClick);
+    document.addEventListener('keydown', this._onDocKeydown);
+  }
+
+  _closePopup() {
+    if (this.activePopup) {
+      this.activePopup.remove();
+      this.activePopup = null;
+    }
+    if (this._onDocClick) {
+      document.removeEventListener('click', this._onDocClick);
+      this._onDocClick = null;
+    }
+    if (this._onDocKeydown) {
+      document.removeEventListener('keydown', this._onDocKeydown);
+      this._onDocKeydown = null;
+    }
+  }
+
+  _positionPopup(popup, trigger) {
+    const rect = trigger.getBoundingClientRect();
+    const margin = 8;
+    const popupRect = popup.getBoundingClientRect();
+    let left = rect.left;
+    let top = rect.bottom + margin;
+    if (left + popupRect.width > window.innerWidth - margin) {
+      left = window.innerWidth - popupRect.width - margin;
+    }
+    if (left < margin) left = margin;
+    if (top + popupRect.height > window.innerHeight - margin) {
+      top = rect.top - popupRect.height - margin;
+    }
+    if (top < margin) top = margin;
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+  }
+
+  _isSelected(group, key) {
+    return group === 'categories'
+      ? this.selectedCategories.has(key)
+      : this.selectedInstitutions.has(key);
   }
 
   _showTaxExplanation(item) {

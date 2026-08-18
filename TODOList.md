@@ -1,13 +1,11 @@
 
 # TODO List
 
-## Réutiliser la méthode TaxxCalculator.calculate là où c'est pertinent
-
 ## Corriger l'explicitations des calculs de l'assurance vie (la fin est ... bizarre).
 
-## Dans le module Livrets, on doit pouvoir saisir des intérêts nets (c'est ce que donne Bousobank ... je ne sais pas comment ils ont le profil fiscal ...).
+## Dans le module Livrets, on doit pouvoir saisir des intérêts nets (c'est ce que donne Boursobank ... je ne sais pas comment ils ont le profil fiscal ...).
 
-## Amélioration des possibilités de tri et de filtre des placements
+## Ajout de possibilités de tri
 
 ## Ajout de nouveaux types de comptes (PERECO, actions gratuites, etc ...)
 
