@@ -2,9 +2,10 @@ import { I18n } from '../core/I18n.js';
 import { AssetDonutChartView } from './AssetDonutChartView.js';
 
 export class AssetBreakdownView {
-  constructor(container) {
+  constructor(container, options = {}) {
     this.container = container;
     this._useNet = false;
+    this._onToggle = options.onToggle || (() => {});
     this._summary = null;
   }
 
@@ -23,6 +24,7 @@ export class AssetBreakdownView {
         <div class="filters-bar">
           <button class="filter-btn ${!this._useNet ? 'active' : ''}" data-mode="gross">${I18n.t('summary.gross')}</button>
           <button class="filter-btn ${this._useNet ? 'active' : ''}" data-mode="net">${I18n.t('summary.net')}</button>
+          <button class="filter-btn" type="button" data-action="toggle-summary" title="Replier">▼</button>
         </div>
       </div>
       <div style="display: grid; grid-template-columns: 150px 1fr; gap: 1.5rem; align-items: center;">
@@ -37,12 +39,7 @@ export class AssetBreakdownView {
     });
     donutChart.render(evaluations, this._useNet ? 'netValueBeforeIR' : 'grossValue');
 
-    this.container.querySelectorAll('[data-mode]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this._useNet = btn.dataset.mode === 'net';
-        this.render(this._summary);
-      });
-    });
+    this._bindEvents();
   }
 
   _getBreakdownData(summary, useNet) {
@@ -67,7 +64,7 @@ export class AssetBreakdownView {
     for (const [cat, value] of Object.entries(netByCat)) {
       data[cat] = {
         value,
-        percentage: total > 0 ? Math.round((value / total) * 100) : 0
+        percentage: total > 0 ? Math.round((value / total) * 10000) / 100 : 0
       };
     }
     return data;
@@ -77,9 +74,22 @@ export class AssetBreakdownView {
     return Object.entries(breakdownData || {}).map(([catKey, val]) => `
       <div class="breakdown-row" data-cat="${catKey}">
         <span>${I18n.t(`categories.${catKey}`)}</span>
-        <strong>${this._formatCurrency(val.value)} (${val.percentage}%)</strong>
+        <strong>${this._formatCurrency(val.value)} (${this._formatPercentage(val.percentage)}%)</strong>
       </div>
     `).join('');
+  }
+
+  _bindEvents() {
+    this.container.querySelectorAll('[data-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._useNet = btn.dataset.mode === 'net';
+        this.render(this._summary);
+      });
+    });
+
+    this.container.querySelector('[data-action="toggle-summary"]')?.addEventListener('click', () => {
+      this._onToggle();
+    });
   }
 
   _highlightCategory(cat) {
@@ -96,5 +106,9 @@ export class AssetBreakdownView {
 
   _formatCurrency(amount) {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount || 0);
+  }
+
+  _formatPercentage(value) {
+    return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
   }
 }

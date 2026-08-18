@@ -9,7 +9,9 @@ export class DashboardView {
     this.container = container;
     this.store = store;
     this._assetTableView = new AssetTableView(store);
-    this._breakdownView = new AssetBreakdownView(null);
+    this._breakdownView = new AssetBreakdownView(null, { onToggle: () => this._toggleSummary() });
+    this._summary = null;
+    this._summaryExpanded = true;
   }
 
   showLoading(isLoading) {
@@ -26,6 +28,7 @@ export class DashboardView {
       return;
     }
 
+    this._summary = summary;
     this.container.innerHTML = `
       <header class="top-bar">
         <h1>${I18n.t('app.title')}</h1>
@@ -49,35 +52,72 @@ export class DashboardView {
       <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
       <main class="main-content">
-        <section class="summary-banner">
-          <div class="totals-group">
-            <div class="total-item">
-              <div class="label">${I18n.t('summary.totalGross')}</div>
-              <div class="value">${this.formatCurrency(summary.totalGross)}</div>
-            </div>
-            <div class="total-item">
-              <div class="label">${I18n.t('summary.totalNet')}</div>
-              <div class="value net">${this.formatCurrency(summary.finalNetValue)}</div>
-            </div>
-          </div>
-
-          <div id="breakdown-container"></div>
-        </section>
-
+        <section id="summary-banner" class="summary-banner"></section>
         <div id="assets-container"></div>
       </main>
 
       <div id="modal-root"></div>
     `;
 
-    this._breakdownView.setContainer(this.container.querySelector('#breakdown-container'));
-    this._breakdownView.render(summary);
+    this._renderSummaryBanner(summary);
 
     const modalRoot = this.container.querySelector('#modal-root');
     this._assetTableView.setContainer(this.container.querySelector('#assets-container'));
     this._assetTableView.render(summary, modalRoot);
 
     this._bindEvents();
+  }
+
+  _renderSummaryBanner(summary) {
+    const banner = this.container.querySelector('#summary-banner');
+    if (!banner) return;
+
+    if (this._summaryExpanded) {
+      banner.style.display = '';
+      banner.style.justifyContent = '';
+      banner.style.alignItems = '';
+      banner.style.gap = '';
+      banner.innerHTML = `
+        <div class="totals-group">
+          <div class="total-item">
+            <div class="label">${I18n.t('summary.totalGross')}</div>
+            <div class="value">${this.formatCurrency(summary.totalGross)}</div>
+          </div>
+          <div class="total-item">
+            <div class="label">${I18n.t('summary.totalNet')}</div>
+            <div class="value net">${this.formatCurrency(summary.finalNetValue)}</div>
+          </div>
+        </div>
+        <div class="breakdown-group" id="breakdown-container"></div>
+      `;
+      this._breakdownView.setContainer(banner.querySelector('#breakdown-container'));
+      this._breakdownView.render(summary);
+    } else {
+      banner.style.display = 'flex';
+      banner.style.justifyContent = 'space-between';
+      banner.style.alignItems = 'center';
+      banner.style.gap = '0';
+      banner.innerHTML = `
+        <div class="totals-group" style="flex-direction: row; gap: 2rem; border-right: none; padding-right: 0;">
+          <div class="total-item" style="margin-bottom: 0;">
+            <div class="label">${I18n.t('summary.totalGross')}</div>
+            <div class="value">${this.formatCurrency(summary.totalGross)}</div>
+          </div>
+          <div class="total-item" style="margin-bottom: 0;">
+            <div class="label">${I18n.t('summary.totalNet')}</div>
+            <div class="value net">${this.formatCurrency(summary.finalNetValue)}</div>
+          </div>
+        </div>
+        <button id="btn-toggle-summary" class="filter-btn" type="button" title="Déplier">▶</button>
+      `;
+    }
+
+    banner.querySelector('#btn-toggle-summary')?.addEventListener('click', () => this._toggleSummary());
+  }
+
+  _toggleSummary() {
+    this._summaryExpanded = !this._summaryExpanded;
+    this._renderSummaryBanner(this._summary);
   }
 
   _renderAuthScreen() {

@@ -127,7 +127,6 @@ export class AppStore extends EventBus {
     const breakdown = {};
     const categoriesSet = new Set();
 
-    console.log("Getting global summary with state", this.state);
     const evaluations = this.state.placements.map(placement => {
       const evaluation = placement.getEvaluation(this.state.taxProfile, now);
       totalGross += evaluation.grossValue;
@@ -142,8 +141,8 @@ export class AppStore extends EventBus {
     });
 
     Object.keys(breakdown).forEach(cat => {
-      breakdown[cat].percentage = totalGross > 0 
-        ? Math.round((breakdown[cat].gross / totalGross) * 100) 
+      breakdown[cat].percentage = totalGross > 0
+        ? Math.round((breakdown[cat].gross / totalGross) * 10000) / 100
         : 0;
     });
 

@@ -53,7 +53,7 @@ export class AssetDonutChartView {
       const color = colors[i];
       const visible = Math.min(pct, Math.max(0.05, pct - effectiveGap));
       const rotation = -90 + (cumulative * 3.6);
-      const rounded = Math.round(pct * 10) / 10;
+      const rounded = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(pct);
       cumulative += pct;
       return `<circle
         class="donut-segment"
