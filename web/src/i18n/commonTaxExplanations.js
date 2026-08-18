@@ -18,7 +18,7 @@ export function getPfuExplanation({ fiscalProfile, personalCase = true } = {}) {
   return `<p>L'impôt sur les plus values de certains placements est calculé selon le mode de taxation choisi par le contribuable :</p>
 <ul>
   <li><b>Prélèvement Forfaitaire Unique (PFU)</b> : l'impôt est calculé au taux forfaitaire de ${pfuRate}.</li>
-  <li><b>Barème progressif</b> : les plus values sont intégrées au revenu imposable du foyer fiscal et soumises au barème progressif de l'impôt sur le revenu. Une fraction de la CSG, soit ${csgDeductibleRate}, est alors déductible du revenu imposable</li>
+  <li><b>Barème progressif</b> : les plus values sont intégrées au revenu imposable du foyer fiscal et soumises au barème progressif de l'impôt sur le revenu. Une fraction de la CSG, soit ${csgDeductibleRate}, est alors déductible du revenu imposable.</li>
 </ul>
 <p>Le choix entre ces deux modes de taxation porte sur l'ensemble des revenus concernés de l'année.</p>
 ${personalCaseText}`;

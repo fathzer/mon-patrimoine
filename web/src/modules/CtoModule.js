@@ -1,8 +1,10 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { CtoEditor } from '../ui/editors/CtoEditor.js';
+
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
 
 export class CtoModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.INVESTMENTS;
@@ -30,11 +32,16 @@ export class CtoModule extends BasePlacement {
     return this.getLatentGain() * this.getSocialChargesRate();
   }
 
-  getImposition(fiscalProfile) {
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]}
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
     const latentGain = this.getLatentGain();
     return latentGain > 0
-      ? TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain })
-      : 0;
+      ? [{ assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain }]
+      : [];
   }
 
   getEvaluation(fiscalProfile) {

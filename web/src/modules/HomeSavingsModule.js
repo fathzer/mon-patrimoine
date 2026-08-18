@@ -1,8 +1,10 @@
 import { BasePlacement } from './BasePlacement.js';
 import { HomeSavingsEditor } from '../ui/editors/HomeSavingsEditor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
+
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
 
 export const CSG_2018_THRESHOLD = new Date('2018-01-01T00:00:00');
 
@@ -76,12 +78,17 @@ export class HomeSavingsModule extends BasePlacement {
     return this.getTotalInterest() * this.getSocialChargesRate(now);
   }
 
-  getImposition(fiscalProfile, now = new Date()) {
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]}
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
     if (!this.isPfuEligible(now)) {
-      return 0;
+      return [];
     }
     const totalInterest = this.getTotalInterest();
-    return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest });
+    return [{ assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest }];
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {

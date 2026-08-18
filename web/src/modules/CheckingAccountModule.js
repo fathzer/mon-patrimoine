@@ -2,6 +2,9 @@ import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
 import { CheckingAccountEditor } from '../ui/editors/CheckingAccountEditor.js';
 
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
+
 export class CheckingAccountModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.BANK_ACCOUNTS;
 
@@ -15,15 +18,24 @@ export class CheckingAccountModule extends BasePlacement {
     this.cardBalance = Number(data.cardBalance) || 0;
   }
 
-  getEvaluation() {
+  getEvaluation(fiscalProfile, now = new Date()) {
     const grossValue = this.currentValue - this.cardBalance;
     return {
       grossValue: grossValue,
       netValueBeforeIR: grossValue,
       socialCharges: 0,
       latentGain: 0,
-      imposition: 0
+      imposition: this.getImposition(fiscalProfile, now)
     };
+  }
+
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]} always an empty list for checking accounts
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
+    return [];
   }
 
   toJSON() {

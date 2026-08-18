@@ -1,8 +1,10 @@
 import { BasePlacement } from './BasePlacement.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
 import { PeaEditor } from '../ui/editors/PeaEditor.js';
+
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
 
 export class PeaModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.INVESTMENTS;
@@ -49,12 +51,17 @@ export class PeaModule extends BasePlacement {
     return this.getLatentGain() * this.getSocialChargesRate();
   }
 
-  getImposition(fiscalProfile, now = new Date()) {
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]}
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
     if (this.isExemptFromIncomeTax(now)) {
-      return 0;
+      return [];
     }
     const latentGain = this.getLatentGain();
-    return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain });
+    return [{ assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain }];
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {

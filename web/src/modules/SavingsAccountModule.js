@@ -1,8 +1,10 @@
 import { BasePlacement } from './BasePlacement.js';
 import { SavingsAccountEditor } from '../ui/editors/SavingsAccountEditor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { Categories } from '../core/Categories.js';
+
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
 
 export class SavingsAccountModule extends BasePlacement {
   static DEFAULT_CATEGORY = Categories.SAVING_ACCOUNTS;
@@ -31,12 +33,17 @@ export class SavingsAccountModule extends BasePlacement {
     return this.taxExempt ? 0 : this.getTotalInterest() * this.getSocialChargesRate();
   }
 
-  getImposition(fiscalProfile) {
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]}
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
     if (this.taxExempt) {
-      return 0;
+      return [];
     }
     const totalInterest = this.getTotalInterest();
-    return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest });
+    return [{ assietteImposition: totalInterest, eligiblePfu: true, deductionRevenus: totalInterest }];
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {

@@ -3,6 +3,9 @@ import { Categories } from '../core/Categories.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 import { RealEstateEditor } from '../ui/editors/RealEstateEditor.js';
 
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
+
 const STANDARD_SOCIAL_RATE = SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
 const YEAR_6_21_REDUCTION = 0.0165;
 const YEAR_22_REDUCTION = 0.016;
@@ -55,9 +58,7 @@ export class RealEstateModule extends BasePlacement {
 
     const irReductionRate = this.getIncomeTaxReduction(holdingYears);
     const irBase = netGain * (1 - irReductionRate);
-    const imposition = irBase > 0
-      ? irBase * INCOME_TAX_RATE
-      : 0;
+    const imposition = this.getImposition(fiscalProfile, now);
 
     return {
       grossValue: this.currentValue,
@@ -66,6 +67,30 @@ export class RealEstateModule extends BasePlacement {
       latentGain: netGain,
       imposition
     };
+  }
+
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]}
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
+    if (this.primaryResidence) {
+      return [];
+    }
+
+    const grossGain = Math.max(0, this.currentValue - this.acquisitionPrice);
+    const totalDeductions = this.getTotalDeductions(now);
+    const netGain = Math.max(0, grossGain - totalDeductions);
+    const holdingYears = this.getHoldingYears(now);
+    const irReductionRate = this.getIncomeTaxReduction(holdingYears);
+    const irBase = netGain * (1 - irReductionRate);
+
+    if (irBase <= 0) {
+      return [];
+    }
+
+    return [{ assietteImposition: irBase, tauxSpecifique: INCOME_TAX_RATE }];
   }
 
   getHoldingYears(now) {

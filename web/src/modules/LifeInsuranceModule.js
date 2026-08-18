@@ -1,8 +1,10 @@
 import { BasePlacement } from './BasePlacement.js';
 import { Categories } from '../core/Categories.js';
 import { FISCAL_RATES, SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { LifeInsuranceEditor } from '../ui/editors/LifeInsuranceEditor.js';
+
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+/** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
 
 const REFORM_DATE = '2017-09-27';
 export const UC_SOCIAL_RATE = SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
@@ -63,10 +65,15 @@ export class LifeInsuranceModule extends BasePlacement {
     return ucGain * UC_SOCIAL_RATE;
   }
 
-  getImposition(fiscalProfile, now = new Date()) {
+  /**
+   * @param {FiscalProfile} fiscalProfile
+   * @param {Date} [now]
+   * @returns {PlacementIncome[]}
+   */
+  getTaxableIncomes(fiscalProfile, now = new Date()) {
     const totalGain = this.getLatentGain();
     if (totalGain <= 0) {
-      return 0;
+      return [];
     }
     const euroShare = this.currentValue > 0 ? this.euroFundsValue / this.currentValue : 0;
     const ucShare = 1 - euroShare;
@@ -74,8 +81,8 @@ export class LifeInsuranceModule extends BasePlacement {
     const postShare = 1 - preShare;
     const contractYears = this.getContractYears(now);
     return contractYears < 8
-      ? this._computePre8YearsImposition(fiscalProfile, totalGain, totalGain * ucShare)
-      : this._computePost8YearsImposition(fiscalProfile, totalGain, ucShare, preShare, postShare);
+      ? this._computePre8YearsTaxableIncomes(fiscalProfile, totalGain, totalGain * ucShare)
+      : this._computePost8YearsTaxableIncomes(fiscalProfile, totalGain, ucShare, preShare, postShare);
   }
 
   getEvaluation(fiscalProfile, now = new Date()) {
@@ -90,42 +97,42 @@ export class LifeInsuranceModule extends BasePlacement {
     };
   }
 
-  _computePre8YearsImposition(fiscalProfile, totalGain, ucGain) {
+  _computePre8YearsTaxableIncomes(fiscalProfile, totalGain, ucGain) {
     if (!fiscalProfile?.usePfu) {
-      return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: totalGain, deductionRevenus: ucGain });
+      return [{ assietteImposition: totalGain, deductionRevenus: ucGain }];
     }
-    return totalGain * PFU_BEFORE_8Y;
+    return [{ assietteImposition: totalGain, eligiblePfu: true, tauxSpecifique: PFU_BEFORE_8Y }];
   }
 
-  _computePost8YearsImposition(fiscalProfile, totalGain, ucShare, preShare, postShare) {
+  _computePost8YearsTaxableIncomes(fiscalProfile, totalGain, ucShare, preShare, postShare) {
     const isCouple = COUPLE_STATUSES.has(fiscalProfile?.household?.maritalStatus);
     const allowance = isCouple ? ALLOWANCE_COUPLE : ALLOWANCE_SINGLE;
     const taxableGain = Math.max(0, totalGain - allowance);
     if (taxableGain <= 0) {
-      return 0;
+      return [];
     }
 
     if (!fiscalProfile?.usePfu) {
       const ucTaxableGain = taxableGain * ucShare;
-      return TaxCalculator.calculateTax(fiscalProfile, { assietteImposition: taxableGain, deductionRevenus: ucTaxableGain });
+      return [{ assietteImposition: taxableGain, deductionRevenus: ucTaxableGain }];
     }
 
     const post2017Premiums = Math.max(0, this.totalPremiums - this.pre2017Premiums);
     const preTaxableGain = taxableGain * preShare;
     const postTaxableGain = taxableGain * postShare;
-    const preImposition = preTaxableGain * PFU_AFTER_8Y_PRE_2017;
+    const preIncome = { assietteImposition: preTaxableGain, tauxSpecifique: PFU_AFTER_8Y_PRE_2017 };
 
-    let postImposition;
     if (post2017Premiums <= PREMIUM_THRESHOLD) {
-      postImposition = postTaxableGain * PFU_AFTER_8Y_POST_2017_LOW;
-    } else {
-      const firstFraction = Math.min(1, PREMIUM_THRESHOLD / post2017Premiums);
-      const postGainFirst = postTaxableGain * firstFraction;
-      const postGainRest = postTaxableGain - postGainFirst;
-      postImposition = postGainFirst * PFU_AFTER_8Y_POST_2017_LOW + postGainRest * PFU_AFTER_8Y_POST_2017_HIGH;
+      const postIncome = { assietteImposition: postTaxableGain, tauxSpecifique: PFU_AFTER_8Y_POST_2017_LOW };
+      return [preIncome, postIncome];
     }
 
-    return preImposition + postImposition;
+    const firstFraction = Math.min(1, PREMIUM_THRESHOLD / post2017Premiums);
+    const postGainFirst = postTaxableGain * firstFraction;
+    const postGainRest = postTaxableGain - postGainFirst;
+    const postIncomeLow = { assietteImposition: postGainFirst, tauxSpecifique: PFU_AFTER_8Y_POST_2017_LOW };
+    const postIncomeHigh = { assietteImposition: postGainRest, tauxSpecifique: PFU_AFTER_8Y_POST_2017_HIGH };
+    return [preIncome, postIncomeLow, postIncomeHigh];
   }
 
   toJSON() {

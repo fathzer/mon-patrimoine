@@ -43,6 +43,77 @@ export class TaxCalculator {
   }
 
   /**
+   * Computes the tax impact and RNI delta for a single placement income.
+   * @param {FiscalProfile} profile - the tax profile
+   * @param {PlacementIncome} income - placement income component
+   * @returns {{flatTaxDelta: number, rniDelta: number}}
+   * @private
+   */
+  static _processPlacementIncome(profile, income) {
+    if (!Number.isFinite(income.assietteImposition)) {
+      throw new TypeError('income.assietteImposition must be a number');
+    }
+    const base = income.assietteImposition;
+    if (base <= 0) {
+      return { flatTaxDelta: 0, rniDelta: 0 };
+    }
+
+    if (income?.eligiblePfu) {
+      if (profile?.usePfu) {
+        const rate = income?.tauxSpecifique ?? FISCAL_RATES.PFU_IR_RATE;
+        return { flatTaxDelta: base * rate, rniDelta: 0 };
+      }
+      return { flatTaxDelta: 0, rniDelta: base };
+    }
+
+    const deduction = (income?.deductionRevenus ?? 0) * FISCAL_RATES.PFU_CSG_REDUCTION_RATE;
+    if (income?.tauxSpecifique != null) {
+      return { flatTaxDelta: base * income.tauxSpecifique, rniDelta: -deduction };
+    }
+    return { flatTaxDelta: 0, rniDelta: base - deduction };
+  }
+
+  /**
+   * Computes the total tax due on a list of placement incomes.
+   * PFU-eligible incomes are taxed at the flat rate when the profile opts for the PFU.
+   * Other incomes are aggregated into a modified taxable income, and the progressive
+   * tax difference between this new base and the original RNI is added to the flat tax.
+   * @param {FiscalProfile} profile - the tax profile
+   * @param {PlacementIncome[]} incomes - placement income components
+   * @returns {number} total tax for this placement
+   */
+  static calculatePlacementTax(profile, incomes) {
+    if (!Array.isArray(incomes)) {
+      throw new TypeError('incomes must be an array of PlacementIncome');
+    }
+    if (!Number.isFinite(profile?.taxableIncome)) {
+      throw new TypeError('profile.taxableIncome must be a number');
+    }
+    if (incomes.length === 0) {
+      return 0;
+    }
+
+    const rni = profile.taxableIncome;
+    let flatTax = 0;
+    let modifiedRni = rni;
+
+    for (const income of incomes) {
+      const { flatTaxDelta, rniDelta } = this._processPlacementIncome(profile, income);
+      flatTax += flatTaxDelta;
+      modifiedRni += rniDelta;
+    }
+
+    if (modifiedRni !== rni) {
+      const fiscalMetrics = this.computeFiscalMetrics(profile);
+      const taxOnModified = this.computeRawTax(modifiedRni, fiscalMetrics.parts).rawTax;
+      const taxOnRni = this.computeRawTax(rni, fiscalMetrics.parts).rawTax;
+      flatTax += taxOnModified - taxOnRni;
+    }
+
+    return Math.max(0, flatTax);
+  }
+
+  /**
    * Computes tax for a specific placement income using the chosen tax mode.
    * @param {FiscalProfile} profile - the tax profile
    * @param {PlacementIncome} income - placement income details

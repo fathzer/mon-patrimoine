@@ -4,11 +4,13 @@ import { LifeInsuranceModule } from "../src/modules/LifeInsuranceModule.js";
 const NOW = new Date("2024-01-01");
 
 function makeProfile(options = {}) {
+  const maritalStatus = options.maritalStatus ?? 'single';
+  const { maritalStatus: _, tmi, ...rest } = options;
   return {
     usePfu: true,
-    tmi: 0.30,
-    maritalStatus: "single",
-    ...options
+    taxableIncome: 29580,
+    household: { maritalStatus, childrenCount: 0, alternateChildrenCount: 0, isSingleParent: false },
+    ...rest
   };
 }
 
