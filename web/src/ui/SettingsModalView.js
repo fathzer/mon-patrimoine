@@ -1,9 +1,10 @@
 import { I18n } from '../core/I18n.js';
-import { FISCAL_RATES } from '../fiscality/rates.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { getTaxRulesHelpPopover } from '../i18n/TaxExplanation.js';
 import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
+
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
 
 export class SettingsModalView {
   constructor(container, store) {
@@ -250,6 +251,7 @@ export class SettingsModalView {
       const usePfuValue = formData.get('usePfu');
       const usePfu = usePfuValue ? usePfuValue === 'true' : this.store.getTaxProfile().usePfu;
 
+      /** @type {FiscalProfile} */
       const profileData = {
         household: { maritalStatus, childrenCount, alternateChildrenCount, isSingleParent },
         taxableIncome,

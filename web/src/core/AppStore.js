@@ -2,6 +2,8 @@ import { EventBus } from './EventBus.js';
 import { Household } from '../fiscality/Household.js';
 import { PlacementFactory } from '../modules/PlacementFactory.js';
 
+/** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
+
 export class AppStore extends EventBus {
   static DEFAULT_TAX_PROFILE = {
     household: new Household(),
@@ -155,10 +157,17 @@ export class AppStore extends EventBus {
     };
   }
 
+  /**
+   * @returns {FiscalProfile}
+   */
   getTaxProfile() {
     return this.state.taxProfile;
   }
 
+  /**
+   * Updates the stored tax profile.
+   * @param {FiscalProfile} newTaxProfile
+   */
   updateTaxProfile(newTaxProfile) {
     this.state.taxProfile = this._normalizeTaxProfile(newTaxProfile);
 

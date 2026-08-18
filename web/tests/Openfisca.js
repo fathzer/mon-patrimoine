@@ -1,5 +1,23 @@
 const ENDPOINT = 'https://api.fr.openfisca.org/latest/calculate';
 
+/** @typedef {import('../src/fiscality/Household.js').Household} Household */
+
+/**
+ * @typedef {Object} OpenfiscaCase
+ * @property {Household} household
+ * @property {number} rni
+ * @property {number} [year]
+ */
+
+/**
+ * @typedef {Object} OpenfiscaResult
+ * @property {number} nbptr
+ * @property {number} tmi
+ * @property {number} impot
+ * @property {number} avantageQf
+ * @property {number} decote
+ */
+
 /**
  * Formats a date as an ISO string without time.
  * @param {Date} date
@@ -72,7 +90,7 @@ function _buildFoyerInputs(declarants, personnesACharge, isSingleParent, rni, ye
  * Extracts the fiscal result for one foyers_fiscaux from an OpenFisca response.
  * @param {Object} foyer - foyers_fiscaux entry
  * @param {number} year - simulation year
- * @returns {{nbptr: number, tmi: number, impot: number, avantageQf: number, decote: number}}
+ * @returns {OpenfiscaResult}
  */
 function _extractFoyerResult(foyer, year) {
   return {
@@ -90,10 +108,10 @@ function _extractFoyerResult(foyer, year) {
 export class Openfisca {
   /**
    * Computes tax and fiscal metrics for a single household.
-   * @param {Object} household - household data
+   * @param {Household} household - household data
    * @param {number} rni - revenu net imposable
    * @param {number} [year] - simulation year (defaults to current year)
-   * @returns {Promise<{nbptr: number, tmi: number, impot: number, avantageQf: number, decote: number}>}
+   * @returns {Promise<OpenfiscaResult>}
    */
   static async calculate(household, rni, year = new Date().getFullYear()) {
     const response = await fetch(ENDPOINT, {
@@ -119,8 +137,8 @@ export class Openfisca {
 
   /**
    * Computes tax and fiscal metrics for several households in a single call.
-   * @param {Object[]} cases - array of { household, rni, year }
-   * @returns {Promise<Array<{nbptr: number, tmi: number, impot: number, avantageQf: number, decote: number}>>}
+   * @param {OpenfiscaCase[]} cases - array of cases
+   * @returns {Promise<OpenfiscaResult[]>}
    */
   static async batch(cases) {
     const response = await fetch(ENDPOINT, {
@@ -146,7 +164,7 @@ export class Openfisca {
 
   /**
    * Builds the request payload for a single household.
-   * @param {Object} household - household data
+   * @param {Household} household - household data
    * @param {number} rni - revenu net imposable
    * @param {number} year - simulation year
    * @returns {Object} OpenFisca /calculate payload
@@ -190,7 +208,7 @@ export class Openfisca {
 
   /**
    * Builds the request payload for several households.
-   * @param {Object[]} cases - array of { household, rni, year }
+   * @param {OpenfiscaCase[]} cases - array of cases
    * @returns {Object} OpenFisca /calculate batch payload
    * @private
    */
