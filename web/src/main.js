@@ -16,4 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   store.on('save:error', () => window.alert(I18n.t('alerts.saveError')));
 
   await store.init();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then((registration) => console.log('Service Worker registered:', registration.scope))
+      .catch((error) => console.error('Service Worker registration failed:', error));
+  }
 });

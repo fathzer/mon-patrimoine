@@ -7,6 +7,10 @@
 
 ## Ajout de possibilités de tri
 
+## Un truc pas mal serait d'avoir la possibilité de marquer les placaments non mis à jour le jour courant et d'avoir une icône pour les identifier.
+Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
+Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
+
 ## Ajout de nouveaux types de comptes (PERECO, actions gratuites, etc ...)
 
 ## Calcul de l'imposition
