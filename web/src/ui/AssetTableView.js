@@ -29,7 +29,7 @@ export class AssetTableView {
       <div class="toolbar">
         ${this._renderFilterBar(summary)}
         <div class="toolbar-actions">
-          <button id="btn-add-asset" class="btn-primary">${I18n.t('actions.addAsset')}</button>
+          <button class="btn-primary btn-add-asset" type="button">${I18n.t('actions.addAsset')}</button>
         </div>
       </div>
 
@@ -51,6 +51,10 @@ export class AssetTableView {
           </tbody>
         </table>
       </section>
+
+      <div class="asset-table-fab">
+        <button class="btn-primary btn-add-asset" type="button">${I18n.t('actions.addAsset')}</button>
+      </div>
     `;
 
     this._bindStaticEvents();
@@ -144,9 +148,11 @@ export class AssetTableView {
   }
 
   _bindStaticEvents() {
-    this.container.querySelector('#btn-add-asset')?.addEventListener('click', () => {
-      const placementModal = new PlacementModalView(this.modalRoot, this.store);
-      placementModal.show();
+    this.container.querySelectorAll('.btn-add-asset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const placementModal = new PlacementModalView(this.modalRoot, this.store);
+        placementModal.show();
+      });
     });
 
     this.container.querySelector('#btn-filter-categories')?.addEventListener('click', (e) => {

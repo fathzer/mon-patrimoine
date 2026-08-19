@@ -5,7 +5,7 @@ export class AssetBreakdownView {
   constructor(container, options = {}) {
     this.container = container;
     this._useNet = false;
-    this._onToggle = options.onToggle || (() => {});
+    this._onClose = options.onClose || (() => {});
     this._summary = null;
   }
 
@@ -19,15 +19,19 @@ export class AssetBreakdownView {
     const evaluations = summary?.evaluations || [];
     this.container.className = 'breakdown-group';
     this.container.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div class="breakdown-header">
         <h3 style="margin: 0;">${I18n.t('summary.breakdownTitle')}</h3>
-        <div class="filters-bar">
-          <button class="filter-btn ${!this._useNet ? 'active' : ''}" data-mode="gross">${I18n.t('summary.gross')}</button>
-          <button class="filter-btn ${this._useNet ? 'active' : ''}" data-mode="net">${I18n.t('summary.net')}</button>
-          <button class="filter-btn" type="button" data-action="toggle-summary" title="Replier">▼</button>
+        <div class="breakdown-switch">
+          <span class="breakdown-switch-label">${I18n.t('summary.gross')}</span>
+          <label class="breakdown-switch-track">
+            <input type="checkbox" data-mode-toggle ${this._useNet ? 'checked' : ''}>
+            <span class="breakdown-switch-slider"></span>
+          </label>
+          <span class="breakdown-switch-label">${I18n.t('summary.net')}</span>
         </div>
+        <button class="breakdown-close" type="button" data-action="close">&times;</button>
       </div>
-      <div style="display: grid; grid-template-columns: 150px 1fr; gap: 1.5rem; align-items: center;">
+      <div class="breakdown-content">
         <div id="donut-container"></div>
         <div id="breakdown-list">${this._renderRows(breakdownData)}</div>
       </div>
@@ -80,15 +84,14 @@ export class AssetBreakdownView {
   }
 
   _bindEvents() {
-    this.container.querySelectorAll('[data-mode]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this._useNet = btn.dataset.mode === 'net';
-        this.render(this._summary);
-      });
+    const modeToggle = this.container.querySelector('[data-mode-toggle]');
+    modeToggle?.addEventListener('change', () => {
+      this._useNet = modeToggle.checked;
+      this.render(this._summary);
     });
 
-    this.container.querySelector('[data-action="toggle-summary"]')?.addEventListener('click', () => {
-      this._onToggle();
+    this.container.querySelector('[data-action="close"]')?.addEventListener('click', () => {
+      this._onClose();
     });
   }
 

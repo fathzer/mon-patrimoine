@@ -9,9 +9,9 @@ export class DashboardView {
     this.container = container;
     this.store = store;
     this._assetTableView = new AssetTableView(store);
-    this._breakdownView = new AssetBreakdownView(null, { onToggle: () => this._toggleSummary() });
+    this._breakdownView = new AssetBreakdownView(null, { onClose: () => this._hideBreakdown() });
     this._summary = null;
-    this._summaryExpanded = true;
+    this._breakdownVisible = true;
   }
 
   showLoading(isLoading) {
@@ -31,8 +31,17 @@ export class DashboardView {
     this._summary = summary;
     this.container.innerHTML = `
       <header class="top-bar">
-        <h1>${I18n.t('app.title')}</h1>
+        <h1>
+          <img src="favicon.svg" alt="" class="top-bar-logo">
+          <span class="top-bar-title">${I18n.t('app.title')}</span>
+        </h1>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="btn-show-breakdown" class="btn-secondary" title="${I18n.t('summary.breakdownTitle')}" style="padding: 0.5rem 0.8rem; display: ${this._breakdownVisible ? 'none' : 'inline-flex'}; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
+              <path d="M12 12 L12 3 A9 9 0 0 1 21 12 Z" fill="var(--accent)"/>
+            </svg>
+          </button>
           <button id="btn-import" class="btn-secondary" title="${I18n.t('actions.import')}" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
             📥
           </button>
@@ -42,24 +51,30 @@ export class DashboardView {
           <button id="btn-settings" class="btn-secondary" title="Réglages du profil fiscal" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
             ⚙️
           </button>
-          <button id="btn-help" class="btn-secondary" title="Aide et informations" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
-            ❓
+          <button id="btn-help" class="btn-secondary" title="Aide et informations" style="padding: 0.5rem 0.8rem; display: flex; align-items: center; justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
+              <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="var(--accent)" font-size="13" font-family="Inter, sans-serif">?</text>
+            </svg>
           </button>
-          <button id="btn-logout" class="btn-secondary">${I18n.t('auth.logoutBtn')}</button>
+          <button id="btn-logout" class="btn-secondary" title="${I18n.t('auth.logoutBtn')}" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
+            <span class="logout-icon" aria-hidden="true"></span>
+          </button>
         </div>
       </header>
 
       <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
       <main class="main-content">
-        <section id="summary-banner" class="summary-banner"></section>
+        <section id="summary-totals" class="summary-totals"></section>
+        <section id="summary-breakdown" class="summary-breakdown"></section>
         <div id="assets-container"></div>
       </main>
 
       <div id="modal-root"></div>
     `;
 
-    this._renderSummaryBanner(summary);
+    this._renderSummary();
 
     const modalRoot = this.container.querySelector('#modal-root');
     this._assetTableView.setContainer(this.container.querySelector('#assets-container'));
@@ -68,56 +83,52 @@ export class DashboardView {
     this._bindEvents();
   }
 
-  _renderSummaryBanner(summary) {
-    const banner = this.container.querySelector('#summary-banner');
-    if (!banner) return;
+  _renderSummary() {
+    const totals = this.container.querySelector('#summary-totals');
+    const breakdown = this.container.querySelector('#summary-breakdown');
+    if (!totals || !breakdown) return;
 
-    if (this._summaryExpanded) {
-      banner.style.display = '';
-      banner.style.justifyContent = '';
-      banner.style.alignItems = '';
-      banner.style.gap = '';
-      banner.innerHTML = `
-        <div class="totals-group">
-          <div class="total-item">
-            <div class="label">${I18n.t('summary.totalGross')}</div>
-            <div class="value">${this.formatCurrency(summary.totalGross)}</div>
-          </div>
-          <div class="total-item">
-            <div class="label">${I18n.t('summary.totalNet')}</div>
-            <div class="value net">${this.formatCurrency(summary.finalNetValue)}</div>
-          </div>
+    totals.innerHTML = `
+      <div class="totals-group">
+        <div class="total-item">
+          <div class="label">${I18n.t('summary.totalGross')}</div>
+          <div class="value">${this.formatCurrency(this._summary.totalGross)}</div>
         </div>
-        <div class="breakdown-group" id="breakdown-container"></div>
-      `;
-      this._breakdownView.setContainer(banner.querySelector('#breakdown-container'));
-      this._breakdownView.render(summary);
+        <div class="total-item">
+          <div class="label">${I18n.t('summary.totalNet')}</div>
+          <div class="value net">${this.formatCurrency(this._summary.finalNetValue)}</div>
+        </div>
+      </div>
+    `;
+
+    if (this._breakdownVisible) {
+      breakdown.style.display = 'block';
+      breakdown.innerHTML = '<div id="breakdown-container"></div>';
+      this._breakdownView.setContainer(breakdown.querySelector('#breakdown-container'));
+      this._breakdownView.render(this._summary);
     } else {
-      banner.style.display = 'flex';
-      banner.style.justifyContent = 'space-between';
-      banner.style.alignItems = 'center';
-      banner.style.gap = '0';
-      banner.innerHTML = `
-        <div class="totals-group" style="flex-direction: row; gap: 2rem; border-right: none; padding-right: 0;">
-          <div class="total-item" style="margin-bottom: 0;">
-            <div class="label">${I18n.t('summary.totalGross')}</div>
-            <div class="value">${this.formatCurrency(summary.totalGross)}</div>
-          </div>
-          <div class="total-item" style="margin-bottom: 0;">
-            <div class="label">${I18n.t('summary.totalNet')}</div>
-            <div class="value net">${this.formatCurrency(summary.finalNetValue)}</div>
-          </div>
-        </div>
-        <button id="btn-toggle-summary" class="filter-btn" type="button" title="Déplier">▶</button>
-      `;
+      breakdown.style.display = 'none';
+      breakdown.innerHTML = '';
     }
-
-    banner.querySelector('#btn-toggle-summary')?.addEventListener('click', () => this._toggleSummary());
   }
 
-  _toggleSummary() {
-    this._summaryExpanded = !this._summaryExpanded;
-    this._renderSummaryBanner(this._summary);
+  _hideBreakdown() {
+    this._breakdownVisible = false;
+    this._renderSummary();
+    this._updateBreakdownToggle();
+  }
+
+  _showBreakdown() {
+    this._breakdownVisible = true;
+    this._renderSummary();
+    this._updateBreakdownToggle();
+  }
+
+  _updateBreakdownToggle() {
+    const btn = this.container.querySelector('#btn-show-breakdown');
+    if (btn) {
+      btn.style.display = this._breakdownVisible ? 'none' : 'inline-flex';
+    }
   }
 
   _renderAuthScreen() {
@@ -138,6 +149,8 @@ export class DashboardView {
 
   _bindEvents() {
     this.container.querySelector('#btn-logout')?.addEventListener('click', () => this.store.logout());
+
+    this.container.querySelector('#btn-show-breakdown')?.addEventListener('click', () => this._showBreakdown());
 
     this.container.querySelector('#btn-export')?.addEventListener('click', () => this._exportData());
 

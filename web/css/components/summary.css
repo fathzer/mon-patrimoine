@@ -2,17 +2,12 @@
 
 .totals-group {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border-right: 1px solid var(--card-border);
-  padding-right: var(--space-xl);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-xl);
 }
 
 .total-item {
-  margin-bottom: var(--space-md);
-}
-
-.total-item:last-child {
   margin-bottom: 0;
 }
 
@@ -34,7 +29,9 @@
 
 @media (max-width: 768px) {
   .totals-group {
-    border-right: none;
-    padding-right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+    width: 100%;
   }
 }
