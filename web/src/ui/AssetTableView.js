@@ -121,18 +121,22 @@ export class AssetTableView {
       const institutionHtml = instance.institution
         ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
         : '';
+      const gross = this._formatCurrency(evaluation.grossValue);
+      const social = this._formatCurrency(evaluation.socialCharges);
+      const tax = this._formatCurrency(evaluation.imposition);
+      const net = this._formatCurrency(evaluation.netValueBeforeIR - (evaluation.imposition ?? 0));
 
       return `
       <tr class="asset-row" data-id="${instance.id}">
-        <td>
+        <td data-label="${this._escapeHtml(I18n.t('table.assetHeader'))}">
           <div style="font-weight: 600;">${this._escapeHtml(instance.label)}</div>
           ${institutionHtml}
         </td>
-        <td><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
-        <td style="text-align: right;"><strong>${this._formatCurrency(evaluation.grossValue)}</strong></td>
-        <td style="text-align: right;">${this._formatCurrency(evaluation.socialCharges)}</td>
-        <td style="text-align: right;">${this._formatCurrency(evaluation.imposition)}</td>
-        <td style="text-align: right; color: var(--accent);"><strong>${this._formatCurrency(evaluation.netValueBeforeIR - (evaluation.imposition ?? 0))}</strong></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.categoryHeader'))}"><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.grossHeader'))}" style="text-align: right;">${gross ? `<strong>${gross}</strong>` : ''}</td>
+        <td class="tax-info-cell" data-label="${this._escapeHtml(I18n.t('table.socialHeader'))}" style="text-align: right;">${social}</td>
+        <td class="tax-info-cell" data-label="${this._escapeHtml(I18n.t('table.taxHeader'))}" style="text-align: right;">${tax}</td>
+        <td data-label="${this._escapeHtml(I18n.t('table.netHeader'))}" style="text-align: right; color: var(--accent);">${net ? `<strong>${net}</strong>` : ''}</td>
         <td style="text-align: center;">${this._renderFiscalIcon(evaluation, instance)}</td>
       </tr>
     `;
@@ -180,6 +184,18 @@ export class AssetTableView {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const item = this.summary.evaluations.find(ev => ev.instance.id === btn.dataset.id);
+        if (item) {
+          this._showTaxExplanation(item);
+        }
+      });
+    });
+
+    this.container.querySelectorAll('.tax-info-cell').forEach(cell => {
+      cell.addEventListener('click', (e) => {
+        if (window.innerWidth > 768) return;
+        e.stopPropagation();
+        const row = cell.closest('.asset-row');
+        const item = this.summary.evaluations.find(ev => ev.instance.id === row?.dataset.id);
         if (item) {
           this._showTaxExplanation(item);
         }
