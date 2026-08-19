@@ -31,7 +31,7 @@ jobs:
           mkdir -p _site
           cp web/index.html _site/index.html
           cp web/favicon.svg _site/favicon.svg
-          cp -r web/assets _site/assets
+          cp -r web/css _site/css
           cp -r web/src _site/src
           touch _site/.nojekyll
 
