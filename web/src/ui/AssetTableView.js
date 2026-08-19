@@ -9,6 +9,7 @@ export class AssetTableView {
     this.store = store;
     this.selectedCategories = new Set();
     this.selectedInstitutions = new Set();
+    this.sortLevels = [];
     this.activePopup = null;
     this._onDocClick = null;
     this._onDocKeydown = null;
@@ -66,6 +67,7 @@ export class AssetTableView {
       <div class="filter-summaries">
         ${this._renderFilterButton('categories', I18n.t('filters.categories'), 'btn-filter-categories')}
         ${this._renderFilterButton('institutions', I18n.t('filters.institutions'), 'btn-filter-institutions')}
+        ${this._renderSortButton()}
       </div>
     `;
   }
@@ -121,14 +123,16 @@ export class AssetTableView {
       return `<tr><td colspan="7" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
     }
 
-    return filtered.map(({ instance, evaluation }) => {
+    const sorted = this._sortEvaluations(filtered);
+
+    return sorted.map(({ instance, evaluation }) => {
       const institutionHtml = instance.institution
         ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
         : '';
       const gross = this._formatCurrency(evaluation.grossValue);
       const social = this._formatCurrency(evaluation.socialCharges);
       const tax = this._formatCurrency(evaluation.imposition);
-      const net = this._formatCurrency(evaluation.netValueBeforeIR - (evaluation.imposition ?? 0));
+      const net = this._formatCurrency(this._getNetValue(evaluation));
 
       return `
       <tr class="asset-row" data-id="${instance.id}">
@@ -171,6 +175,19 @@ export class AssetTableView {
       } else {
         this._togglePopup('institutions', e.currentTarget);
       }
+    });
+
+    this.container.querySelector('#btn-sort')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target.closest('[data-action="clear-sort"]')) {
+        this._clearSort();
+        return;
+      }
+      if (e.target.closest('[data-action="toggle-direction"]')) {
+        this._toggleSortDirection();
+        return;
+      }
+      this._toggleSortPopup(e.currentTarget);
     });
   }
 
@@ -242,7 +259,7 @@ export class AssetTableView {
   }
 
   _togglePopup(group, trigger) {
-    if (this.activePopup && this.activePopup.dataset.group === group) {
+    if (this.activePopup?.dataset.group === group) {
       this._closePopup();
     } else {
       this._showPopup(group, trigger);
@@ -374,6 +391,182 @@ export class AssetTableView {
     const overlay = this.modalRoot.querySelector('.modal-overlay');
     overlay?.addEventListener('click', (e) => {
       if (e.target === overlay) close();
+    });
+  }
+
+  _getNetValue(evaluation) {
+    return (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
+  }
+
+  _sortEvaluations(evaluations) {
+    if (this.sortLevels.length === 0) {
+      return evaluations;
+    }
+
+    const sorted = [...evaluations];
+    sorted.sort((a, b) => {
+      for (const level of this.sortLevels) {
+        const dir = level.direction === 'asc' ? 1 : -1;
+        let cmp = 0;
+        switch (level.field) {
+          case 'name':
+            cmp = this._compareStrings(a.instance.label, b.instance.label);
+            break;
+          case 'institution':
+            cmp = this._compareStrings(a.instance.institution, b.instance.institution);
+            break;
+          case 'category':
+            cmp = this._compareStrings(I18n.t(`categories.${a.instance.getCategory()}`), I18n.t(`categories.${b.instance.getCategory()}`));
+            break;
+          case 'grossValue':
+            cmp = (a.evaluation.grossValue ?? 0) - (b.evaluation.grossValue ?? 0);
+            break;
+          case 'netValue':
+            cmp = this._getNetValue(a.evaluation) - this._getNetValue(b.evaluation);
+            break;
+        }
+        cmp *= dir;
+        if (cmp !== 0) return cmp;
+      }
+      return 0;
+    });
+    return sorted;
+  }
+
+  _compareStrings(a, b) {
+    return String(a || '').toLowerCase().localeCompare(String(b || '').toLowerCase(), 'fr');
+  }
+
+  _renderSortButton() {
+    const isActive = this.sortLevels.length > 0;
+    return `
+      <button id="btn-sort" class="filter-btn ${isActive ? 'active' : ''}" type="button">
+        ${this._renderSortButtonContent()}
+      </button>
+    `;
+  }
+
+  _renderSortButtonContent() {
+    if (this.sortLevels.length > 0) {
+      const primary = this.sortLevels[0];
+      const fieldLabel = this._getSortFieldLabel(primary.field);
+      const arrow = primary.direction === 'asc' ? '↓' : '↑';
+      return `<span class="filter-clear" data-action="clear-sort">×</span><span class="filter-summary-label">${this._escapeHtml(fieldLabel)}</span> <span class="sort-direction" data-action="toggle-direction">${arrow}</span>`;
+    }
+    return `<span class="filter-mark">+</span> <span class="filter-summary-label">${this._escapeHtml(I18n.t('sort.label'))}</span>`;
+  }
+
+  _toggleSortDirection() {
+    if (this.sortLevels.length === 0) return;
+    this.sortLevels[0].direction = this.sortLevels[0].direction === 'asc' ? 'desc' : 'asc';
+    this._applySort();
+  }
+
+  _pushSortField(field) {
+    const index = this.sortLevels.findIndex(level => level.field === field);
+    if (index !== -1) {
+      const [level] = this.sortLevels.splice(index, 1);
+      this.sortLevels.unshift(level);
+    } else {
+      this.sortLevels.unshift({ field, direction: 'asc' });
+    }
+  }
+
+  _getSortFieldLabel(field) {
+    switch (field) {
+      case 'name':
+        return I18n.t('form.label');
+      case 'institution':
+        return I18n.t('form.institution');
+      case 'category':
+        return I18n.t('form.category');
+      case 'grossValue':
+        return I18n.t('table.grossHeader');
+      case 'netValue':
+        return I18n.t('table.netHeader');
+      default:
+        return '';
+    }
+  }
+
+  _getSortOptions() {
+    return [
+      { key: 'name', label: I18n.t('form.label') },
+      { key: 'institution', label: I18n.t('form.institution') },
+      { key: 'category', label: I18n.t('form.category') },
+      { key: 'grossValue', label: I18n.t('table.grossHeader') },
+      { key: 'netValue', label: I18n.t('table.netHeader') }
+    ];
+  }
+
+  _clearSort() {
+    this.sortLevels = [];
+    this._closePopup();
+    this._applySort();
+  }
+
+  _applySort() {
+    const tbody = this.container.querySelector('tbody');
+    if (tbody) {
+      tbody.innerHTML = this._renderAssetRows(this.summary.evaluations);
+    }
+    this._updateFilterButtons();
+    this._updateSortButton();
+    this._bindTableEvents();
+  }
+
+  _updateSortButton() {
+    const btn = this.container.querySelector('#btn-sort');
+    if (btn) {
+      btn.classList.toggle('active', this.sortLevels.length > 0);
+      btn.innerHTML = this._renderSortButtonContent();
+    }
+  }
+
+  _toggleSortPopup(trigger) {
+    if (this.activePopup?.dataset.group === 'sort') {
+      this._closePopup();
+    } else {
+      this._showSortPopup(trigger);
+    }
+  }
+
+  _showSortPopup(trigger) {
+    this._closePopup();
+    const options = this._getSortOptions();
+    const selected = this.sortLevels[0]?.field ?? null;
+
+    const popup = document.createElement('div');
+    popup.className = 'filter-popup';
+    popup.dataset.group = 'sort';
+    popup.innerHTML = `
+      <div class="filter-popup-header">${this._escapeHtml(I18n.t('sort.label'))}</div>
+      <div class="filter-popup-options">
+        ${options.map(({ key, label }) => `
+          <label class="filter-popup-option sort-popup-option">
+            <input type="radio" name="sort" value="${key}" class="sort-popup-radio" ${key === selected ? 'checked' : ''}>
+            <span>${this._escapeHtml(label)}</span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+    this.activePopup = popup;
+    this._positionPopup(popup, trigger);
+    this._bindSortPopupListeners();
+    this._bindDocumentListeners();
+  }
+
+  _bindSortPopupListeners() {
+    if (!this.activePopup) return;
+    this.activePopup.addEventListener('click', (e) => e.stopPropagation());
+    this.activePopup.addEventListener('change', (e) => {
+      if (e.target.classList.contains('sort-popup-radio')) {
+        this._pushSortField(e.target.value);
+        this._closePopup();
+        this._applySort();
+      }
     });
   }
 

@@ -39,6 +39,9 @@ export const fr = {
     "import": "Importer",
     "export": "Exporter"
   },
+  sort: {
+    label: "Trier"
+  },
   table: {
     assetHeader: "Actif / Établissement",
     categoryHeader: "Catégorie",
