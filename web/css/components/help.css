@@ -1,0 +1,112 @@
+/* Help modal and FAQ styling. */
+
+.help-modal-content {
+  max-width: 650px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-modal-header {
+  margin: 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.help-modal-body {
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin: var(--space-md) 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-main);
+}
+
+.help-section {
+  margin-bottom: 1.8rem;
+}
+
+.help-section-title {
+  color: var(--accent-blue);
+  margin-bottom: var(--space-sm);
+  font-size: var(--font-size-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.help-faq-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
+}
+
+.help-faq-card:last-child {
+  margin-bottom: 0;
+}
+
+.help-faq-question {
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--text-main);
+  font-size: var(--font-size-md);
+}
+
+.help-provider-block {
+  margin-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--accent-blue);
+}
+
+.help-provider-title {
+  color: #4285F4;
+}
+
+.help-provider-text {
+  margin: 0.25rem 0 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.help-provider-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.help-disclaimer-box {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+}
+
+.help-disclaimer-box p {
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.help-disclaimer-box p:last-child {
+  margin: 0;
+}
+
+.help-modal-footer {
+  justify-content: flex-end;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--card-border);
+  margin-top: auto;
+}
+
+.help-link {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
+.help-link:hover {
+  color: var(--text-main);
+}

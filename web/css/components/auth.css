@@ -1,0 +1,19 @@
+/* Authentication lock screen. */
+
+.auth-lock-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.auth-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-xl);
+  max-width: 400px;
+  width: 100%;
+}

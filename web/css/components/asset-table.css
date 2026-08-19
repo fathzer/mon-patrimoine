@@ -1,0 +1,77 @@
+/* Asset table, toolbar and row styling. */
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  flex-shrink: 0;
+  gap: var(--space-md);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.asset-table-container {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.asset-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.asset-table th {
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.asset-table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.asset-table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.asset-table tbody tr:hover {
+  background: var(--hover-bg);
+}
+
+.tag-category {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  background: var(--card-border);
+}
+
+.tax-help-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}

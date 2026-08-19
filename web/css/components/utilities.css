@@ -1,0 +1,5 @@
+/* Utility classes reused across components. */
+
+.text-muted {
+  color: var(--text-muted);
+}

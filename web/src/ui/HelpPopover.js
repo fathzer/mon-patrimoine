@@ -1,60 +1,8 @@
-const STYLE_ID = 'help-popover-style';
-const CSS = `
-  .help-popover {
-    display: inline;
-    color: var(--accent-blue);
-    text-decoration: underline;
-    cursor: pointer;
-    outline: none;
-  }
-
-  .help-popover:hover {
-    text-decoration: none;
-  }
-
-  .help-popover:focus-visible {
-    text-decoration: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-    border-radius: 2px;
-  }
-
-  .help-popover-card {
-    position: fixed;
-    z-index: 10000;
-    display: none;
-    min-width: 14rem;
-    max-width: 24rem;
-    max-height: 80vh;
-    overflow: auto;
-    background: var(--card-bg);
-    border: 2px solid var(--accent-blue);
-    border-radius: 8px;
-    padding: 1rem;
-    color: var(--text-main);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 40px rgba(59, 130, 246, 0.35);
-    font-size: 0.95rem;
-    line-height: 1.5;
-  }
-
-  .help-popover-card-title {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--accent-blue);
-  }
-
-  .help-popover-card-body p {
-    margin: 0 0 0.5rem;
-  }
-
-  .help-popover-card-body p:last-child {
-    margin-bottom: 0;
-  }
-`;
-
 let activeCard = null;
 let activeTrigger = null;
 const contentProviders = new Map();
 let nextContentId = 1;
+let isInitialized = false;
 
 function escapeHtml(value) {
   return String(value)
@@ -162,13 +110,8 @@ function onDocumentKeydown(e) {
 }
 
 function init() {
-  if (typeof document === 'undefined') return;
-  if (document.getElementById(STYLE_ID)) return;
-
-  const style = document.createElement('style');
-  style.id = STYLE_ID;
-  style.textContent = CSS;
-  document.head.appendChild(style);
+  if (typeof document === 'undefined' || isInitialized) return;
+  isInitialized = true;
 
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onDocumentKeydown);
@@ -177,7 +120,7 @@ function init() {
 init();
 
 export class HelpPopover {
-  static getHtml({ title = '', content = '', contentKey = '', contentArgs, label = '❓' } = {}) {
+  static getHtml({ title = '', content = '', contentKey = '', contentArgs, label = '?' } = {}) {
     const argsAttr = contentArgs !== undefined
       ? ` data-content-args="${escapeHtml(JSON.stringify(contentArgs))}"`
       : '';

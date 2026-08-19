@@ -1,0 +1,21 @@
+/* Asset breakdown (donut + rows). */
+
+.breakdown-group h3 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: 0.5rem;
+}
+
+.filters-bar {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+}

@@ -1,0 +1,40 @@
+/* Summary banner totals and labels. */
+
+.totals-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid var(--card-border);
+  padding-right: var(--space-xl);
+}
+
+.total-item {
+  margin-bottom: var(--space-md);
+}
+
+.total-item:last-child {
+  margin-bottom: 0;
+}
+
+.total-item .label {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+}
+
+.total-item .value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-top: var(--space-xs);
+}
+
+.total-item .value.net {
+  color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .totals-group {
+    border-right: none;
+    padding-right: 0;
+  }
+}

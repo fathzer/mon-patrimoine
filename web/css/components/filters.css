@@ -1,0 +1,88 @@
+/* Filter buttons and filter popup. */
+
+.filter-summaries {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.filter-btn.active {
+  background: var(--accent-blue);
+  color: var(--color-text-primary);
+  border-color: var(--accent-blue);
+}
+
+.filter-summaries .filter-btn {
+  font-size: var(--font-size-xs);
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.filter-summaries .filter-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: var(--color-text-primary);
+}
+
+.filter-summaries .filter-btn .filter-mark,
+.filter-summaries .filter-btn .filter-clear {
+  margin-right: 0.35rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.filter-clear {
+  margin-right: 0.35rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.filter-popup {
+  position: fixed;
+  z-index: 10000;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  box-shadow: var(--shadow-overlay);
+  min-width: 220px;
+  max-width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  color: var(--text-main);
+}
+
+.filter-popup-header {
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-sm);
+  color: var(--text-main);
+}
+
+.filter-popup-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.filter-popup-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.filter-popup-option input[type="checkbox"] {
+  cursor: pointer;
+}

@@ -1,0 +1,51 @@
+/* Help popover trigger and card. */
+
+.help-popover {
+  display: inline;
+  color: var(--accent-blue);
+  text-decoration: underline;
+  cursor: pointer;
+  outline: none;
+}
+
+.help-popover:hover {
+  text-decoration: none;
+}
+
+.help-popover:focus-visible {
+  text-decoration: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  border-radius: 2px;
+}
+
+.help-popover-card {
+  position: fixed;
+  z-index: 10000;
+  display: none;
+  min-width: 14rem;
+  max-width: 24rem;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--card-bg);
+  border: 2px solid var(--accent-blue);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  color: var(--text-main);
+  box-shadow: var(--shadow-overlay), var(--shadow-glow);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+.help-popover-card-title {
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-sm);
+  color: var(--accent-blue);
+}
+
+.help-popover-card-body p {
+  margin: 0 0 var(--space-sm);
+}
+
+.help-popover-card-body p:last-child {
+  margin-bottom: 0;
+}

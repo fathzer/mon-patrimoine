@@ -21,7 +21,7 @@ export class AssetDonutChartView {
     const colors = segments.map((_, i) => DONUT_COLORS[i % DONUT_COLORS.length]);
 
     this.container.innerHTML = `
-      <svg class="donut-chart" viewBox="0 0 40 40" style="width: 100%; height: auto;" aria-label="${I18n.t('summary.breakdownTitle')}">
+      <svg class="donut-chart" viewBox="0 0 40 40" aria-label="${I18n.t('summary.breakdownTitle')}">
         ${this._renderSegments(segments, percentages, colors, total)}
       </svg>
     `;
@@ -65,7 +65,7 @@ export class AssetDonutChartView {
         pointer-events="stroke"
         transform="rotate(${rotation} 20 20)"
         data-cat="${cat}"
-        style="cursor: pointer;"
+
       >
         <title>${I18n.t(`categories.${cat}`)}: ${this._formatCurrency(value)} (${rounded}%)</title>
       </circle>`;

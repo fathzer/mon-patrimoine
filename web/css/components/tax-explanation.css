@@ -1,0 +1,37 @@
+/* Tax explanation content displayed in modals. */
+
+.tax-explanation {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--text-main);
+}
+
+.tax-explanation h3 {
+  color: var(--accent-blue);
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--font-size-lg);
+}
+
+.tax-explanation p,
+.tax-explanation ul {
+  margin: 0 0 var(--space-md) 0;
+}
+
+.tax-explanation ul:last-child,
+.tax-explanation p:last-child {
+  margin-bottom: 0;
+}
+
+.tax-explanation li {
+  margin-bottom: var(--space-xs);
+}
+
+.tax-explanation i {
+  color: var(--text-muted);
+}
+
+.tax-explanation code {
+  background: var(--color-surface-elevated);
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-sm);
+}
