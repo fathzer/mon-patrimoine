@@ -4,9 +4,7 @@ export const fr = {
     loading: "Chargement du patrimoine..."
   },
   auth: {
-    welcomeTitle: "Bienvenue",
-    loginSubtitle: "Connectez-vous à votre espace de stockage Cloud pour accéder à votre patrimoine.",
-    loginBtn: "Connexion Cloud",
+    loginBtn: "Connexion",
     logoutBtn: "Déconnexion"
   },
   summary: {

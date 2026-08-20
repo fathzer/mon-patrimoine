@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { UiState } from '../core/UiState.js';
 import { PlacementFactory } from '../modules/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
 
@@ -7,9 +8,10 @@ const NO_INSTITUTION_KEY = '__NONE__';
 export class AssetTableView {
   constructor(store) {
     this.store = store;
-    this.selectedCategories = new Set();
-    this.selectedInstitutions = new Set();
-    this.sortLevels = [];
+    const ui = UiState.load();
+    this.selectedCategories = new Set(ui.selectedCategories);
+    this.selectedInstitutions = new Set(ui.selectedInstitutions);
+    this.sortLevels = ui.sortLevels;
     this.activePopup = null;
     this._onDocClick = null;
     this._onDocKeydown = null;
@@ -242,6 +244,7 @@ export class AssetTableView {
       tbody.innerHTML = this._renderAssetRows(this.summary.evaluations);
     }
     this._updateFilterButtons();
+    this._saveUiState();
     this._bindTableEvents();
   }
 
@@ -394,6 +397,14 @@ export class AssetTableView {
     });
   }
 
+  _saveUiState() {
+    UiState.save({
+      selectedCategories: Array.from(this.selectedCategories),
+      selectedInstitutions: Array.from(this.selectedInstitutions),
+      sortLevels: this.sortLevels
+    });
+  }
+
   _getNetValue(evaluation) {
     return (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
   }
@@ -512,6 +523,7 @@ export class AssetTableView {
     }
     this._updateFilterButtons();
     this._updateSortButton();
+    this._saveUiState();
     this._bindTableEvents();
   }
 

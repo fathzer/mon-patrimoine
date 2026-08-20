@@ -1,13 +1,13 @@
 
 # TODO List
 
+## Revoir l'écran d'accueil. Expliquer ce que l'application fait, ne fait pas et ce qu'elle nécessite (connexion, etc ...).
+
 ## Corriger l'explicitations des calculs de l'assurance vie (la fin est ... bizarre).
 
 ## Dans le module Livrets, on doit pouvoir saisir des intérêts nets (c'est ce que donne Boursobank ... je ne sais pas comment ils ont le profil fiscal ...).
 
-## Ajout de possibilités de tri
-
-## Un truc pas mal serait d'avoir la possibilité de marquer les placaments non mis à jour le jour courant et d'avoir une icône pour les identifier.
+## Un truc pas mal serait d'avoir la possibilité de marquer les placements non mis à jour le jour courant et d'avoir une icône pour les identifier.
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
 Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
 

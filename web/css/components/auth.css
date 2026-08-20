@@ -4,7 +4,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   min-height: 60vh;
   text-align: center;
 }
@@ -14,6 +13,120 @@
   border: 1px solid var(--card-border);
   padding: var(--space-2xl);
   border-radius: var(--radius-xl);
-  max-width: 400px;
+  max-width: 720px;
   width: 100%;
+  margin: auto;
+  box-sizing: border-box;
+}
+
+.auth-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.auth-card-header h2 {
+  margin: 0;
+}
+
+.welcome-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.welcome-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.auth-card > .welcome-card {
+  margin-top: var(--space-md);
+}
+
+.welcome-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 0.5rem;
+}
+
+.welcome-card-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.welcome-card-title {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--font-size-md);
+}
+
+.welcome-card-text {
+  margin: 0;
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.welcome-card-text + .welcome-card-text {
+  margin-top: 0.75rem;
+}
+
+.welcome-card-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.welcome-card-list li {
+  margin-bottom: 0.5rem;
+}
+
+.auth-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: var(--font-size-sm);
+}
+
+.auth-comparison-table th,
+.auth-comparison-table td {
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.auth-comparison-table th {
+  color: var(--accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.auth-comparison-table th:not(:first-child),
+.auth-comparison-table td:not(:first-child) {
+  text-align: center;
+}
+
+.auth-comparison-note {
+  margin: 0.75rem 0 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .auth-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: var(--space-md);
+  }
 }

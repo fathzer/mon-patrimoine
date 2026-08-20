@@ -16,6 +16,7 @@ body {
   flex-direction: column;
   flex: 1 1 0%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .top-bar {
@@ -57,6 +58,16 @@ body {
   background-position: center;
 }
 
+.login-icon {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjhmYWZjIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOSAyMUg1YTIgMiAwIDAgMS0yLTJWNWEyIDIgMCAwIDEgMi0yaDQiLz48cG9seWxpbmUgcG9pbnRzPSIxNSA3IDEwIDEyIDE1IDE3Ii8+PGxpbmUgeDE9IjIxIiB5MT0iMTIiIHgyPSIxMCIgeTI9IjEyIi8+PC9zdmc+');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
 .main-content {
   max-width: var(--max-content-width);
   width: 100%;
@@ -67,6 +78,7 @@ body {
   flex-direction: column;
   flex: 1 1 0%;
   min-height: 0;
+  overflow-y: auto;
 }
 
 #assets-container {

@@ -152,13 +152,8 @@ export class GoogleDriveProvider extends StorageProvider {
                   <strong>Pourquoi cette fenêtre ?</strong>
                 </p>
                 <p>
-                  Votre jeton d'accès à Google Drive a expiré. Pour des raisons de sécurité, Google interdit la reconnexion automatique sans intervention utilisateur explicite.
-                </p>
-                <p>
-                  <strong>Politique de sécurité Google :</strong>
-                </p>
-                <p>
-                  Google exige que toute reconnexion soit initiée par une action utilisateur directe pour éviter les connexions non autorisées. De plus, Google interdit que le jeton d'accès transite par un serveur tiers, ce qui est une limitation imposée par leur politique de sécurité OAuth 2.0.
+                  Votre jeton d'accès à Google Drive a expiré. Pour des raisons de sécurité, Google interdit la reconnexion automatique sans intervention utilisateur explicite à moins de faire transiter vos données de connexion sur nos serveurs.</br>
+                  Ce transit serait une violation de notre promesse "Aucune de vos données ne nous est envoyée".
                 </p>
                 <p>
                   <strong>Ce que vous devez faire :</strong>

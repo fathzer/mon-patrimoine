@@ -10,6 +10,7 @@
   cursor: pointer;
   font-family: inherit;
   font-size: var(--font-size-sm);
+  box-sizing: border-box;
 }
 
 .btn-primary {
