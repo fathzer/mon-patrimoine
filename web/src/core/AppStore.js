@@ -123,21 +123,22 @@ export class AppStore extends EventBus {
 
     const now = new Date();
     let totalGross = 0;
-    let totalNetBeforeIR = 0;
+    let totalNet = 0;
     const breakdown = {};
     const categoriesSet = new Set();
 
     const evaluations = this.state.placements.map(placement => {
       const evaluation = placement.getEvaluation(this.state.taxProfile, now);
+      const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
       totalGross += evaluation.grossValue;
-      totalNetBeforeIR += evaluation.netValueBeforeIR;
+      totalNet += netValue;
 
       const cat = placement.getCategory();
       categoriesSet.add(cat);
       if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
       breakdown[cat].gross += evaluation.grossValue;
 
-      return { instance: placement, evaluation };
+      return { instance: placement, evaluation: { ...evaluation, netValue } };
     });
 
     Object.keys(breakdown).forEach(cat => {
@@ -149,7 +150,7 @@ export class AppStore extends EventBus {
     return {
       isAuthenticated: true,
       totalGross,
-      finalNetValue: totalNetBeforeIR,
+      finalNetValue: totalNet,
       categories: Array.from(categoriesSet),
       breakdown,
       evaluations

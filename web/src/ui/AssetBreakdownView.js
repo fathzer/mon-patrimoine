@@ -41,7 +41,7 @@ export class AssetBreakdownView {
       onHover: (cat) => this._highlightCategory(cat),
       onLeave: () => this._clearHighlight()
     });
-    donutChart.render(evaluations, this._useNet ? 'netValueBeforeIR' : 'grossValue');
+    donutChart.render(evaluations, this._useNet ? 'netValue' : 'grossValue');
 
     this._bindEvents();
   }
@@ -59,7 +59,7 @@ export class AssetBreakdownView {
     let total = 0;
     for (const { instance, evaluation } of (summary?.evaluations || [])) {
       const cat = instance.getCategory();
-      const value = evaluation.netValueBeforeIR || 0;
+      const value = evaluation.netValue ?? ((evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0));
       netByCat[cat] = (netByCat[cat] || 0) + value;
       total += value;
     }

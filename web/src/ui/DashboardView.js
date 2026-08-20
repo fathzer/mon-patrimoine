@@ -204,7 +204,7 @@ export class DashboardView {
     let totalNet = 0;
     for (const { evaluation } of filtered) {
       totalGross += evaluation.grossValue || 0;
-      totalNet += evaluation.netValueBeforeIR || 0;
+      totalNet += evaluation.netValue ?? ((evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0));
     }
     return { gross: totalGross, net: totalNet };
   }
