@@ -63,6 +63,12 @@ export const fr = {
     pre2017Premiums: "Primes versées avant le 27/09/2017 (€)",
     euroFundsValue: "Valeur actuelle des fonds en euros (€)",
     lifeInsuranceWarning: "Attention, le calcul des prélèvements sociaux et impôts est approximatif. Celui-ci dépend de l'historique des versements et arbitrages survenus au cours de la vie de votre assurance-vie",
+    stockName: "Nom de l'action",
+    currentPrice: "Cours actuel de l'action (€)",
+    attributions: "Attributions",
+    attributionDate: "Date d'attribution",
+    numberOfShares: "Nombre d'actions",
+    addAttribution: "+ Ajouter une attribution",
     cardBalance: "En cours carte (€)",
     totalDeposits: "Total des versements (€)",
     openingDate: "Date d'ouverture",
@@ -98,7 +104,8 @@ export const fr = {
       savings_account: "Livret",
       home_savings: "Épargne Logement",
       real_estate: "Immobilier",
-      life_insurance: "Assurance-vie"
+      life_insurance: "Assurance-vie",
+      stock_grant: "Actions gratuites"
     }
   },
   alerts: {

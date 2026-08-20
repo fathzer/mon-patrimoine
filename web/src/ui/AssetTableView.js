@@ -272,7 +272,7 @@ export class AssetTableView {
   _showPopup(group, trigger) {
     this._closePopup();
     const options = group === 'categories'
-      ? (this.summary.categories || []).map(catKey => ({ key: catKey, label: I18n.t(`categories.${catKey}`) }))
+      ? (this.summary.categories || []).map(catKey => ({ key: catKey, label: I18n.t(`categories.${catKey}`) })).sort((a, b) => this._compareStrings(a.label, b.label))
       : this._getInstitutionOptions(this.summary.evaluations);
 
     const popup = document.createElement('div');

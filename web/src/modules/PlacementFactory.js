@@ -1,6 +1,7 @@
 import { CheckingAccountModule } from './CheckingAccountModule.js';
 import { PeaModule } from './PeaModule.js';
 import { CtoModule } from './CtoModule.js';
+import { StockGrantModule } from './StockGrantModule.js';
 import { SavingsAccountModule } from './SavingsAccountModule.js';
 import { HomeSavingsModule } from './HomeSavingsModule.js';
 import { RealEstateModule } from './RealEstateModule.js';
@@ -10,6 +11,7 @@ const MODULE_REGISTRY = {
   checking_account: CheckingAccountModule,
   pea: PeaModule,
   cto: CtoModule,
+  stock_grant: StockGrantModule,
   savings_account: SavingsAccountModule,
   home_savings: HomeSavingsModule,
   real_estate: RealEstateModule,

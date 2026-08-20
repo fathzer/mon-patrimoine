@@ -11,6 +11,16 @@ export class PlacementModalView {
 
   show(placement = null) {
     const isEdit = !!placement;
+    const typeOptions = [
+      { key: 'checking_account', label: I18n.t('form.types.checking_account') },
+      { key: 'savings_account', label: I18n.t('form.types.savings_account') },
+      { key: 'home_savings', label: I18n.t('form.types.home_savings') },
+      { key: 'real_estate', label: I18n.t('form.types.real_estate') },
+      { key: 'pea', label: I18n.t('form.types.pea') },
+      { key: 'cto', label: I18n.t('form.types.cto') },
+      { key: 'life_insurance', label: I18n.t('form.types.life_insurance') },
+      { key: 'stock_grant', label: I18n.t('form.types.stock_grant') }
+    ].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
 
     this.container.innerHTML = `
       <div class="modal-overlay">
@@ -20,13 +30,7 @@ export class PlacementModalView {
             <div class="form-group">
               <label>${I18n.t('form.typeLabel')}</label>
               <select name="type" class="form-control" id="type-select" ${isEdit ? 'disabled' : ''}>
-                <option value="checking_account" ${placement?.type === 'checking_account' ? 'selected' : ''}>${I18n.t('form.types.checking_account')}</option>
-                <option value="savings_account" ${placement?.type === 'savings_account' ? 'selected' : ''}>${I18n.t('form.types.savings_account')}</option>
-                <option value="home_savings" ${placement?.type === 'home_savings' ? 'selected' : ''}>${I18n.t('form.types.home_savings')}</option>
-                <option value="real_estate" ${placement?.type === 'real_estate' ? 'selected' : ''}>${I18n.t('form.types.real_estate')}</option>
-                <option value="pea" ${placement?.type === 'pea' ? 'selected' : ''}>${I18n.t('form.types.pea')}</option>
-                <option value="cto" ${placement?.type === 'cto' ? 'selected' : ''}>${I18n.t('form.types.cto')}</option>
-                <option value="life_insurance" ${placement?.type === 'life_insurance' ? 'selected' : ''}>${I18n.t('form.types.life_insurance')}</option>
+                ${typeOptions.map(({ key, label }) => `<option value="${key}" ${placement?.type === key ? 'selected' : ''}>${label}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
