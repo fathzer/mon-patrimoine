@@ -105,6 +105,11 @@ export class HelpModalView {
 
           <!-- Pied de modale -->
           <div class="modal-actions help-modal-footer">
+            <p style="margin: 0; font-size: var(--font-size-sm);">
+              <a href="privacy.html" target="_blank" rel="noopener noreferrer" class="help-link">Politique de confidentialité</a>
+              &nbsp;•&nbsp;
+              <a href="terms.html" target="_blank" rel="noopener noreferrer" class="help-link">Conditions d'utilisation</a>
+            </p>
             <button type="button" id="btn-close-help" class="btn-primary">
               Fermer
             </button>
