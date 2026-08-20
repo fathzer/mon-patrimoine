@@ -10,6 +10,7 @@ export const fr = {
   summary: {
     totalGross: "Patrimoine Brut",
     totalNet: "Patrimoine Net Estimé",
+    filterTotals: "Uniquement les actifs filtrés",
     breakdownTitle: "Répartition par classe d'actifs",
     gross: "Brut",
     net: "Net"

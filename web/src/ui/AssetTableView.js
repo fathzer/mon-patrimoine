@@ -6,12 +6,13 @@ import { PlacementModalView } from './PlacementModalView.js';
 const NO_INSTITUTION_KEY = '__NONE__';
 
 export class AssetTableView {
-  constructor(store) {
+  constructor(store, options = {}) {
     this.store = store;
     const ui = UiState.load();
     this.selectedCategories = new Set(ui.selectedCategories);
     this.selectedInstitutions = new Set(ui.selectedInstitutions);
     this.sortLevels = ui.sortLevels;
+    this.onFiltersChanged = options.onFiltersChanged || null;
     this.activePopup = null;
     this._onDocClick = null;
     this._onDocKeydown = null;
@@ -113,13 +114,7 @@ export class AssetTableView {
   }
 
   _renderAssetRows(evaluations) {
-    const filtered = (evaluations || []).filter(({ instance }) => {
-      const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
-      const raw = (instance.institution || '').trim();
-      const instKey = raw || NO_INSTITUTION_KEY;
-      const instMatch = this.selectedInstitutions.size === 0 || this.selectedInstitutions.has(instKey);
-      return catMatch && instMatch;
-    });
+    const filtered = this._getFilteredEvaluations(evaluations);
 
     if (!filtered || filtered.length === 0) {
       return `<tr><td colspan="7" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
@@ -246,6 +241,7 @@ export class AssetTableView {
     this._updateFilterButtons();
     this._saveUiState();
     this._bindTableEvents();
+    this.onFiltersChanged?.();
   }
 
   _updateFilterButtons() {
@@ -402,6 +398,20 @@ export class AssetTableView {
       selectedCategories: Array.from(this.selectedCategories),
       selectedInstitutions: Array.from(this.selectedInstitutions),
       sortLevels: this.sortLevels
+    });
+  }
+
+  getFilteredEvaluations(evaluations = this.summary?.evaluations) {
+    return this._getFilteredEvaluations(evaluations);
+  }
+
+  _getFilteredEvaluations(evaluations) {
+    return (evaluations || []).filter(({ instance }) => {
+      const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
+      const raw = (instance.institution || '').trim();
+      const instKey = raw || NO_INSTITUTION_KEY;
+      const instMatch = this.selectedInstitutions.size === 0 || this.selectedInstitutions.has(instKey);
+      return catMatch && instMatch;
     });
   }
 

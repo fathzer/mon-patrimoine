@@ -11,10 +11,12 @@ export class DashboardView {
   constructor(container, store) {
     this.container = container;
     this.store = store;
-    this._assetTableView = new AssetTableView(store);
+    this._assetTableView = new AssetTableView(store, { onFiltersChanged: () => this._renderSummary() });
     this._breakdownView = new AssetBreakdownView(null, { onClose: () => this._hideBreakdown() });
     this._summary = null;
-    this._breakdownVisible = UiState.load().breakdownVisible;
+    const ui = UiState.load();
+    this._filterTotals = ui.filterTotals;
+    this._breakdownVisible = ui.breakdownVisible;
     this._layoutInitialized = false;
     this._topBarContainer = null;
     this._pageContent = null;
@@ -85,18 +87,34 @@ export class DashboardView {
     const breakdown = this._pageContent.querySelector('#summary-breakdown');
     if (!totals || !breakdown) return;
 
+    const displayed = this._getDisplayedTotals();
+
     totals.innerHTML = `
       <div class="totals-group">
         <div class="total-item">
           <div class="label">${I18n.t('summary.totalGross')}</div>
-          <div class="value">${this.formatCurrency(this._summary.totalGross)}</div>
+          <div class="value">${this.formatCurrency(displayed.gross)}</div>
         </div>
         <div class="total-item">
           <div class="label">${I18n.t('summary.totalNet')}</div>
-          <div class="value net">${this.formatCurrency(this._summary.finalNetValue)}</div>
+          <div class="value net">${this.formatCurrency(displayed.net)}</div>
+        </div>
+        <div class="summary-filter">
+          <label class="summary-filter-label" for="summary-filter-toggle">${I18n.t('summary.filterTotals')}</label>
+          <label class="summary-filter-track">
+            <input type="checkbox" id="summary-filter-toggle" ${this._filterTotals ? 'checked' : ''}>
+            <span class="summary-filter-slider"></span>
+          </label>
         </div>
       </div>
     `;
+
+    const toggle = totals.querySelector('#summary-filter-toggle');
+    toggle?.addEventListener('change', () => {
+      this._filterTotals = toggle.checked;
+      UiState.save({ filterTotals: this._filterTotals });
+      this._renderSummary();
+    });
 
     if (this._breakdownVisible) {
       breakdown.style.display = 'block';
@@ -175,6 +193,20 @@ export class DashboardView {
         console.error('Import failed:', error);
         window.alert(I18n.t('alerts.importError'));
       });
+  }
+
+  _getDisplayedTotals() {
+    if (!this._filterTotals || !this._summary) {
+      return { gross: this._summary?.totalGross || 0, net: this._summary?.finalNetValue || 0 };
+    }
+    const filtered = this._assetTableView.getFilteredEvaluations(this._summary.evaluations);
+    let totalGross = 0;
+    let totalNet = 0;
+    for (const { evaluation } of filtered) {
+      totalGross += evaluation.grossValue || 0;
+      totalNet += evaluation.netValueBeforeIR || 0;
+    }
+    return { gross: totalGross, net: totalNet };
   }
 
   formatCurrency(amount) {

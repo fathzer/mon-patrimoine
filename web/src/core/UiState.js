@@ -9,7 +9,8 @@ export class UiState {
         selectedCategories: Array.isArray(parsed.selectedCategories) ? parsed.selectedCategories : [],
         selectedInstitutions: Array.isArray(parsed.selectedInstitutions) ? parsed.selectedInstitutions : [],
         sortLevels: Array.isArray(parsed.sortLevels) ? parsed.sortLevels : [],
-        breakdownVisible: typeof parsed.breakdownVisible === 'boolean' ? parsed.breakdownVisible : true
+        breakdownVisible: typeof parsed.breakdownVisible === 'boolean' ? parsed.breakdownVisible : true,
+        filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false
       };
     } catch {
       return this._default();
@@ -30,7 +31,8 @@ export class UiState {
       selectedCategories: [],
       selectedInstitutions: [],
       sortLevels: [],
-      breakdownVisible: true
+      breakdownVisible: true,
+      filterTotals: false
     };
   }
 }

@@ -5,6 +5,7 @@
   max-height: 85vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .help-modal-header {
