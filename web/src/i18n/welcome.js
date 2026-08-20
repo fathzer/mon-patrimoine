@@ -63,12 +63,13 @@ export function getWelcomeHtml() {
               <tr><th></th><th>Mon Patrimoine</th><th>Finary</th></tr>
             </thead>
             <tbody>
+              <tr><td>Application mobile</td><td>Oui</td><td>Oui</td></tr>
               <tr><td>Connexion aux banques</td><td>Non</td><td>Oui<sup>(1)</sup></td></tr>
               <tr><td>Mise à jour automatique</td><td>Non</td><td>Oui<sup>(2)</sup></td></tr>
               <tr><td>Gestion de budget</td><td>Non</td><td>Payant</td></tr>
               <tr><td>Historiques des valeurs</td><td>Non</td><td>Oui</td></tr>
               <tr><td>Stockage des données</td><td>Votre Cloud personnel</td><td>Serveurs Finary</td></tr>
-              <tr><td>Open source</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Open source</td><td><a href="https://github.com/fathzer/mon-patrimoine" target="_blank" class="help-link">Oui</a></td><td>Non</td></tr>
             </tbody>
           </table>
           <p class="auth-comparison-note"><sup>(1)</sup>La plupart des banques sont supportées. La connexion implique, le plus souvent, le partage de vos identifiants bancaires avec leur partenaire <a href="https://www.powens.com/fr" target="_blank" class="help-link">Powens</a>.</p>
