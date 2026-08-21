@@ -1,7 +1,11 @@
 
 # TODO List
 
-## Revoir l'écran d'accueil. Expliquer ce que l'application fait, ne fait pas et ce qu'elle nécessite (connexion, etc ...).
+## Faire stockGrantTaxExplanation.
+
+## Faire un module placement personnalisé on met juste valeur nette, contrib sociale et impôts, pour les placements non prévus.
+
+## Réfléchir au cas des emprunts (je me demande si ça a un réel intérêt) ?
 
 ## Corriger l'explicitations des calculs de l'assurance vie (la fin est ... bizarre).
 
@@ -11,7 +15,7 @@
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
 Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
 
-## Ajout de nouveaux types de comptes (PERECO, actions gratuites, etc ...)
+## Ajout de nouveaux types de comptes (PERECO, PER, etc ...)
 
 ## Calcul de l'imposition
 - Le profil fiscal est actuellement trop simplifié et ne prend pas en compte tous les cas possibles de 1/2 parts et leurs plafonds de réduction d'impôts.

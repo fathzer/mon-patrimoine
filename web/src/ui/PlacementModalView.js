@@ -43,10 +43,11 @@ export class PlacementModalView {
 
             <div class="modal-actions">
               ${isEdit ? `<button type="button" id="btn-delete" class="btn-danger">${I18n.t('actions.delete')}</button>` : '<div></div>'}
-              <div>
+              <div class="modal-actions-right">
                 <button type="button" id="btn-cancel" class="btn-secondary">${I18n.t('actions.cancel')}</button>
                 <button type="submit" class="btn-primary" id="btn-save" disabled>${I18n.t('actions.save')}</button>
               </div>
+              ${isEdit ? '<hr class="modal-actions-divider">' : ''}
             </div>
           </form>
         </div>

@@ -21,6 +21,7 @@ export class StockGrantEditor extends BasePlacementEditor {
           <thead>
             <tr>
               <th style="text-align: left;">${I18n.t('form.attributionDate')}</th>
+              <th style="text-align: left;">${I18n.t('form.acquisitionDate')}</th>
               <th style="text-align: left;">${I18n.t('form.numberOfShares')}</th>
               <th style="text-align: left;">${I18n.t('form.acquisitionPrice')}</th>
               <th style="width: 2rem;"></th>
@@ -40,6 +41,9 @@ export class StockGrantEditor extends BasePlacementEditor {
       <tr class="attribution-row">
         <td>
           <input type="date" class="attribution-date form-control" value="${attribution?.attributionDate || ''}" required style="width: 100%;" />
+        </td>
+        <td>
+          <input type="date" class="attribution-acquisition-date form-control" value="${attribution?.acquisitionDate || ''}" style="width: 100%;" />
         </td>
         <td>
           <input type="number" step="1" min="0" class="attribution-shares form-control" value="${attribution?.numberOfShares || 0}" required style="width: 100%;" />
@@ -100,6 +104,7 @@ export class StockGrantEditor extends BasePlacementEditor {
   getData() {
     const attributions = Array.from(this.container.querySelectorAll('.attribution-row')).map(row => ({
       attributionDate: row.querySelector('.attribution-date')?.value || '',
+      acquisitionDate: row.querySelector('.attribution-acquisition-date')?.value || '',
       acquisitionPrice: Number(row.querySelector('.attribution-price')?.value) || 0,
       numberOfShares: Number(row.querySelector('.attribution-shares')?.value) || 0
     }));

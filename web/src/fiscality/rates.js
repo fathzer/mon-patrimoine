@@ -1,6 +1,6 @@
 export const SOCIAL_CONTRIBUTION_RATES = {
   OLD_CSG_CRDS: 0.172,
-  CSG_CRDS: 0.186
+  CSG_CRDS: 0.186,
 };
 
 export const FISCAL_RATES = {
