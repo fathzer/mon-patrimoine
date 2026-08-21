@@ -203,6 +203,7 @@ export class AssetTableView {
     this.container.querySelectorAll('.tax-help-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        this._closePopup();
         const item = this.summary.evaluations.find(ev => ev.instance.id === btn.dataset.id);
         if (item) {
           this._showTaxExplanation(item);
@@ -214,6 +215,7 @@ export class AssetTableView {
       cell.addEventListener('click', (e) => {
         if (window.innerWidth > 768) return;
         e.stopPropagation();
+        this._closePopup();
         const row = cell.closest('.asset-row');
         const item = this.summary.evaluations.find(ev => ev.instance.id === row?.dataset.id);
         if (item) {
