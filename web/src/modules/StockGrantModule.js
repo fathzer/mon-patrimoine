@@ -3,8 +3,21 @@ import { Categories } from '../core/Categories.js';
 import { StockGrantEditor } from '../ui/editors/StockGrantEditor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
 
+// Tax rules based on:
+// https://www.impots.gouv.fr/particulier/questions/mon-entreprise-ma-attribue-des-actions-gratuites-comment-sera-impose-le-gain
+
 /** @typedef {import('../fiscality/TaxCalculator.js').FiscalProfile} FiscalProfile */
 /** @typedef {import('../fiscality/TaxCalculator.js').PlacementIncome} PlacementIncome */
+
+// Tax rates and thresholds for stock grants
+const SPECIAL_SOCIAL_RATE = 0.097;
+const EMPLOYER_CONTRIBUTION_RATE = 0.10;
+const FLAT_TAX_RATE_BEFORE_2012 = 0.30;
+const DETENTION_ABATTEMENT_2Y = 0.50;
+const DETENTION_ABATTEMENT_8Y = 0.65;
+const UNIFORM_ABATTEMENT_FROM_2018 = 0.50;
+
+export { SPECIAL_SOCIAL_RATE, EMPLOYER_CONTRIBUTION_RATE, FLAT_TAX_RATE_BEFORE_2012, DETENTION_ABATTEMENT_2Y, DETENTION_ABATTEMENT_8Y, UNIFORM_ABATTEMENT_FROM_2018 };
 
 export class StockGrant {
   constructor(data = {}) {
@@ -62,8 +75,8 @@ export class StockGrant {
     // Detention-duration abattement (plus-values mobilières), from acquisitionDate.
     const getDetentionAbattement = () => {
       const yearsDetained = (now.getTime() - acquisitionDate.getTime()) / (365.25 * 24 * 3600 * 1000);
-      if (yearsDetained > 8) return 0.65;
-      if (yearsDetained > 2) return 0.50;
+      if (yearsDetained > 8) return DETENTION_ABATTEMENT_8Y;
+      if (yearsDetained > 2) return DETENTION_ABATTEMENT_2Y;
       return 0;
     };
 
@@ -77,7 +90,7 @@ export class StockGrant {
     const aboveThreshold = Math.max(0, acquisitionGain - threshold);
     const abattement = attributionDate < FROM_2018_REFORM
       ? getDetentionAbattement()
-      : 0.50;
+      : UNIFORM_ABATTEMENT_FROM_2018;
     return belowThreshold * (1 - abattement) + aboveThreshold;
   }
 
@@ -99,7 +112,7 @@ export class StockGrant {
       return {
         assietteImposition: taxableGain,
         eligiblePfu: false,
-        tauxSpecifique: 0.30
+        tauxSpecifique: FLAT_TAX_RATE_BEFORE_2012
       };
     }
 
@@ -140,8 +153,8 @@ export class StockGrant {
     const FROM_2016_REFORM = new Date('2016-12-31');
     const FROM_2007_CONTRIBUTION = new Date('2007-10-16');
 
-    const specialRate = 0.097;
-    const employerContributionRate = 0.10;
+    const specialRate = SPECIAL_SOCIAL_RATE;
+    const employerContributionRate = EMPLOYER_CONTRIBUTION_RATE;
 
     let socialCharges = 0;
     if (attributionDate < BEFORE_2012_REFORM) {

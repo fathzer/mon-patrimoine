@@ -1,7 +1,7 @@
 
 # TODO List
 
-## Faire stockGrantTaxExplanation.
+## Ajout de nouveaux types de comptes (PERECO, PER, etc ...)
 
 ## Faire un module placement personnalisé on met juste valeur nette, contrib sociale et impôts, pour les placements non prévus.
 
@@ -9,13 +9,16 @@
 
 ## Corriger l'explicitations des calculs de l'assurance vie (la fin est ... bizarre).
 
+## Faire le détail de l'imposition/prlvt dans stockGrantTaxExplanation.
+
 ## Dans le module Livrets, on doit pouvoir saisir des intérêts nets (c'est ce que donne Boursobank ... je ne sais pas comment ils ont le profil fiscal ...).
 
 ## Un truc pas mal serait d'avoir la possibilité de marquer les placements non mis à jour le jour courant et d'avoir une icône pour les identifier.
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
 Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
 
-## Ajout de nouveaux types de comptes (PERECO, PER, etc ...)
+## Un truc pas mal serait d'avoir la veleur nette en mode fourmi ou cigale (le mode actuel)
+Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 
 ## Calcul de l'imposition
 - Le profil fiscal est actuellement trop simplifié et ne prend pas en compte tous les cas possibles de 1/2 parts et leurs plafonds de réduction d'impôts.

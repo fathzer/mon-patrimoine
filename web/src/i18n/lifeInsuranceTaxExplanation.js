@@ -1,9 +1,6 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
 import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage } from './commonTaxExplanations.js';
 import { PFU_AFTER_8Y_PRE_2017, UC_SOCIAL_RATE, ALLOWANCE_SINGLE, ALLOWANCE_COUPLE, PREMIUM_THRESHOLD } from '../modules/LifeInsuranceModule.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
-
-const CSG_DEDUCIBLE_RATE = FISCAL_RATES.PFU_CSG_REDUCTION_RATE;
 
 const REFORM_DATE = '27/09/2017';
 
