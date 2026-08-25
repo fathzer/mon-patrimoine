@@ -1,8 +1,10 @@
-import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
-import { I18n } from '../../core/I18n.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
+import { BasePlacementEditor, I18n } from '../kit/v1/index.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { CheckingAccountModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+
+const labels = {
+  cardBalance: 'En cours carte (€)'
+};
 
 export class CheckingAccountEditor extends BasePlacementEditor {
   override render(placement: BasePlacement | null = null): void {
@@ -14,7 +16,7 @@ export class CheckingAccountEditor extends BasePlacementEditor {
         <input type="number" step="0.01" name="currentValue" class="form-control" value="${(placement as CheckingAccountModule)?.currentValue || 0}" required />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.cardBalance')}</label>
+        <label>${labels.cardBalance}</label>
         <input type="number" step="0.01" name="cardBalance" class="form-control" value="${(placement as CheckingAccountModule)?.cardBalance || 0}" />
       </div>
     `;

@@ -1,7 +1,15 @@
-import { BasePlacementEditor } from './BasePlacementEditor.js';
+import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { SavingsAccountModule } from '../../placements/savings_account/module.js';
+import type { SavingsAccountModule } from './module.js';
+
+const labels = {
+  interestAmount: 'Montant des intérêts (€)',
+  calculator: 'Calculer',
+  closeCalculator: 'Fermer',
+  interestRateWarning: 'Attention, les taux ou l\'encours peuvent avoir évolué en cours d\'année, le calcul fait l\'hypothèse qu\'ils sont constants depuis le 1er janvier.',
+  grossRate: 'Taux brut (%)'
+};
 
 export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
   override _renderAfterInstitution(placement: BasePlacement | null): string {
@@ -30,16 +38,16 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
   _renderInterest(placement: BasePlacement | null): string {
     return `
       <div class="form-group">
-        <label>${I18n.t('form.interestAmount')}</label>
+        <label>${labels.interestAmount}</label>
         <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
           <input type="number" step="0.01" name="interestAmount" class="form-control" value="${(placement as SavingsAccountModule)?.interestAmount || 0}" />
-          <button type="button" id="btn-calculator" class="btn-secondary" title="${I18n.t('form.calculator')}">🔢</button>
+          <button type="button" id="btn-calculator" class="btn-secondary" title="${labels.calculator}">🔢</button>
         </div>
         <div id="calculator-panel" style="display: none; padding: 0.75rem; background: rgba(0,0,0,0.05); border-radius: 4px;">
-          <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0.5rem;">${I18n.t('form.interestRateWarning')}</p>
+          <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0.5rem;">${labels.interestRateWarning}</p>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="number" step="0.01" name="grossRate" class="form-control" placeholder="${I18n.t('form.grossRate')}" />
-            <button type="button" id="btn-close-calculator" class="btn-secondary" title="${I18n.t('form.closeCalculator')}">✕</button>
+            <input type="number" step="0.01" name="grossRate" class="form-control" placeholder="${labels.grossRate}" />
+            <button type="button" id="btn-close-calculator" class="btn-secondary" title="${labels.closeCalculator}">✕</button>
           </div>
         </div>
       </div>

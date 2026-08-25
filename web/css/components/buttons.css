@@ -1,4 +1,11 @@
-/* Primary, secondary and danger buttons. */
+/*
+ * Primary, secondary and danger buttons.
+ *
+ * The classes below are part of the Placement Kit (v1) and are guaranteed
+ * stable for placement modules. See MODULES.md for the full list.
+ *
+ * Kit classes: btn-primary, btn-secondary, btn-danger
+ */
 
 .btn-primary,
 .btn-secondary,

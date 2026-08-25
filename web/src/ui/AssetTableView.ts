@@ -414,7 +414,7 @@ export class AssetTableView {
             ${content}
           </div>
           <div class="modal-actions help-modal-footer">
-            <button type="button" id="btn-close-tax" class="btn-primary">${I18n.t('form.closeCalculator')}</button>
+            <button type="button" id="btn-close-tax" class="btn-primary">${I18n.t('form.close')}</button>
           </div>
         </div>
       </div>

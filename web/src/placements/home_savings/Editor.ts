@@ -1,24 +1,29 @@
-import { SavingsAccountBaseEditor } from '../../ui/editors/SavingsAccountBaseEditor.js';
-import { I18n } from '../../core/I18n.js';
+import { I18n } from '../kit/v1/index.js';
+import { SavingsAccountBaseEditor } from '../savings_account/SavingsAccountBaseEditor.js';
 import { getHomeSavingsTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { HomeSavingsModule } from './module.js';
+
+const labels = {
+  homeSavingsType: 'Type d\'épargne logement',
+  pel: 'PEL',
+  cel: 'CEL'
+};
 
 export class HomeSavingsEditor extends SavingsAccountBaseEditor {
   override _renderBeforeInstitution(placement: BasePlacement | null): string {
     const homeSavingsType = (placement as HomeSavingsModule)?.homeSavingsType || 'pel';
     return `
       <div class="form-group">
-        <label>${I18n.t('form.homeSavingsType')}</label>
+        <label>${labels.homeSavingsType}</label>
         <div style="display: flex; gap: 1rem;">
           <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
             <input type="radio" name="homeSavingsType" value="pel" ${homeSavingsType === 'pel' ? 'checked' : ''} />
-            ${I18n.t('form.pel')}
+            ${labels.pel}
           </label>
           <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
             <input type="radio" name="homeSavingsType" value="cel" ${homeSavingsType === 'cel' ? 'checked' : ''} />
-            ${I18n.t('form.cel')}
+            ${labels.cel}
           </label>
         </div>
       </div>

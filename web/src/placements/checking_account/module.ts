@@ -1,8 +1,6 @@
-import { BasePlacement } from '../../modules/BasePlacement.js';
-import { Category } from '../../core/Categories.js';
+import { BasePlacement, Category } from '../kit/v1/index.js';
 import { CheckingAccountEditor } from './Editor.js';
-import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../kit/v1/index.js';
 
 export interface CheckingAccountData extends PlacementData {
   currentValue?: number;

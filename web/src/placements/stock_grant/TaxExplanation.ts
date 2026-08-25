@@ -1,4 +1,5 @@
-import { getPfuHelpPopover, getWarning, formatPercentage } from '../../i18n/commonTaxExplanations.js';
+import { getPfuHelpPopover, getWarning, formatPercentage, SOCIAL_CONTRIBUTION_RATES } from '../kit/v1/index.js';
+import type { FiscalProfile } from '../kit/v1/index.js';
 import {
   SPECIAL_SOCIAL_RATE,
   EMPLOYER_CONTRIBUTION_RATE,
@@ -8,8 +9,6 @@ import {
   UNIFORM_ABATTEMENT_FROM_2018,
   StockGrantModule
 } from './module.js';
-import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export class StockGrantTaxExplanation {
   static get(placement: StockGrantModule, fiscalProfile: FiscalProfile | undefined): string {

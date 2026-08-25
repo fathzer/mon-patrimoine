@@ -1,6 +1,5 @@
-import { formatPercentage, formatCurrency } from '../../i18n/commonTaxExplanations.js';
+import { formatPercentage, formatCurrency, HelpPopover } from '../kit/v1/index.js';
 import { ACQUISITION_FEES_FLAT_RATE, WORKS_FLAT_RATE, FIVE_YEARS_LIMIT } from './module.js';
-import { HelpPopover } from '../../ui/HelpPopover.js';
 import type { RealEstateModule } from './module.js';
 
 export function getAcquisitionFeesHelp(label: string = '?'): string {

@@ -1,9 +1,11 @@
-import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
-import { I18n } from '../../core/I18n.js';
+import { BasePlacementEditor, I18n } from '../kit/v1/index.js';
 import { getPeaTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { PeaModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+
+const labels = {
+  totalDeposits: 'Total des versements (€)'
+};
 
 export class PeaEditor extends BasePlacementEditor {
   override render(placement: BasePlacement | null = null): void {
@@ -16,7 +18,7 @@ export class PeaEditor extends BasePlacementEditor {
         <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.totalDeposits')}</label>
+        <label>${labels.totalDeposits}</label>
         <input type="number" step="0.01" name="totalDeposits" class="form-control" value="${p?.totalDeposits || 0}" />
       </div>
       <div class="form-group">

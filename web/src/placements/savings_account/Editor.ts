@@ -1,9 +1,13 @@
-import { SavingsAccountBaseEditor } from '../../ui/editors/SavingsAccountBaseEditor.js';
+import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
 import { getSavingsAccountTaxExplanation } from './TaxExplanation.js';
-import { I18n } from '../../core/I18n.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { SavingsAccountModule } from './module.js';
+
+const labels = {
+  taxExempt: 'Exonéré de prélèvement',
+  taxExemptTooltip: 'Sont exonérés de prélèvements : Livret A, LDDS, Livret Jeune, Livret d\'Épargne Populaire, Livret Bleu. Attention, les PEL et CEL ne sont pas gérés ici, mais dans la rubrique \'Épargne Logement\'.',
+  promotionalInterest: 'Intérêts promotionnels (€)'
+};
 
 export class SavingsAccountEditor extends SavingsAccountBaseEditor {
   override _renderTaxExempt(placement: BasePlacement | null): string {
@@ -12,9 +16,9 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
       <div class="form-group">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
           <input type="checkbox" name="taxExempt" id="tax-exempt" ${taxExempt ? 'checked' : ''} />
-          <label for="tax-exempt" style="margin: 0;">${I18n.t('form.taxExempt')}</label>
+          <label for="tax-exempt" style="margin: 0;">${labels.taxExempt}</label>
         </div>
-        <p class="text-muted" style="font-size: 0.8rem; margin: 0; padding-left: 1.5rem;">${I18n.t('form.taxExemptTooltip')}</p>
+        <p class="text-muted" style="font-size: 0.8rem; margin: 0; padding-left: 1.5rem;">${labels.taxExemptTooltip}</p>
       </div>
     `;
   }
@@ -24,7 +28,7 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
     const value = taxExempt ? 0 : ((placement as SavingsAccountModule)?.promotionalInterest || 0);
     return `
       <div class="form-group" id="promotional-interest-group" style="display: ${taxExempt ? 'none' : 'block'};">
-        <label>${I18n.t('form.promotionalInterest')}</label>
+        <label>${labels.promotionalInterest}</label>
         <input type="number" step="0.01" name="promotionalInterest" class="form-control" value="${value}" />
       </div>
     `;

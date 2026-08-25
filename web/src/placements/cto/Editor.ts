@@ -1,24 +1,28 @@
-import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
-import { I18n } from '../../core/I18n.js';
+import { BasePlacementEditor } from '../kit/v1/index.js';
 import { getCtoTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { CtoModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+
+const labels = {
+  currentCtoValue: 'Valeur totale actuelle, y compris le solde espèces (€)',
+  acquisitionValue: 'Valeur d\'acquisition (€)',
+  cashBalance: 'Solde espèces (€)'
+};
 
 export class CtoEditor extends BasePlacementEditor {
   override _renderAfterInstitution(placement: BasePlacement | null): string {
     const p = placement as CtoModule | null;
     return `
       <div class="form-group">
-        <label>${I18n.t('form.currentCtoValue')}</label>
+        <label>${labels.currentCtoValue}</label>
         <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.acquisitionValue')}</label>
+        <label>${labels.acquisitionValue}</label>
         <input type="number" step="0.01" name="acquisitionValue" class="form-control" value="${p?.acquisitionValue || 0}" />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.cashBalance')}</label>
+        <label>${labels.cashBalance}</label>
         <input type="number" step="0.01" name="cashBalance" class="form-control" value="${p?.cashBalance || 0}" />
       </div>
     `;

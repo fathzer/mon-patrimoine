@@ -55,13 +55,12 @@ d'éditeur.
 
 ## Contrat de `module.ts`
 
-Un `module.ts` doit **default-exporter** une classe étendant `BasePlacement`
-(`src/modules/BasePlacement.ts`) :
+Un `module.ts` doit **default-exporter** une classe étendant `BasePlacement`.
+Tous les imports externes au module doivent provenir du **kit** (`kit/v1/`) :
 
 ```ts
-import { BasePlacement } from '../../modules/BasePlacement.js';
-import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
+import { BasePlacement, Category } from '../kit/v1/index.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../kit/v1/index.js';
 import { MonEditeur } from './Editor.js';
 
 export class MonModule extends BasePlacement {
@@ -80,20 +79,82 @@ const _check: PlacementModuleStatic = MonModule;
 export default MonModule;
 ```
 
-### Contrat de `BasePlacement` (ce qu'un module implémente/utilise)
+## Le Placement Kit (`kit/v1/`)
 
-Défini dans `src/modules/BasePlacement.ts`.
+Le kit est le **seul** point d'entrée que les modules de placement doivent
+utiliser pour accéder à l'API de l'hôte. Il est versionné : `kit/v1/` est
+garanti stable. Tout ce qui n'est pas exporté par le kit est considéré comme
+interne et peut changer sans préavis.
+
+En cas de changement cassant, une nouvelle version (ex. `kit/v2/`) sera créée,
+et `kit/v1/` sera conservé pour ne pas casser les modules existants.
+
+### Symboles exportés par `kit/v1/index.ts`
+
+**Classes de base :**
+- `BasePlacement` — classe de base abstraite pour les placements.
+- `BasePlacementEditor` — classe de base pour les éditeurs.
+
+**Types :**
+- `PlacementData`, `Evaluation`, `PlacementEditorConstructor`,
+  `PlacementModuleStatic` — depuis `BasePlacement.ts`.
+- `FiscalProfile`, `PlacementIncome` — depuis `TaxCalculator.ts`.
+- `AppStore` — type transmis aux éditeurs qui en ont besoin.
+- `PfuExplanationArgs` — arguments pour `getPfuExplanation`.
+- `TaxBracket` — tranche d'imposition.
+
+**Catégories :**
+- `Category` (enum), `CategoryValues` — depuis `Categories.ts`.
+
+**Fiscalité :**
+- `TaxCalculator` — calculateur d'impôt (utilisé en interne par
+  `BasePlacement.getImposition`).
+- `SOCIAL_CONTRIBUTION_RATES`, `FISCAL_RATES` — taux et barèmes.
+
+**I18n :**
+- `I18n` — accès aux libellés partagés (`I18n.t('form.currentValue')`, etc.).
+  Les libellés spécifiques à un placement doivent être définis localement dans
+  l'éditeur (const `labels`).
+
+**Aide contextuelle :**
+- `HelpPopover` — création de popovers d'aide en HTML.
+
+**Utilitaires d'explication fiscale (depuis `commonTaxExplanations.ts`) :**
+- `getPfuExplanation`, `getPfuHelpPopover`, `getTaxDisclaimer`,
+  `getLatentGainsHelpPopover`, `getWarning`, `formatPercentage`,
+  `formatCurrency`.
+
+### CSS disponible pour les modules
+
+Les classes CSS suivantes sont garanties stables et utilisables par les
+modules dans leur HTML :
+
+| Classe | Fichier CSS | Usage |
+|--------|-------------|-------|
+| `form-group` | `components/forms.css` | Conteneur d'un champ de formulaire |
+| `form-control` | `components/forms.css` | Input/select stylisé |
+| `btn-primary` | `components/buttons.css` | Bouton principal |
+| `btn-secondary` | `components/buttons.css` | Bouton secondaire |
+| `btn-danger` | `components/buttons.css` | Bouton de suppression |
+| `text-muted` | `components/utilities.css` | Texte atténué |
+| `tax-explanation` | `components/tax-explanation.css` | Conteneur d'explication fiscale |
+
+Tout autre style doit être défini en inline dans l'éditeur ou via des classes
+propres au module. Les classes non listées ci-dessus peuvent changer ou
+disparaître sans préavis.
+
+### Contrat de `BasePlacement`
 
 TypeScript ne supportant pas `abstract static`, les membres statiques obligatoires
-sont décrits par l'interface `PlacementModuleStatic` (définie dans le même
-fichier). Chaque module se vérifie lui-même à la compilation avec une ligne
+sont décrits par l'interface `PlacementModuleStatic` (exportée par le kit). Chaque
+module se vérifie lui-même à la compilation avec une ligne
 `const _check: PlacementModuleStatic = MonModule;` — si un module oublie
 `getCategory()`, `getLabel()` ou `getEditorClass()`, `tsc` refuse de compiler.
 
 Membres statiques (obligatoires, vérifiés via `PlacementModuleStatic`) :
 - `static getCategory(): Category` — renvoie la catégorie du placement. Doit
-  être une valeur de `Category` (`src/core/Categories.ts`). Vérifié également au
-  runtime dans le constructeur.
+  être une valeur de `Category`. Vérifié également au runtime dans le
+  constructeur.
 - `static getLabel(): string` — renvoie le libellé affiché dans la liste
   déroulante « type » du formulaire de placement.
 - `static getEditorClass(): PlacementEditorConstructor` — renvoie la classe
@@ -113,7 +174,7 @@ Membres abstraits qu'un module **doit** implémenter :
 - `getEvaluation(fiscalProfile: FiscalProfile, now?: Date): Evaluation`
 - `getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[]`
 
-Types issus de `BasePlacement.ts` :
+Types :
 - `PlacementData` — `{ id?, type, label?, institution? }` ; les modules
   l'étendent avec leurs propres champs.
 - `Evaluation` — `{ grossValue, netValueBeforeIR, socialCharges, latentGain,
@@ -123,8 +184,8 @@ Types issus de `BasePlacement.ts` :
 
 ## Contrat de `Editor.ts`
 
-Étend `BasePlacementEditor` (`src/ui/editors/BasePlacementEditor.ts`) ou
-`SavingsAccountBaseEditor` (`src/ui/editors/SavingsAccountBaseEditor.ts`).
+Étend `BasePlacementEditor` ou `SavingsAccountBaseEditor` (tous deux exportés
+par le kit). Tous les imports externes au module doivent provenir du kit.
 
 `BasePlacementEditor` fournit :
 - `container: HTMLElement`, et la machinerie de callback `_onValidityChange`.
@@ -140,9 +201,14 @@ Un éditeur de module **doit** implémenter :
   d'explication fiscale. Les éditeurs délèguent généralement à leur
   `TaxExplanation.ts`.
 
-Les éditeurs peuvent recevoir un `AppStore` optionnel
-(`src/core/AppStore.ts`) en argument du constructeur (utilisé, par ex., par
-l'éditeur immobilier pour détecter une résidence principale déjà déclarée).
+Les éditeurs peuvent recevoir un `AppStore` optionnel en argument du
+constructeur (utilisé, par ex., par l'éditeur immobilier pour détecter une
+résidence principale déjà déclarée).
+
+Les libellés spécifiques à un placement doivent être définis localement dans
+l'éditeur via une `const labels = { ... }`, et non via `I18n.t()`. Seuls les
+libellés partagés (`form.currentValue`, `form.openingDate`, `form.institution`,
+`form.label`, `form.close`, etc.) restent accessibles via `I18n.t()`.
 
 ## `TaxExplanation.ts` (optionnel)
 
@@ -152,43 +218,11 @@ d'export n'est imposée ; les modules actuels exportent soit une fonction
 (`getCtoTaxExplanation(placement, fiscalProfile)`), soit une classe statique
 (`StockGrantTaxExplanation.get(placement, fiscalProfile)`).
 
-## API de l'hôte utilisées par les modules actuels
-
-Il s'agit de l'inventaire de ce que les modules existants importent/appellent.
-C'est volontairement un simple recensement pour l'instant.
-
-### Depuis `src/core/`
-- `Category` (enum) et `CategoryValues` — depuis `Categories.ts`. Utilisés pour
-  positionner `DEFAULT_CATEGORY`.
-- `I18n` — depuis `I18n.ts`. Utilisé par les éditeurs via `I18n.t('form.*')`
-  pour les libellés.
-- `AppStore` (type) — depuis `AppStore.ts`. Utilisé par `RealEstateEditor` pour
-  lire `store.state.placements`.
-
-### Depuis `src/fiscality/`
-- `SOCIAL_CONTRIBUTION_RATES`, `FISCAL_RATES` — depuis `rates.ts`. Utilisés par
-  les modules pour les taux de prélèvements sociaux et de PFU.
-- `TaxCalculator.calculatePlacementTax` — utilisé par
-  `BasePlacement.getImposition` (non appelé directement par les modules).
-- Les types `FiscalProfile`, `PlacementIncome` — depuis `TaxCalculator.ts`.
-  Utilisés par chaque module dans `getEvaluation` / `getTaxableIncomes`.
-
-### Depuis `src/i18n/` (utilitaires partagés, utilisés par `TaxExplanation.ts`)
-- `commonTaxExplanations.ts` : `getPfuExplanation`, `getPfuHelpPopover`,
-  `getTaxDisclaimer`, `getLatentGainsHelpPopover`, `getWarning`,
-  `formatPercentage`, `formatCurrency`, et le type `PfuExplanationArgs`.
-- Le `TaxExplanation.ts` global (`getTaxRulesHelpPopover`) et
-  `commonTaxExplanations.ts` sont également utilisés par
-  `ui/SettingsModalView.ts`, en dehors des modules.
-
-### Depuis `src/ui/`
-- `BasePlacementEditor` et `SavingsAccountBaseEditor` — classes de base des
-  éditeurs.
-- `HelpPopover` — depuis `ui/HelpPopover.ts`. Utilisé par certains
-  `TaxExplanation.ts` (`HelpPopover.getHtml(...)`, `HelpPopover.register(...)`).
+Les utilitaires partagés (`getPfuExplanation`, `formatPercentage`,
+`HelpPopover`, etc.) sont accessibles via le kit.
 
 ### Constantes inter-modules
-Certains `TaxExplanation.ts` importent des constantes ré-exportées par leur
+Certains `TaxExplanation.ts` importent des constantes exportées par leur
 `module.ts` frère (par ex. `ACQUISITION_FEES_FLAT_RATE`, `CSG_2018_THRESHOLD`,
 `PFU_AFTER_8Y_PRE_2017`, `StockGrantModule.THRESHOLD`, ...). Ce sont des
 contrats internes au module, pas une API de l'hôte.
@@ -198,8 +232,9 @@ contrats internes au module, pas une API de l'hôte.
 1. Créer `placements/<nom>/` avec un `module.ts` (default-exportant une
    sous-classe de `BasePlacement`) et un `Editor.ts`. Ajouter un
    `TaxExplanation.ts` si nécessaire.
-2. Ajouter une entrée à `web/modules.json` (`name`, `author`, `label`).
-3. Recompiler (`npm run build`). Aucune autre modification de code n'est
+2. Tous les imports externes doivent provenir de `../kit/v1/index.js`.
+3. Ajouter une entrée à `web/modules.json` (`name`).
+4. Recompiler (`npm run build`). Aucune autre modification de code n'est
    requise — la factory découvre le module depuis `modules.json` et câble son
    éditeur via `getEditorClass()`.
 

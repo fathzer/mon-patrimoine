@@ -1,10 +1,15 @@
-import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
-import { I18n } from '../../core/I18n.js';
+import { BasePlacementEditor, I18n } from '../kit/v1/index.js';
 import { getRealEstateTaxExplanation, getAcquisitionFeesHelp } from './TaxExplanation.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
+import type { BasePlacement, FiscalProfile, AppStore } from '../kit/v1/index.js';
 import type { RealEstateModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
-import type { AppStore } from '../../core/AppStore.js';
+
+const labels = {
+  primaryResidence: 'Résidence principale',
+  multiplePrimaryResidenceWarning: 'Attention : une autre résidence principale est déjà déclarée.',
+  freeAcquisition: 'Acquisition à titre gratuit',
+  acquisitionFees: 'Frais d\'acquisition (sur justificatifs)',
+  works: 'Travaux éligibles (sur justificatifs)'
+};
 
 interface ConfigureFieldOptions {
   reset?: string | number;
@@ -39,10 +44,10 @@ export class RealEstateEditor extends BasePlacementEditor {
     return `
       <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
         <input type="checkbox" name="primaryResidence" id="primary-residence" ${isPrimary ? 'checked' : ''} />
-        <label for="primary-residence" style="margin: 0;">${I18n.t('form.primaryResidence')}</label>
+        <label for="primary-residence" style="margin: 0;">${labels.primaryResidence}</label>
       </div>
       <div id="primary-residence-warning" class="form-group text-muted" style="font-size: 0.8rem; display: none; color: var(--danger);">
-        ${I18n.t('form.multiplePrimaryResidenceWarning')}
+        ${labels.multiplePrimaryResidenceWarning}
       </div>
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
@@ -55,7 +60,7 @@ export class RealEstateEditor extends BasePlacementEditor {
             <input type="date" name="acquisitionDate" class="form-control" value="${acquisitionDateValue}" ${required} ${disabled} style="flex: 1;" />
             <div style="display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
               <input type="checkbox" name="freeAcquisition" id="free-acquisition" ${freeAcquisition ? 'checked' : ''} ${disabled} />
-              <label for="free-acquisition" style="margin: 0;">${I18n.t('form.freeAcquisition')}</label>
+              <label for="free-acquisition" style="margin: 0;">${labels.freeAcquisition}</label>
             </div>
           </div>
         </div>
@@ -64,11 +69,11 @@ export class RealEstateEditor extends BasePlacementEditor {
           <input type="number" step="0.01" name="acquisitionPrice" class="form-control" value="${acquisitionPriceValue}" ${required} ${disabled} />
         </div>
         <div class="form-group">
-          <label>${I18n.t('form.acquisitionFees')}</label>
+          <label>${labels.acquisitionFees}</label>
           <input type="number" step="0.01" name="acquisitionFees" class="form-control" value="${acquisitionFeesValue}" ${disabled} />
         </div>
         <div class="form-group">
-          <label>${I18n.t('form.works')}</label>
+          <label>${labels.works}</label>
           <input type="number" step="0.01" name="works" class="form-control" value="${worksValue}" ${disabled} />
         </div>
       </div>

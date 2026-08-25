@@ -1,6 +1,6 @@
-import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning } from '../../i18n/commonTaxExplanations.js';
+import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning } from '../kit/v1/index.js';
+import type { FiscalProfile } from '../kit/v1/index.js';
 import type { PeaModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: FiscalProfile | undefined): string {
   const years = placement.getHoldingYears(new Date());

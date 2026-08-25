@@ -1,9 +1,16 @@
-import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
-import { I18n } from '../../core/I18n.js';
+import { BasePlacementEditor, I18n } from '../kit/v1/index.js';
 import { StockGrantTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { StockGrantModule, StockGrantData } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+
+const labels = {
+  stockName: 'Nom de l\'action',
+  currentPrice: 'Cours actuel de l\'action (€)',
+  attributions: 'Attributions',
+  attributionDate: 'Date d\'attribution',
+  numberOfShares: 'Nombre d\'actions',
+  addAttribution: '+ Ajouter une attribution'
+};
 
 export class StockGrantEditor extends BasePlacementEditor {
   override _renderAfterInstitution(placement: BasePlacement | null): string {
@@ -12,21 +19,21 @@ export class StockGrantEditor extends BasePlacementEditor {
 
     return `
       <div class="form-group">
-        <label>${I18n.t('form.stockName')}</label>
+        <label>${labels.stockName}</label>
         <input type="text" name="stockName" class="form-control" value="${p?.stockName || ''}" />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.currentPrice')}</label>
+        <label>${labels.currentPrice}</label>
         <input type="number" step="0.01" name="currentPrice" class="form-control" value="${p?.currentPrice || 0}" required />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.attributions')}</label>
+        <label>${labels.attributions}</label>
         <table class="attributions-table" style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="text-align: left;">${I18n.t('form.attributionDate')}</th>
+              <th style="text-align: left;">${labels.attributionDate}</th>
               <th style="text-align: left;">${I18n.t('form.acquisitionDate')}</th>
-              <th style="text-align: left;">${I18n.t('form.numberOfShares')}</th>
+              <th style="text-align: left;">${labels.numberOfShares}</th>
               <th style="text-align: left;">${I18n.t('form.acquisitionPrice')}</th>
               <th style="width: 2rem;"></th>
             </tr>
@@ -35,7 +42,7 @@ export class StockGrantEditor extends BasePlacementEditor {
             ${attributions.length > 0 ? attributions.map(a => this._renderAttributionRow(a)).join('') : this._renderAttributionRow()}
           </tbody>
         </table>
-        <button type="button" id="btn-add-attribution" class="btn-secondary" style="margin-top: 0.5rem;">${I18n.t('form.addAttribution')}</button>
+        <button type="button" id="btn-add-attribution" class="btn-secondary" style="margin-top: 0.5rem;">${labels.addAttribution}</button>
       </div>
     `;
   }

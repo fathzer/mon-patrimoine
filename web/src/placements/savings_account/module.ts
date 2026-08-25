@@ -1,9 +1,6 @@
-import { BasePlacement } from '../../modules/BasePlacement.js';
-import { Category } from '../../core/Categories.js';
+import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../kit/v1/index.js';
 import { SavingsAccountEditor } from './Editor.js';
-import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
-import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../kit/v1/index.js';
 
 export interface SavingsAccountData extends PlacementData {
   currentValue?: number;

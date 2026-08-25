@@ -10,8 +10,6 @@ Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 
 ## Dans le mmodule "Actions gratuites", plutôt que répartir les plafonds entre les fifférentes attributions éligibles, il faudrait épuiser dans l'odre de l'abattement max, ça devrait donner l'optimum, et rien n'empêche la cigale de tout vider en deux ordres séparés d'une journée ou deux.
 
-## Rendre explicite ce qu'un module est en droit d'appeler avec une garantie de pérénité.
-
 ## Ajout de nouveaux types de comptes (PERECO, PER, etc ...)
 
 ## Faire un module placement personnalisé on met juste valeur nette, contrib sociale et impôts, pour les placements non prévus.

@@ -1,9 +1,14 @@
-import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
-import { I18n } from '../../core/I18n.js';
+import { BasePlacementEditor, I18n } from '../kit/v1/index.js';
 import { getLifeInsuranceTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement } from '../../modules/BasePlacement.js';
+import type { BasePlacement, FiscalProfile } from '../kit/v1/index.js';
 import type { LifeInsuranceModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+
+const labels = {
+  totalPremiums: 'Total des primes versées (€)',
+  pre2017Premiums: 'Primes versées avant le 27/09/2017 (€)',
+  euroFundsValue: 'Valeur actuelle des fonds en euros (€)',
+  lifeInsuranceWarning: 'Attention, le calcul des prélèvements sociaux et impôts est approximatif. Celui-ci dépend de l\'historique des versements et arbitrages survenus au cours de la vie de votre assurance-vie'
+};
 
 const REFORM_DATE = '2017-09-27';
 
@@ -19,11 +24,11 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
         <input type="date" name="openingDate" class="form-control" value="${openingDate}" required />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.totalPremiums')}</label>
+        <label>${labels.totalPremiums}</label>
         <input type="number" step="0.01" name="totalPremiums" class="form-control" value="${p?.totalPremiums || 0}" required />
       </div>
       <div class="form-group" id="pre-2017-group" style="display: ${showPre2017 ? 'block' : 'none'};">
-        <label>${I18n.t('form.pre2017Premiums')}</label>
+        <label>${labels.pre2017Premiums}</label>
         <input type="number" step="0.01" name="pre2017Premiums" class="form-control" value="${p?.pre2017Premiums || 0}" />
       </div>
       <div class="form-group">
@@ -31,11 +36,11 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
         <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
-        <label>${I18n.t('form.euroFundsValue')}</label>
+        <label>${labels.euroFundsValue}</label>
         <input type="number" step="0.01" name="euroFundsValue" class="form-control" value="${p?.euroFundsValue || 0}" required />
       </div>
       <div class="form-group" style="font-size: 0.8rem; color: var(--danger);">
-        ${I18n.t('form.lifeInsuranceWarning')}
+        ${labels.lifeInsuranceWarning}
       </div>
     `;
   }

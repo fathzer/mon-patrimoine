@@ -1,4 +1,11 @@
-/* Form controls and groups. */
+/*
+ * Form controls and groups.
+ *
+ * The classes below are part of the Placement Kit (v1) and are guaranteed
+ * stable for placement modules. See MODULES.md for the full list.
+ *
+ * Kit classes: form-group, form-control
+ */
 
 .form-group {
   margin-bottom: 1.2rem;

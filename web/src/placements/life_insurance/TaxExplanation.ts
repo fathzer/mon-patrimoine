@@ -1,8 +1,7 @@
-import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage } from '../../i18n/commonTaxExplanations.js';
+import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, HelpPopover } from '../kit/v1/index.js';
+import type { FiscalProfile } from '../kit/v1/index.js';
 import { PFU_AFTER_8Y_PRE_2017, UC_SOCIAL_RATE, ALLOWANCE_SINGLE, ALLOWANCE_COUPLE, PREMIUM_THRESHOLD } from './module.js';
-import { HelpPopover } from '../../ui/HelpPopover.js';
 import type { LifeInsuranceModule } from './module.js';
-import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 const REFORM_DATE = '27/09/2017';
 
