@@ -4,15 +4,9 @@ import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.
 import { BasePlacementEditor } from '../ui/editors/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
 
-/**
- * Identifies a placement type. Values are the folder names under `placements/`
- * and are discovered at runtime from `modules.json` by `PlacementFactory`.
- */
-export type PlacementType = string;
-
 export interface PlacementData {
   id?: string;
-  type: PlacementType;
+  type: string;
   label?: string;
   institution?: string;
 }
@@ -29,40 +23,38 @@ export interface Evaluation {
 export type PlacementEditorConstructor = new (container: HTMLElement, store?: AppStore) => BasePlacementEditor;
 
 /**
+ * Describes the static side (constructor) that every placement module must
+ * provide. Since TypeScript does not support `abstract static`, this interface
+ * is used as a compile-time contract: each module verifies itself against it
+ * via `const _check: PlacementModuleStatic = MyModule;`.
+ */
+export interface PlacementModuleStatic {
+  getCategory(): Category;
+  getLabel(): string;
+  getEditorClass(): PlacementEditorConstructor;
+}
+
+/**
  * Base class for all placements.
- * Subclasses must define a DEFAULT_CATEGORY and implement getEvaluation and getTaxableIncomes.
+ * Subclasses must define static getCategory, getLabel, getEditorClass (enforced
+ * via {@link PlacementModuleStatic}) and implement getEvaluation and
+ * getTaxableIncomes.
  */
 export abstract class BasePlacement {
-  static readonly DEFAULT_CATEGORY: Category | null = null;
-
-  /**
-   * Returns the editor class used to configure this placement.
-   */
-  static getEditorClass(): PlacementEditorConstructor {
-    return BasePlacementEditor as unknown as PlacementEditorConstructor;
-  }
-
   id: string;
-  type: PlacementType;
+  type: string;
   label: string;
   institution: string;
 
   constructor(data: PlacementData) {
-    if (new.target === BasePlacement) {
-      throw new TypeError("Classe abstraite BasePlacement.");
-    }
-    const defaultCategory = (this.constructor as typeof BasePlacement).DEFAULT_CATEGORY;
-    if (!defaultCategory || !CategoryValues.includes(defaultCategory)) {
-      throw new TypeError(`Invalid DEFAULT_CATEGORY in ${this.constructor.name}. Must be one of: ${CategoryValues.join(', ')}`);
+    const category = (this.constructor as unknown as PlacementModuleStatic).getCategory();
+    if (!CategoryValues.includes(category)) {
+      throw new TypeError(`Invalid category from getCategory() in ${this.constructor.name}. Must be one of: ${CategoryValues.join(', ')}`);
     }
     this.id = data.id || String(Date.now());
     this.type = data.type;
     this.label = data.label || '';
     this.institution = data.institution || '';
-  }
-
-  getCategory(): Category {
-    return (this.constructor as typeof BasePlacement).DEFAULT_CATEGORY!;
   }
 
   /**

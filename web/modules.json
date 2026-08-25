@@ -1,10 +1,10 @@
 [
-  { "name": "checking_account", "author": "Mon Patrimoine", "label": "Compte Courant" },
-  { "name": "savings_account", "author": "Mon Patrimoine", "label": "Livret" },
-  { "name": "home_savings", "author": "Mon Patrimoine", "label": "Épargne Logement" },
-  { "name": "real_estate", "author": "Mon Patrimoine", "label": "Immobilier" },
-  { "name": "pea", "author": "Mon Patrimoine", "label": "PEA" },
-  { "name": "cto", "author": "Mon Patrimoine", "label": "Compte-Titres Ordinaire" },
-  { "name": "life_insurance", "author": "Mon Patrimoine", "label": "Assurance-vie" },
-  { "name": "stock_grant", "author": "Mon Patrimoine", "label": "Actions gratuites" }
+  { "name": "checking_account" },
+  { "name": "savings_account" },
+  { "name": "home_savings" },
+  { "name": "real_estate" },
+  { "name": "pea" },
+  { "name": "cto" },
+  { "name": "life_insurance" },
+  { "name": "stock_grant" }
 ]

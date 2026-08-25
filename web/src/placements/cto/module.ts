@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
 import { CtoEditor } from './Editor.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface CtoData extends PlacementData {
@@ -12,9 +12,15 @@ export interface CtoData extends PlacementData {
 }
 
 export class CtoModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.INVESTMENTS;
+  static getCategory(): Category {
+    return Category.INVESTMENTS;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Compte-Titres Ordinaire';
+  }
+
+  static getEditorClass() {
     return CtoEditor;
   }
 
@@ -70,4 +76,5 @@ export class CtoModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = CtoModule;
 export default CtoModule;

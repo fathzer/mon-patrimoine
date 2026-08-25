@@ -1,7 +1,7 @@
 import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { CheckingAccountEditor } from './Editor.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface CheckingAccountData extends PlacementData {
@@ -10,9 +10,15 @@ export interface CheckingAccountData extends PlacementData {
 }
 
 export class CheckingAccountModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.BANK_ACCOUNTS;
+  static getCategory(): Category {
+    return Category.BANK_ACCOUNTS;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Compte Courant';
+  }
+
+  static getEditorClass() {
     return CheckingAccountEditor;
   }
 
@@ -49,4 +55,5 @@ export class CheckingAccountModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = CheckingAccountModule;
 export default CheckingAccountModule;

@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { StockGrantEditor } from './Editor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 // Tax rules based on:
@@ -200,10 +200,16 @@ export interface StockGrantModuleData extends PlacementData {
 }
 
 export class StockGrantModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.INVESTMENTS;
+  static getCategory(): Category {
+    return Category.INVESTMENTS;
+  }
   static readonly THRESHOLD = 300000;
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Actions gratuites';
+  }
+
+  static getEditorClass() {
     return StockGrantEditor;
   }
 
@@ -334,4 +340,5 @@ export class StockGrantModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = StockGrantModule;
 export default StockGrantModule;

@@ -32,10 +32,10 @@ Un tableau JSON de définitions de modules, lu une fois au démarrage par
 | champ    | type   | signification                                                       |
 |----------|--------|---------------------------------------------------------------------|
 | `name`   | string | Nom du dossier sous `placements/`. Aussi utilisé comme `PlacementData.type`. |
-| `author` | string | Auteur/attribution du module.                                       |
-| `label`  | string | Libellé affiché dans la liste déroulante « type » du formulaire de placement. |
 
-D'autres champs pourront être ajoutés ultérieurement.
+Ce fichier JSON n'existe que pour pallier l'impossibilité de lister le contenu
+d'un répertoire servi par GitHub Pages. Les métadonnées (libellé, catégorie,
+etc.) sont fournies par le module lui-même via ses méthodes statiques.
 
 ## Chargement
 
@@ -60,13 +60,14 @@ Un `module.ts` doit **default-exporter** une classe étendant `BasePlacement`
 
 ```ts
 import { BasePlacement } from '../../modules/BasePlacement.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 import { MonEditeur } from './Editor.js';
 
 export class MonModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.X;
-  static override getEditorClass() { return MonEditeur; }
+  static getCategory(): Category { return Category.X; }
+  static getLabel(): string { return 'Mon Placement'; }
+  static getEditorClass() { return MonEditeur; }
 
   constructor(data: MesDonnees) { super(data); /* ... */ }
 
@@ -75,6 +76,7 @@ export class MonModule extends BasePlacement {
   override toJSON(): MesDonnees { return { ...super.toJSON(), /* ... */ }; }
 }
 
+const _check: PlacementModuleStatic = MonModule;
 export default MonModule;
 ```
 
@@ -82,18 +84,24 @@ export default MonModule;
 
 Défini dans `src/modules/BasePlacement.ts`.
 
-Membres statiques :
-- `static readonly DEFAULT_CATEGORY: Category` — **doit** être positionné par le
-  module à une valeur de `Category` (`src/core/Categories.ts`). Vérifié dans le
-  constructeur.
-- `static getEditorClass(): PlacementEditorConstructor` — **doit** être
-  surchargée pour renvoyer la classe d'éditeur du module. Par défaut, renvoie
-  `BasePlacementEditor`.
+TypeScript ne supportant pas `abstract static`, les membres statiques obligatoires
+sont décrits par l'interface `PlacementModuleStatic` (définie dans le même
+fichier). Chaque module se vérifie lui-même à la compilation avec une ligne
+`const _check: PlacementModuleStatic = MonModule;` — si un module oublie
+`getCategory()`, `getLabel()` ou `getEditorClass()`, `tsc` refuse de compiler.
+
+Membres statiques (obligatoires, vérifiés via `PlacementModuleStatic`) :
+- `static getCategory(): Category` — renvoie la catégorie du placement. Doit
+  être une valeur de `Category` (`src/core/Categories.ts`). Vérifié également au
+  runtime dans le constructeur.
+- `static getLabel(): string` — renvoie le libellé affiché dans la liste
+  déroulante « type » du formulaire de placement.
+- `static getEditorClass(): PlacementEditorConstructor` — renvoie la classe
+  d'éditeur du module.
 
 Membres d'instance fournis par la classe de base :
-- `id: string`, `type: PlacementType` (= string), `label: string`,
+- `id: string`, `type: string` (nom du dossier), `label: string`,
   `institution: string` — renseignés à partir de `PlacementData`.
-- `getCategory(): Category` — renvoie `DEFAULT_CATEGORY`.
 - `getImposition(fiscalProfile, now?): number` — calcule l'impôt sur le revenu
   via `TaxCalculator.calculatePlacementTax` à partir de `getTaxableIncomes()`.
   Les modules l'appellent au sein de `getEvaluation` ; ils ne le réimplémentent
@@ -106,7 +114,6 @@ Membres abstraits qu'un module **doit** implémenter :
 - `getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[]`
 
 Types issus de `BasePlacement.ts` :
-- `PlacementType` — désormais un alias de `string` (le nom du dossier).
 - `PlacementData` — `{ id?, type, label?, institution? }` ; les modules
   l'étendent avec leurs propres champs.
 - `Evaluation` — `{ grossValue, netValueBeforeIR, socialCharges, latentGain,

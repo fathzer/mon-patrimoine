@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { SavingsAccountEditor } from './Editor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface SavingsAccountData extends PlacementData {
@@ -13,9 +13,15 @@ export interface SavingsAccountData extends PlacementData {
 }
 
 export class SavingsAccountModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.SAVING_ACCOUNTS;
+  static getCategory(): Category {
+    return Category.SAVING_ACCOUNTS;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Livret';
+  }
+
+  static getEditorClass() {
     return SavingsAccountEditor;
   }
 
@@ -77,4 +83,5 @@ export class SavingsAccountModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = SavingsAccountModule;
 export default SavingsAccountModule;

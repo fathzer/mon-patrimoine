@@ -2,7 +2,7 @@ import { I18n } from '../core/I18n.js';
 import { PlacementFactory } from '../modules/PlacementFactory.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
 import type { AppStore } from '../core/AppStore.js';
-import type { BasePlacement, PlacementData, PlacementType } from '../modules/BasePlacement.js';
+import type { BasePlacement, PlacementData } from '../modules/BasePlacement.js';
 import type { BasePlacementEditor, EditorData } from './editors/BasePlacementEditor.js';
 
 interface TypeOption {
@@ -24,7 +24,7 @@ export class PlacementModalView {
   show(placement: BasePlacement | null = null): void {
     const isEdit = !!placement;
     const typeOptions: TypeOption[] = PlacementFactory.getDefinitions()
-      .map(def => ({ key: def.name, label: def.label }))
+      .map(def => ({ key: def.name, label: PlacementFactory.getLabel(def.name) }))
       .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
 
     this.container.innerHTML = `
@@ -66,7 +66,7 @@ export class PlacementModalView {
 
   _renderEditor(placement: BasePlacement | null, isEdit: boolean): void {
     const editorContainer = this.container.querySelector('#editor-container') as HTMLElement;
-    const currentType = isEdit ? placement!.type : ((this.container.querySelector('#type-select') as HTMLSelectElement | null)?.value || 'checking_account') as PlacementType;
+    const currentType = isEdit ? placement!.type : ((this.container.querySelector('#type-select') as HTMLSelectElement | null)?.value || 'checking_account') as string;
     const EditorClass = PlacementFactory.getEditorClass(currentType);
 
     this._editor = new EditorClass(editorContainer, this.store);
@@ -134,7 +134,7 @@ export class PlacementModalView {
 
     this.container.querySelector('#asset-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
-      const type: PlacementType = isEdit ? placement!.type : (this.container.querySelector('#type-select') as HTMLSelectElement).value as PlacementType;
+      const type: string = isEdit ? placement!.type : (this.container.querySelector('#type-select') as HTMLSelectElement).value as string;
       const editorData: EditorData = this._editor ? this._editor.getData() : {};
       const data = {
         label: (this.container.querySelector('input[name="label"]') as HTMLInputElement).value,

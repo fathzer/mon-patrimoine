@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { PeaEditor } from './Editor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface PeaData extends PlacementData {
@@ -12,9 +12,15 @@ export interface PeaData extends PlacementData {
 }
 
 export class PeaModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.INVESTMENTS;
+  static getCategory(): Category {
+    return Category.INVESTMENTS;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'PEA';
+  }
+
+  static getEditorClass() {
     return PeaEditor;
   }
 
@@ -90,4 +96,5 @@ export class PeaModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = PeaModule;
 export default PeaModule;

@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { HomeSavingsEditor } from './Editor.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
 import { Category } from '../../core/Categories.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export type HomeSavingsType = 'pel' | 'cel';
@@ -19,9 +19,15 @@ export interface HomeSavingsData extends PlacementData {
 export const CSG_2018_THRESHOLD = new Date('2018-01-01T00:00:00');
 
 export class HomeSavingsModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.SAVING_ACCOUNTS;
+  static getCategory(): Category {
+    return Category.SAVING_ACCOUNTS;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Épargne Logement';
+  }
+
+  static getEditorClass() {
     return HomeSavingsEditor;
   }
 
@@ -130,4 +136,5 @@ export class HomeSavingsModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = HomeSavingsModule;
 export default HomeSavingsModule;

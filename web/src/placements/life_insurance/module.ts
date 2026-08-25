@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { FISCAL_RATES, SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
 import { LifeInsuranceEditor } from './Editor.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface LifeInsuranceData extends PlacementData {
@@ -25,9 +25,15 @@ export const ALLOWANCE_COUPLE = 9200;
 const COUPLE_STATUSES = new Set(['married', 'pacsed']);
 
 export class LifeInsuranceModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.LIFE_INSURANCE;
+  static getCategory(): Category {
+    return Category.LIFE_INSURANCE;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Assurance-vie';
+  }
+
+  static getEditorClass() {
     return LifeInsuranceEditor;
   }
 
@@ -155,4 +161,5 @@ export class LifeInsuranceModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = LifeInsuranceModule;
 export default LifeInsuranceModule;

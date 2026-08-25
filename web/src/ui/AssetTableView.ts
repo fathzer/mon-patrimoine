@@ -168,7 +168,7 @@ export class AssetTableView {
           <div style="font-weight: 600;">${this._escapeHtml(instance.label)}</div>
           ${institutionHtml}
         </td>
-        <td data-label="${this._escapeHtml(I18n.t('table.categoryHeader'))}"><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.categoryHeader'))}"><span class="tag-category">${I18n.t(`categories.${PlacementFactory.getCategory(instance.type)}`)}</span></td>
         <td data-label="${this._escapeHtml(I18n.t('table.grossHeader'))}" style="text-align: right;">${gross ? `<strong>${gross}</strong>` : ''}</td>
         <td class="tax-info-cell" data-label="${this._escapeHtml(I18n.t('table.socialHeader'))}" style="text-align: right;">${social}</td>
         <td class="tax-info-cell" data-label="${this._escapeHtml(I18n.t('table.taxHeader'))}" style="text-align: right;">${tax}</td>
@@ -445,7 +445,7 @@ export class AssetTableView {
 
   _getFilteredEvaluations(evaluations: EvaluationEntry[] | undefined): EvaluationEntry[] {
     return (evaluations || []).filter(({ instance }) => {
-      const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
+      const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(PlacementFactory.getCategory(instance.type));
       const raw = (instance.institution || '').trim();
       const instKey = raw || NO_INSTITUTION_KEY;
       const instMatch = this.selectedInstitutions.size === 0 || this.selectedInstitutions.has(instKey);
@@ -475,7 +475,7 @@ export class AssetTableView {
             cmp = this._compareStrings(a.instance.institution, b.instance.institution);
             break;
           case 'category':
-            cmp = this._compareStrings(I18n.t(`categories.${a.instance.getCategory()}`), I18n.t(`categories.${b.instance.getCategory()}`));
+            cmp = this._compareStrings(I18n.t(`categories.${PlacementFactory.getCategory(a.instance.type)}`), I18n.t(`categories.${PlacementFactory.getCategory(b.instance.type)}`));
             break;
           case 'grossValue':
             cmp = (a.evaluation.grossValue ?? 0) - (b.evaluation.grossValue ?? 0);

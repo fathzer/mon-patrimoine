@@ -1,22 +1,18 @@
 import { BasePlacement } from './BasePlacement.js';
-import type { PlacementData, PlacementEditorConstructor, PlacementType } from './BasePlacement.js';
+import type { PlacementData, PlacementEditorConstructor, PlacementModuleStatic } from './BasePlacement.js';
+import type { Category } from '../core/Categories.js';
 
 /**
  * Definition of a placement module, as declared in `modules.json`.
  * `name` is both the folder name under `placements/` and the value used as
- * `PlacementData.type`.
+ * `PlacementData.type`. The JSON exists only to work around the inability to
+ * list directory contents on a static host (GitHub Pages).
  */
 export interface ModuleDefinition {
   name: string;
-  author: string;
-  label: string;
 }
 
 type PlacementConstructor = new (data: PlacementData) => BasePlacement;
-
-interface PlacementModuleStatic {
-  getEditorClass(): PlacementEditorConstructor;
-}
 
 interface LoadedModule {
   definition: ModuleDefinition;
@@ -27,7 +23,7 @@ const PLACEMENTS_BASE = '../placements/';
 
 export class PlacementFactory {
   private static _definitions: ModuleDefinition[] = [];
-  private static _registry: Map<PlacementType, LoadedModule> = new Map();
+  private static _registry: Map<string, LoadedModule> = new Map();
   private static _loaded = false;
 
   /**
@@ -68,7 +64,7 @@ export class PlacementFactory {
     return this._definitions;
   }
 
-  static _getModule(type: PlacementType): LoadedModule {
+  static _getModule(type: string): LoadedModule {
     if (!this._loaded) {
       throw new Error('PlacementFactory.loadModules() must be awaited before use.');
     }
@@ -83,12 +79,22 @@ export class PlacementFactory {
     return new (this._getModule(placementData.type).ModuleClass)(placementData);
   }
 
-  static getEditorClass(type: PlacementType): PlacementEditorConstructor {
+  static getEditorClass(type: string): PlacementEditorConstructor {
     const ModuleClass = this._getModule(type).ModuleClass;
     return (ModuleClass as unknown as PlacementModuleStatic).getEditorClass();
   }
 
-  static getDefinition(type: PlacementType): ModuleDefinition {
+  static getLabel(type: string): string {
+    const ModuleClass = this._getModule(type).ModuleClass;
+    return (ModuleClass as unknown as PlacementModuleStatic).getLabel();
+  }
+
+  static getCategory(type: string): Category {
+    const ModuleClass = this._getModule(type).ModuleClass;
+    return (ModuleClass as unknown as PlacementModuleStatic).getCategory();
+  }
+
+  static getDefinition(type: string): ModuleDefinition {
     return this._getModule(type).definition;
   }
 }

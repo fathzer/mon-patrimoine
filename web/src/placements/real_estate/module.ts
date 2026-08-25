@@ -2,7 +2,7 @@ import { BasePlacement } from '../../modules/BasePlacement.js';
 import { Category } from '../../core/Categories.js';
 import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
 import { RealEstateEditor } from './Editor.js';
-import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { Evaluation, PlacementData, PlacementModuleStatic } from '../../modules/BasePlacement.js';
 import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface RealEstateData extends PlacementData {
@@ -31,9 +31,15 @@ export const ACQUISITION_FEES_FLAT_RATE = 0.075;
 export const WORKS_FLAT_RATE = 0.15;
 
 export class RealEstateModule extends BasePlacement {
-  static override readonly DEFAULT_CATEGORY = Category.REAL_ESTATE;
+  static getCategory(): Category {
+    return Category.REAL_ESTATE;
+  }
 
-  static override getEditorClass() {
+  static getLabel(): string {
+    return 'Immobilier';
+  }
+
+  static getEditorClass() {
     return RealEstateEditor;
   }
 
@@ -75,8 +81,6 @@ export class RealEstateModule extends BasePlacement {
     const taxableGain = netGain * (1 - reductionRate);
     const socialCharges = taxableGain * STANDARD_SOCIAL_RATE;
 
-    const irReductionRate = this.getIncomeTaxReduction(holdingYears);
-    const irBase = netGain * (1 - irReductionRate);
     const imposition = this.getImposition(fiscalProfile, now);
 
     return {
@@ -192,4 +196,5 @@ export class RealEstateModule extends BasePlacement {
   }
 }
 
+const _check: PlacementModuleStatic = RealEstateModule;
 export default RealEstateModule;
