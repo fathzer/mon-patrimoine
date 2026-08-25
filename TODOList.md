@@ -1,6 +1,19 @@
 
 # TODO List
 
+## Refaire le parcours d'accueil pour forcer le renseignement du profi fiscal.
+
+## Prévoir une information sur les nouveautés ... probablement dans la barre d'outils
+
+## Un truc pas mal serait d'avoir la veleur nette en mode fourmi ou cigale (le mode actuel)
+Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
+
+## Dans le mmodule "Actions gratuites", plutôt que répartir les plafonds entre les fifférentes attributions éligibles, il faudrait épuiser dans l'odre de l'abattement max, ça devrait donner l'optimum, et rien n'empêche la cigale de tout vider en deux ordres séparés d'une journée ou deux.
+
+## Refactoriser les modules pour que tout ce qui concerne un module soit dans le même répertoire.
+Ce serait du coup plus simple, pour un éventuel contributeur, de créer un nouveau module.
+D'ailleurs, je me demande si on ne peut pas faire de la découverte automatique de modules ... mais je doute fort que Github pages donne l'accès au contenu d'un répertoire.
+
 ## Ajout de nouveaux types de comptes (PERECO, PER, etc ...)
 
 ## Faire un module placement personnalisé on met juste valeur nette, contrib sociale et impôts, pour les placements non prévus.
@@ -9,18 +22,13 @@
 
 ## Corriger l'explicitations des calculs de l'assurance vie (la fin est ... bizarre).
 
-## Faire le détail de l'imposition/prlvt dans stockGrantTaxExplanation.
-
 ## Dans le module Livrets, on doit pouvoir saisir des intérêts nets (c'est ce que donne Boursobank ... je ne sais pas comment ils ont le profil fiscal ...).
 
 ## Un truc pas mal serait d'avoir la possibilité de marquer les placements non mis à jour le jour courant et d'avoir une icône pour les identifier.
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
 Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
 
-## Un truc pas mal serait d'avoir la veleur nette en mode fourmi ou cigale (le mode actuel)
-Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
-
-## Calcul de l'imposition
+## Calcul de l'imposition (peut-être déjà fait)
 - Le profil fiscal est actuellement trop simplifié et ne prend pas en compte tous les cas possibles de 1/2 parts et leurs plafonds de réduction d'impôts.
 - Globalement, il faudrait revoir le calcul de l'imposition, notamment pour pouvoir passer une liste de couple "montants"/"taux de PFU" (utile dans le cas des assurances vie).
 - Attention, en cas de non PFU, la CSG déductible est déduite des revenus pas des impôts (qui ne peuvent donc pas passer sous 0)
