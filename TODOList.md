@@ -10,9 +10,7 @@ Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 
 ## Dans le mmodule "Actions gratuites", plutôt que répartir les plafonds entre les fifférentes attributions éligibles, il faudrait épuiser dans l'odre de l'abattement max, ça devrait donner l'optimum, et rien n'empêche la cigale de tout vider en deux ordres séparés d'une journée ou deux.
 
-## Refactoriser les modules pour que tout ce qui concerne un module soit dans le même répertoire.
-Ce serait du coup plus simple, pour un éventuel contributeur, de créer un nouveau module.
-D'ailleurs, je me demande si on ne peut pas faire de la découverte automatique de modules ... mais je doute fort que Github pages donne l'accès au contenu d'un répertoire.
+## Rendre explicite ce qu'un module est en droit d'appeler avec une garantie de pérénité.
 
 ## Ajout de nouveaux types de comptes (PERECO, PER, etc ...)
 

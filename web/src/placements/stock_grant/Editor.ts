@@ -1,8 +1,8 @@
-import { BasePlacementEditor } from './BasePlacementEditor.js';
+import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { StockGrantTaxExplanation } from '../../i18n/stockGrantTaxExplanation.js';
+import { StockGrantTaxExplanation } from './TaxExplanation.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { StockGrantModule, StockGrantData } from '../../modules/StockGrantModule.js';
+import type { StockGrantModule, StockGrantData } from './module.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export class StockGrantEditor extends BasePlacementEditor {

@@ -2,8 +2,11 @@ import { I18n } from './core/I18n.js';
 import { StorageManager } from './storage/StorageManager.js';
 import { AppStore } from './core/AppStore.js';
 import { DashboardView } from './ui/DashboardView.js';
+import { PlacementFactory } from './modules/PlacementFactory.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  await PlacementFactory.loadModules();
+
   const storageManager = new StorageManager({
     // Insérer ici votre Client ID Google Drive si nécessaire
     googleClientId: '1075597097575-9q8l4dvvahrpqn4l7dvu1999i0259ct8.apps.googleusercontent.com'

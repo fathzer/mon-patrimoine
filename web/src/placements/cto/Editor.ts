@@ -1,8 +1,8 @@
-import { BasePlacementEditor } from './BasePlacementEditor.js';
+import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { getCtoTaxExplanation } from '../../i18n/ctoTaxExplanation.js';
+import { getCtoTaxExplanation } from './TaxExplanation.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { CtoModule } from '../../modules/CtoModule.js';
+import type { CtoModule } from './module.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export class CtoEditor extends BasePlacementEditor {

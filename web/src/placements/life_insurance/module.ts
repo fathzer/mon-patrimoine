@@ -1,9 +1,9 @@
-import { BasePlacement } from './BasePlacement.js';
-import { Category } from '../core/Categories.js';
-import { FISCAL_RATES, SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { LifeInsuranceEditor } from '../ui/editors/LifeInsuranceEditor.js';
-import type { Evaluation, PlacementData } from './BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
+import { BasePlacement } from '../../modules/BasePlacement.js';
+import { Category } from '../../core/Categories.js';
+import { FISCAL_RATES, SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
+import { LifeInsuranceEditor } from './Editor.js';
+import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface LifeInsuranceData extends PlacementData {
   openingDate?: string;
@@ -154,3 +154,5 @@ export class LifeInsuranceModule extends BasePlacement {
     };
   }
 }
+
+export default LifeInsuranceModule;

@@ -1,8 +1,8 @@
-import { BasePlacementEditor } from './BasePlacementEditor.js';
+import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { getRealEstateTaxExplanation, getAcquisitionFeesHelp } from '../../i18n/realEstateTaxExplanation.js';
+import { getRealEstateTaxExplanation, getAcquisitionFeesHelp } from './TaxExplanation.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { RealEstateModule } from '../../modules/RealEstateModule.js';
+import type { RealEstateModule } from './module.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 import type { AppStore } from '../../core/AppStore.js';
 

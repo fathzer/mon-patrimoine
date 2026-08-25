@@ -1,9 +1,9 @@
-import { BasePlacement } from './BasePlacement.js';
-import { HomeSavingsEditor } from '../ui/editors/HomeSavingsEditor.js';
-import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { Category } from '../core/Categories.js';
-import type { Evaluation, PlacementData } from './BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
+import { BasePlacement } from '../../modules/BasePlacement.js';
+import { HomeSavingsEditor } from './Editor.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
+import { Category } from '../../core/Categories.js';
+import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export type HomeSavingsType = 'pel' | 'cel';
 
@@ -129,3 +129,5 @@ export class HomeSavingsModule extends BasePlacement {
     };
   }
 }
+
+export default HomeSavingsModule;

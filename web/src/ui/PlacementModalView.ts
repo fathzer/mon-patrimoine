@@ -23,16 +23,9 @@ export class PlacementModalView {
 
   show(placement: BasePlacement | null = null): void {
     const isEdit = !!placement;
-    const typeOptions: TypeOption[] = [
-      { key: 'checking_account', label: I18n.t('form.types.checking_account') },
-      { key: 'savings_account', label: I18n.t('form.types.savings_account') },
-      { key: 'home_savings', label: I18n.t('form.types.home_savings') },
-      { key: 'real_estate', label: I18n.t('form.types.real_estate') },
-      { key: 'pea', label: I18n.t('form.types.pea') },
-      { key: 'cto', label: I18n.t('form.types.cto') },
-      { key: 'life_insurance', label: I18n.t('form.types.life_insurance') },
-      { key: 'stock_grant', label: I18n.t('form.types.stock_grant') }
-    ].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+    const typeOptions: TypeOption[] = PlacementFactory.getDefinitions()
+      .map(def => ({ key: def.name, label: def.label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
 
     this.container.innerHTML = `
       <div class="modal-overlay">

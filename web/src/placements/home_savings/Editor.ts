@@ -1,9 +1,9 @@
-import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
+import { SavingsAccountBaseEditor } from '../../ui/editors/SavingsAccountBaseEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { getHomeSavingsTaxExplanation } from '../../i18n/homeSavingsTaxExplanation.js';
+import { getHomeSavingsTaxExplanation } from './TaxExplanation.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
-import type { HomeSavingsModule } from '../../modules/HomeSavingsModule.js';
+import type { HomeSavingsModule } from './module.js';
 
 export class HomeSavingsEditor extends SavingsAccountBaseEditor {
   override _renderBeforeInstitution(placement: BasePlacement | null): string {

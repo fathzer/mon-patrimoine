@@ -97,17 +97,7 @@ export const fr = {
     freeAcquisition: "Acquisition à titre gratuit",
     acquisitionFees: "Frais d'acquisition (sur justificatifs)",
     works: "Travaux éligibles (sur justificatifs)",
-    multiplePrimaryResidenceWarning: "Attention : une autre résidence principale est déjà déclarée.",
-    types: {
-      checking_account: "Compte Courant",
-      pea: "PEA",
-      cto: "Compte-Titres Ordinaire",
-      savings_account: "Livret",
-      home_savings: "Épargne Logement",
-      real_estate: "Immobilier",
-      life_insurance: "Assurance-vie",
-      stock_grant: "Actions gratuites"
-    }
+    multiplePrimaryResidenceWarning: "Attention : une autre résidence principale est déjà déclarée."
   },
   alerts: {
     saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",

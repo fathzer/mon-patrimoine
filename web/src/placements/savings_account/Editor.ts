@@ -1,9 +1,9 @@
-import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
-import { getSavingsAccountTaxExplanation } from '../../i18n/savingsAccountTaxExplanation.js';
+import { SavingsAccountBaseEditor } from '../../ui/editors/SavingsAccountBaseEditor.js';
+import { getSavingsAccountTaxExplanation } from './TaxExplanation.js';
 import { I18n } from '../../core/I18n.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
-import type { SavingsAccountModule } from '../../modules/SavingsAccountModule.js';
+import type { SavingsAccountModule } from './module.js';
 
 export class SavingsAccountEditor extends SavingsAccountBaseEditor {
   override _renderTaxExempt(placement: BasePlacement | null): string {

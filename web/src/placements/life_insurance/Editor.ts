@@ -1,8 +1,8 @@
-import { BasePlacementEditor } from './BasePlacementEditor.js';
+import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { getLifeInsuranceTaxExplanation } from '../../i18n/lifeInsuranceTaxExplanation.js';
+import { getLifeInsuranceTaxExplanation } from './TaxExplanation.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { LifeInsuranceModule } from '../../modules/LifeInsuranceModule.js';
+import type { LifeInsuranceModule } from './module.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 const REFORM_DATE = '2017-09-27';

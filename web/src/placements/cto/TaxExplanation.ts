@@ -1,7 +1,7 @@
-import { getPfuExplanation, getTaxDisclaimer, getLatentGainsHelpPopover, formatPercentage } from './commonTaxExplanations.js';
-import type { PfuExplanationArgs } from './commonTaxExplanations.js';
-import type { CtoModule } from '../modules/CtoModule.js';
-import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
+import { getPfuExplanation, getTaxDisclaimer, getLatentGainsHelpPopover, formatPercentage } from '../../i18n/commonTaxExplanations.js';
+import type { PfuExplanationArgs } from '../../i18n/commonTaxExplanations.js';
+import type { CtoModule } from './module.js';
+import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export function getCtoTaxExplanation(placement: CtoModule, fiscalProfile: FiscalProfile | undefined): string {
   const socialRate = formatPercentage(placement.getSocialChargesRate());

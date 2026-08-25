@@ -1,8 +1,8 @@
-import { BasePlacementEditor } from './BasePlacementEditor.js';
+import { BasePlacementEditor } from '../../ui/editors/BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
-import { getPeaTaxExplanation } from '../../i18n/peaTaxExplanation.js';
+import { getPeaTaxExplanation } from './TaxExplanation.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { PeaModule } from '../../modules/PeaModule.js';
+import type { PeaModule } from './module.js';
 import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export class PeaEditor extends BasePlacementEditor {

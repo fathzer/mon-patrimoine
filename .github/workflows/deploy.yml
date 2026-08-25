@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - first
-      - ts
+      - branch-ts
   workflow_dispatch:
 
 permissions:
@@ -58,6 +58,9 @@ jobs:
 
           # Copy manifest.json
           cp web/manifest.json _site/manifest.json
+
+          # Copy modules registry (read at runtime by PlacementFactory)
+          cp web/modules.json _site/modules.json
 
           # Generate service worker with build hash
           sed "s/BUILD_HASH/${{ github.sha }}/g" web/sw.template.js > _site/sw.js

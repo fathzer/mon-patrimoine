@@ -1,6 +1,6 @@
-import { getTaxDisclaimer, getPfuHelpPopover, formatPercentage } from './commonTaxExplanations.js';
-import type { SavingsAccountModule } from '../modules/SavingsAccountModule.js';
-import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
+import { getTaxDisclaimer, getPfuHelpPopover, formatPercentage } from '../../i18n/commonTaxExplanations.js';
+import type { SavingsAccountModule } from './module.js';
+import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 export function getSavingsAccountTaxExplanation(placement: SavingsAccountModule, fiscalProfile: FiscalProfile | undefined): string {
   const socialRate = formatPercentage(placement.getSocialChargesRate());

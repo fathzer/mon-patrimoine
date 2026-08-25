@@ -1,9 +1,9 @@
-import { BasePlacement } from './BasePlacement.js';
-import { Category } from '../core/Categories.js';
-import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { CtoEditor } from '../ui/editors/CtoEditor.js';
-import type { Evaluation, PlacementData } from './BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
+import { BasePlacement } from '../../modules/BasePlacement.js';
+import { Category } from '../../core/Categories.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
+import { CtoEditor } from './Editor.js';
+import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface CtoData extends PlacementData {
   acquisitionValue?: number;
@@ -69,3 +69,5 @@ export class CtoModule extends BasePlacement {
     };
   }
 }
+
+export default CtoModule;

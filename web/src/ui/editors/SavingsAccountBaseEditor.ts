@@ -1,7 +1,7 @@
 import { BasePlacementEditor } from './BasePlacementEditor.js';
 import { I18n } from '../../core/I18n.js';
 import type { BasePlacement } from '../../modules/BasePlacement.js';
-import type { SavingsAccountModule } from '../../modules/SavingsAccountModule.js';
+import type { SavingsAccountModule } from '../../placements/savings_account/module.js';
 
 export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
   override _renderAfterInstitution(placement: BasePlacement | null): string {

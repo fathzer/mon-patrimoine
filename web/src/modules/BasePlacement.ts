@@ -4,16 +4,11 @@ import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.
 import { BasePlacementEditor } from '../ui/editors/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
 
-export enum PlacementType {
-  CHECKING_ACCOUNT = 'checking_account',
-  PEA = 'pea',
-  CTO = 'cto',
-  STOCK_GRANT = 'stock_grant',
-  SAVINGS_ACCOUNT = 'savings_account',
-  HOME_SAVINGS = 'home_savings',
-  REAL_ESTATE = 'real_estate',
-  LIFE_INSURANCE = 'life_insurance'
-}
+/**
+ * Identifies a placement type. Values are the folder names under `placements/`
+ * and are discovered at runtime from `modules.json` by `PlacementFactory`.
+ */
+export type PlacementType = string;
 
 export interface PlacementData {
   id?: string;

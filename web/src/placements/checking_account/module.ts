@@ -1,8 +1,8 @@
-import { BasePlacement } from './BasePlacement.js';
-import { Category } from '../core/Categories.js';
-import { CheckingAccountEditor } from '../ui/editors/CheckingAccountEditor.js';
-import type { Evaluation, PlacementData } from './BasePlacement.js';
-import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
+import { BasePlacement } from '../../modules/BasePlacement.js';
+import { Category } from '../../core/Categories.js';
+import { CheckingAccountEditor } from './Editor.js';
+import type { Evaluation, PlacementData } from '../../modules/BasePlacement.js';
+import type { FiscalProfile, PlacementIncome } from '../../fiscality/TaxCalculator.js';
 
 export interface CheckingAccountData extends PlacementData {
   currentValue?: number;
@@ -48,3 +48,5 @@ export class CheckingAccountModule extends BasePlacement {
     };
   }
 }
+
+export default CheckingAccountModule;

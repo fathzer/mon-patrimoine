@@ -1,8 +1,8 @@
-import { SOCIAL_CONTRIBUTION_RATES } from '../fiscality/rates.js';
-import { CSG_2018_THRESHOLD } from '../modules/HomeSavingsModule.js';
-import { formatPercentage, getPfuHelpPopover, getTaxDisclaimer } from './commonTaxExplanations.js';
-import type { HomeSavingsModule } from '../modules/HomeSavingsModule.js';
-import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
+import { SOCIAL_CONTRIBUTION_RATES } from '../../fiscality/rates.js';
+import { CSG_2018_THRESHOLD } from './module.js';
+import { formatPercentage, getPfuHelpPopover, getTaxDisclaimer } from '../../i18n/commonTaxExplanations.js';
+import type { HomeSavingsModule } from './module.js';
+import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
 
 const OLD_RATE = formatPercentage(SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS);
 const NEW_RATE = formatPercentage(SOCIAL_CONTRIBUTION_RATES.CSG_CRDS);
