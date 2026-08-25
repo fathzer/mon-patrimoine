@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - first
+      - ts
   workflow_dispatch:
 
 permissions:
@@ -26,17 +27,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies and compile TypeScript
+        working-directory: web
+        run: |
+          npm install
+          npx tsc
+
       - name: Prepare site
         run: |
           mkdir -p _site
-          cp web/index.html _site/index.html
+
+          # Copy compiled JavaScript and source maps
+          cp -r web/dist/* _site/
+
+          # Copy static assets
+          cp web/favicon.svg _site/favicon.svg
+          cp -r web/css _site/css
+
+          # Copy legal pages
           cp web/privacy.html _site/privacy.html
           cp web/terms.html _site/terms.html
-          cp web/favicon.svg _site/favicon.svg
+
+          # Generate index.html with compiled entry point
+          sed 's|dist/main.js|main.js|g' web/index.html > _site/index.html
+
+          # Copy manifest.json
           cp web/manifest.json _site/manifest.json
-          cp -r web/css _site/css
-          cp -r web/src _site/src
+
+          # Generate service worker with build hash
           sed "s/BUILD_HASH/${{ github.sha }}/g" web/sw.template.js > _site/sw.js
+
           touch _site/.nojekyll
 
       - name: Setup Pages

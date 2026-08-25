@@ -1,0 +1,14 @@
+{
+  "name": "mon-patrimoine",
+  "version": "1.0.0",
+  "description": "Web application to track your financial wealth and its estimated net value (after social charges and taxes).",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc --watch & python3 -m http.server 5500",
+    "build": "tsc",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

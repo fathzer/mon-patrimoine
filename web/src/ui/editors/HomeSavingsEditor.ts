@@ -1,0 +1,73 @@
+import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
+import { I18n } from '../../core/I18n.js';
+import { getHomeSavingsTaxExplanation } from '../../i18n/homeSavingsTaxExplanation.js';
+import type { BasePlacement } from '../../modules/BasePlacement.js';
+import type { FiscalProfile } from '../../fiscality/TaxCalculator.js';
+import type { HomeSavingsModule } from '../../modules/HomeSavingsModule.js';
+
+export class HomeSavingsEditor extends SavingsAccountBaseEditor {
+  override _renderBeforeInstitution(placement: BasePlacement | null): string {
+    const homeSavingsType = (placement as HomeSavingsModule)?.homeSavingsType || 'pel';
+    return `
+      <div class="form-group">
+        <label>${I18n.t('form.homeSavingsType')}</label>
+        <div style="display: flex; gap: 1rem;">
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+            <input type="radio" name="homeSavingsType" value="pel" ${homeSavingsType === 'pel' ? 'checked' : ''} />
+            ${I18n.t('form.pel')}
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+            <input type="radio" name="homeSavingsType" value="cel" ${homeSavingsType === 'cel' ? 'checked' : ''} />
+            ${I18n.t('form.cel')}
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
+  override _renderOpeningDate(placement: BasePlacement | null): string {
+    return `
+      <div class="form-group">
+        <label>${I18n.t('form.openingDate')}</label>
+        <input type="date" name="openingDate" class="form-control" value="${(placement as HomeSavingsModule)?.openingDate || ''}" required />
+      </div>
+    `;
+  }
+
+  override _renderTaxExempt(_placement: BasePlacement | null): string {
+    return '';
+  }
+
+  override _bindEvents(): void {
+    super._bindEvents();
+    const homeSavingsType = this.container.querySelectorAll<HTMLInputElement>('input[name="homeSavingsType"]');
+    homeSavingsType.forEach(radio => {
+      radio.addEventListener('change', () => this._notifyValidityChange());
+    });
+  }
+
+  override isValid(): boolean {
+    if (!super.isValid()) return false;
+    const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
+    const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]');
+    const currentValueValid = currentValue ? currentValue.checkValidity() : true;
+    const openingDateValid = openingDate ? openingDate.checkValidity() : true;
+    return currentValueValid && openingDateValid;
+  }
+
+  override getData(): Record<string, unknown> {
+    const homeSavingsTypeInput = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]:checked');
+    return {
+      ...super.getData(),
+      homeSavingsType: homeSavingsTypeInput ? homeSavingsTypeInput.value : 'pel',
+      openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '',
+      interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,
+      taxExempt: false,
+      promotionalInterest: 0
+    };
+  }
+
+  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile);
+  }
+}
