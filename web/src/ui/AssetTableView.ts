@@ -396,12 +396,9 @@ export class AssetTableView {
   }
 
   _showTaxExplanation(item: EvaluationEntry): void {
-    const EditorClass = PlacementFactory.getEditorClass(item.instance.type);
-    const tempContainer = document.createElement('div');
-    const editor = new EditorClass(tempContainer, this.store);
     let content: string;
     try {
-      content = editor.buildTaxExplanation(item.instance, this.store.getTaxProfile());
+      content = PlacementFactory.getTaxExplanation(item.instance.type, item.instance, this.store.getTaxProfile());
     } catch {
       content = '<p class="text-muted">Tax explanation is not available for this placement type yet.</p>';
     }

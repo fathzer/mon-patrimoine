@@ -1,5 +1,6 @@
 import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { SavingsAccountEditor } from './Editor.js';
+import { getSavingsAccountTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 export interface SavingsAccountData extends PlacementData {
@@ -20,6 +21,10 @@ export class SavingsAccountModule extends BasePlacement {
 
   static getEditorClass() {
     return SavingsAccountEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getSavingsAccountTaxExplanation(placement as SavingsAccountModule, fiscalProfile);
   }
 
   currentValue: number;

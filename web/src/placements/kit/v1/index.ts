@@ -13,7 +13,7 @@
 
 // --- Base classes and core types ---
 export { BasePlacement } from '../../BasePlacement.js';
-export type { PlacementData, Evaluation, PlacementEditorConstructor, PlacementModuleStatic } from '../../BasePlacement.js';
+export type { PlacementData, Evaluation, PlacementEditorConstructor, PlacementModuleStatic, TaxExplanationProvider } from '../../BasePlacement.js';
 
 // --- Editor base classes ---
 export { BasePlacementEditor } from '../../../ui/BasePlacementEditor.js';

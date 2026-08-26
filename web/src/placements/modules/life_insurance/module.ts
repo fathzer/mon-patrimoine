@@ -1,5 +1,6 @@
 import { BasePlacement, Category, FISCAL_RATES, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { LifeInsuranceEditor } from './Editor.js';
+import { getLifeInsuranceTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 export interface LifeInsuranceData extends PlacementData {
@@ -32,6 +33,10 @@ export class LifeInsuranceModule extends BasePlacement {
 
   static getEditorClass() {
     return LifeInsuranceEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getLifeInsuranceTaxExplanation(placement as LifeInsuranceModule, fiscalProfile);
   }
 
   openingDate: string;

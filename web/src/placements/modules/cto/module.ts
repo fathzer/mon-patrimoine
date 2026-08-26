@@ -1,5 +1,6 @@
 import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { CtoEditor } from './Editor.js';
+import { getCtoTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 export interface CtoData extends PlacementData {
@@ -19,6 +20,10 @@ export class CtoModule extends BasePlacement {
 
   static getEditorClass() {
     return CtoEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getCtoTaxExplanation(placement as CtoModule, fiscalProfile);
   }
 
   acquisitionValue: number;

@@ -1,6 +1,5 @@
 import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
-import { StockGrantTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { StockGrantModule, StockGrantData } from './module.js';
 
 const labels = {
@@ -124,9 +123,5 @@ export class StockGrantEditor extends BasePlacementEditor {
       currentPrice: Number(this.container.querySelector<HTMLInputElement>('input[name="currentPrice"]')?.value) || 0,
       attributions
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return StockGrantTaxExplanation.get(placement as StockGrantModule, fiscalProfile);
   }
 }

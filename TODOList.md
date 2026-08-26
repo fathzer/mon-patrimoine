@@ -1,6 +1,8 @@
 
 # TODO List
 
+## Ajouter une détection des PEA multiples (attention, un couple peut avoir 2 PEA distincts)
+
 ## Refaire le parcours d'accueil pour forcer le renseignement du profi fiscal.
 
 ## Prévoir une information sur les nouveautés ... probablement dans la barre d'outils

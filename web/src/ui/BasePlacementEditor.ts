@@ -1,6 +1,5 @@
 import { I18n } from '../core/I18n.js';
 import type { BasePlacement } from '../placements/BasePlacement.js';
-import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 
 export type EditorData = Record<string, unknown>;
 export type ValidityCallback = (isValid: boolean) => void;
@@ -33,7 +32,7 @@ export type ValidityCallback = (isValid: boolean) => void;
  * placement-specific behavior. Subclasses override the hooks, not the template
  * methods — this guarantees the base logic is never accidentally skipped.
  */
-export abstract class BasePlacementEditor {
+export class BasePlacementEditor {
   /** DOM element where the editor renders its form. */
   protected container: HTMLElement;
   private onValidityChangeCallback: ValidityCallback | null;
@@ -183,11 +182,4 @@ export abstract class BasePlacementEditor {
   protected collectData(): EditorData {
     return {};
   }
-
-  /**
-   * Builds the HTML content for the tax explanation panel.
-   * Called by the host (AssetTableView) when the user opens the tax details
-   * for a placement. Implementations typically delegate to TaxExplanation.ts.
-   */
-  abstract buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string;
 }

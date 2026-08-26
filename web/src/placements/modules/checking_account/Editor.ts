@@ -1,5 +1,5 @@
 import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { CheckingAccountModule } from './module.js';
 
 const labels = {
@@ -38,9 +38,5 @@ export class CheckingAccountEditor extends BasePlacementEditor {
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       cardBalance: Number(this.container.querySelector<HTMLInputElement>('input[name="cardBalance"]')?.value) || 0
     };
-  }
-
-  override buildTaxExplanation(_placement: BasePlacement, _fiscalProfile: FiscalProfile): string {
-    return '';
   }
 }

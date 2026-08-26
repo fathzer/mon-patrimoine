@@ -1,5 +1,6 @@
 import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { HomeSavingsEditor } from './Editor.js';
+import { getHomeSavingsTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 export type HomeSavingsType = 'pel' | 'cel';
@@ -26,6 +27,10 @@ export class HomeSavingsModule extends BasePlacement {
 
   static getEditorClass() {
     return HomeSavingsEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile);
   }
 
   currentValue: number;

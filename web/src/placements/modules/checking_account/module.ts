@@ -20,6 +20,10 @@ export class CheckingAccountModule extends BasePlacement {
     return CheckingAccountEditor;
   }
 
+  static getTaxExplanation(_placement: BasePlacement, _fiscalProfile: FiscalProfile): string {
+    return '';
+  }
+
   currentValue: number;
   cardBalance: number;
 

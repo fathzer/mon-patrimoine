@@ -1,5 +1,6 @@
 import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { StockGrantEditor } from './Editor.js';
+import { StockGrantTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 // Tax rules based on:
@@ -208,6 +209,10 @@ export class StockGrantModule extends BasePlacement {
 
   static getEditorClass() {
     return StockGrantEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return StockGrantTaxExplanation.get(placement as StockGrantModule, fiscalProfile);
   }
 
   stockName: string;

@@ -42,6 +42,16 @@ export interface Evaluation {
 export type PlacementEditorConstructor = new (container: HTMLElement, store?: AppStore) => BasePlacementEditor;
 
 /**
+ * Function signature for tax explanation providers.
+ * The host calls it via `PlacementFactory.getTaxExplanation(type, placement, fp)`
+ * to render the tax explanation panel for a placement.
+ *
+ * Modules typically delegate to a `TaxExplanation.ts` helper, but the only
+ * contract is that this function returns the HTML string for the panel.
+ */
+export type TaxExplanationProvider = (placement: BasePlacement, fiscalProfile: FiscalProfile) => string;
+
+/**
  * Describes the static side (constructor) that every placement module must
  * provide. Since TypeScript does not support `abstract static`, this interface
  * is used as a compile-time contract: each module verifies itself against it
@@ -51,6 +61,7 @@ export interface PlacementModuleStatic {
   getCategory(): Category;
   getLabel(): string;
   getEditorClass(): PlacementEditorConstructor;
+  getTaxExplanation: TaxExplanationProvider;
 }
 
 /**
@@ -58,8 +69,9 @@ export interface PlacementModuleStatic {
  *
  * Each placement type (checking account, PEA, real estate, ...) extends this
  * class and provides:
- * - Static metadata: `getCategory()`, `getLabel()`, `getEditorClass()`
- *   (enforced at compile time via {@link PlacementModuleStatic}).
+ * - Static metadata: `getCategory()`, `getLabel()`, `getEditorClass()`,
+ *   `getTaxExplanation()` (enforced at compile time via
+ *   {@link PlacementModuleStatic}).
  * - Instance evaluation: `getEvaluation()` and `getTaxableIncomes()`.
  *
  * The host (AppStore) creates placements via `PlacementFactory.create(data)`,

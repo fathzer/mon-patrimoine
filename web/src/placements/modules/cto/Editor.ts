@@ -1,6 +1,5 @@
 import { BasePlacementEditor } from '../../kit/v1/index.js';
-import { getCtoTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { CtoModule } from './module.js';
 
 const labels = {
@@ -46,9 +45,5 @@ export class CtoEditor extends BasePlacementEditor {
       acquisitionValue: Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionValue"]')?.value) || 0,
       cashBalance: Number(this.container.querySelector<HTMLInputElement>('input[name="cashBalance"]')?.value) || 0
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getCtoTaxExplanation(placement as CtoModule, fiscalProfile);
   }
 }

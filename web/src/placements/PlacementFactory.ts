@@ -1,6 +1,7 @@
 import { BasePlacement } from './BasePlacement.js';
 import type { PlacementData, PlacementEditorConstructor, PlacementModuleStatic } from './BasePlacement.js';
 import type { Category } from '../core/Categories.js';
+import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 
 /**
  * Definition of a placement module, as declared in `placements.json`.
@@ -132,6 +133,11 @@ export class PlacementFactory {
   static getCategory(type: string): Category {
     const ModuleClass = this._getModule(type).ModuleClass;
     return (ModuleClass as unknown as PlacementModuleStatic).getCategory();
+  }
+
+  static getTaxExplanation(type: string, placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    const ModuleClass = this._getModule(type).ModuleClass;
+    return (ModuleClass as unknown as PlacementModuleStatic).getTaxExplanation(placement, fiscalProfile);
   }
 
   static getDefinition(type: string): ModuleDefinition {

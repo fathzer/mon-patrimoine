@@ -13,15 +13,25 @@ Ce document décrit l'organisation des dossiers, le contrat auquel un module doi
 ```
 placements/
   <nom>/                 # <nom> = type de placement = PlacementData.type
-    module.ts             # obligatoire : exporte une sous-classe de BasePlacement
-    Editor.ts             # obligatoire : l'éditeur du placement (BasePlacementEditor)
-    TaxExplanation.ts     # optionnel : constructeur d'explication fiscale HTML
+    module.ts             # obligatoire (nom imposé par PlacementFactory)
+    Editor.ts             # convention : l'éditeur du placement
+    TaxExplanation.ts     # convention : explication fiscale HTML
 ```
 
-`<nom>` doit correspondre au champ `name` d'une entrée de `web/modules.json`,
+Le seul fichier dont le nom est imposé par le système est `module.ts` :
+`PlacementFactory` fait un `import('./modules/<nom>/module.js')` dynamique.
+Pour le reste, le module est libre de s'organiser comme il veut — il doit
+seulement respecter le contrat de `PlacementModuleStatic` (retourner une classe
+d'éditeur via `getEditorClass()`, une fonction d'explication fiscale via
+`getTaxExplanation`, etc.).
+
+Les noms `Editor.ts` et `TaxExplanation.ts` sont des conventions partagées par
+tous les modules actuels, pas une exigence du système.
+
+`<nom>` doit correspondre au champ `name` d'une entrée de `web/placements.json`,
 par ex. `cto`, `pea`, `real_estate`, `stock_grant`, ...
 
-## `web/modules.json`
+## `web/placements.json`
 
 Un tableau JSON de définitions de modules, lu une fois au démarrage par
 `PlacementFactory.loadModules()`. Chaque entrée comporte actuellement :
@@ -36,15 +46,18 @@ le module lui-même via ses méthodes statiques.
 
 ## Chargement
 
-`PlacementFactory.loadModules()` (dans `src/modules/PlacementFactory.ts`) :
+`PlacementFactory.loadModules()` (dans `src/placements/PlacementFactory.ts`) :
 
-1. `fetch('./modules.json')` (servi en tant que ressource statique).
-2. Pour chaque définition, fait un `import('../placements/<nom>/module.js')`
-   dynamique.
+1. `fetch('./placements.json')` (servi en tant que ressource statique).
+2. Pour chaque définition, fait un `import('./modules/<nom>/module.js')`
+   dynamique. Les imports sont lancés en parallèle via `Promise.allSettled()` ;
+   un module en échec n'empêche pas les autres de se charger.
 3. Récupère l'**export par défaut** comme classe de placement et l'enregistre
    sous la clé `definition.name`.
-4. Une fois la promesse résolue, `PlacementFactory.create(type)` et
-   `PlacementFactory.getEditorClass(type)` sont utilisables de façon synchrone.
+4. Une fois la promesse résolue, `PlacementFactory.create(type)`,
+   `PlacementFactory.getEditorClass(type)` et
+   `PlacementFactory.getTaxExplanation(type, ...)` sont utilisables de façon
+   synchrone.
 
 `main.ts` attend `PlacementFactory.loadModules()` avant `store.init()`, de sorte
 que le registre est prêt avant toute création de placement ou ouverture
@@ -59,11 +72,15 @@ Tous les imports externes au module doivent provenir du **kit** (`kit/v1/`) :
 import { BasePlacement, Category } from '../kit/v1/index.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../kit/v1/index.js';
 import { MonEditeur } from './Editor.js';
+import { getMonTaxExplanation } from './TaxExplanation.js';
 
 export class MonModule extends BasePlacement {
   static getCategory(): Category { return Category.X; }
   static getLabel(): string { return 'Mon Placement'; }
   static getEditorClass() { return MonEditeur; }
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getMonTaxExplanation(placement as MonModule, fiscalProfile);
+  }
 
   constructor(data: MesDonnees) { super(data); /* ... */ }
 
@@ -94,7 +111,7 @@ et `kit/v1/` sera conservé pour ne pas casser les modules existants.
 
 **Types :**
 - `PlacementData`, `Evaluation`, `PlacementEditorConstructor`,
-  `PlacementModuleStatic` — depuis `BasePlacement.ts`.
+  `PlacementModuleStatic`, `TaxExplanationProvider` — depuis `BasePlacement.ts`.
 - `FiscalProfile`, `PlacementIncome` — depuis `TaxCalculator.ts`.
 - `AppStore` — type transmis aux éditeurs qui en ont besoin.
 - `PfuExplanationArgs` — arguments pour `getPfuExplanation`.
@@ -146,7 +163,7 @@ TypeScript ne supportant pas `abstract static`, les membres statiques obligatoir
 sont décrits par l'interface `PlacementModuleStatic` (exportée par le kit). Chaque
 module se vérifie lui-même à la compilation avec une ligne
 `const _check: PlacementModuleStatic = MonModule;` — si un module oublie
-`getCategory()`, `getLabel()` ou `getEditorClass()`, `tsc` refuse de compiler.
+`getCategory()`, `getLabel()`, `getEditorClass()` ou `getTaxExplanation()`, `tsc` refuse de compiler.
 
 Membres statiques (obligatoires, vérifiés via `PlacementModuleStatic`) :
 - `static getCategory(): Category` — renvoie la catégorie du placement. Doit
@@ -156,6 +173,11 @@ Membres statiques (obligatoires, vérifiés via `PlacementModuleStatic`) :
   déroulante « type » du formulaire de placement.
 - `static getEditorClass(): PlacementEditorConstructor` — renvoie la classe
   d'éditeur du module.
+- `static getTaxExplanation: TaxExplanationProvider` — fonction qui renvoie le
+  HTML affiché dans le panneau d'explication fiscale. La signature
+  `TaxExplanationProvider` est `(placement: BasePlacement, fiscalProfile:
+  FiscalProfile) => string`, exportée par le kit. Les modules délèguent
+  généralement à leur `TaxExplanation.ts`.
 
 Membres d'instance fournis par la classe de base :
 - `id: string`, `type: string` (nom du dossier), `label: string`,
@@ -179,24 +201,39 @@ Types :
 - `PlacementEditorConstructor` — `new (container: HTMLElement, store?: AppStore)
   => BasePlacementEditor`.
 
-## Contrat de `Editor.ts`
+## Contrat de l'éditeur
 
-Étend `BasePlacementEditor` ou `SavingsAccountBaseEditor` (tous deux exportés
-par le kit). Tous les imports externes au module doivent provenir du kit.
+L'éditeur étend `BasePlacementEditor` ou `SavingsAccountBaseEditor` (tous deux
+exportés par le kit). Tous les imports externes au module doivent provenir du
+kit. Les modules actuels placent l'éditeur dans un fichier `Editor.ts` par
+convention, mais le système n'impose ni ce nom ni ce fichier — seul compte ce
+que `getEditorClass()` retourne.
 
-`BasePlacementEditor` fournit :
-- `container: HTMLElement`, et la machinerie de callback `_onValidityChange`.
-- `render(placement?)` — rend `_renderBeforeInstitution` + `_renderInstitution`
-  + `_renderAfterInstitution`, puis appelle `_bindEvents()`.
-- Hooks surchargeables : `_renderBeforeInstitution`, `_renderInstitution`,
-  `_renderAfterInstitution`, `_bindEvents`, `isValid`, `getData`.
-- `onValidityChange(callback)`, `_notifyValidityChange()`.
+`BasePlacementEditor` utilise le pattern template-method : les méthodes
+publiques (`render`, `isValid`, `getData`) et privées (`bindEvents`) orchestrent
+la logique de base (champ institution) et délèguent aux hooks protected ci-
+dessous. Les sous-classes surchargent les hooks, jamais les méthodes
+orchestratrices — la logique de base est ainsi garantie.
 
-Un éditeur de module **doit** implémenter :
-- `abstract buildTaxExplanation(placement: BasePlacement, fiscalProfile:
-  FiscalProfile): string` — renvoie le HTML affiché dans le panneau
-  d'explication fiscale. Les éditeurs délèguent généralement à leur
-  `TaxExplanation.ts`.
+Membres publics (appelés par l'hôte — ne pas surcharger) :
+- `render(placement?)` — rend le formulaire dans `container`.
+- `onValidityChange(callback)` — enregistre un callback de validité.
+- `isValid(): boolean` — validité du formulaire (champ institution + hook).
+- `getData(): EditorData` — valeurs du formulaire (institution + hook).
+
+Hooks protected (surchargeables, sans besoin d'appeler `super`) :
+- `hasInstitution(): boolean` — retourne `true` par défaut. Retourner `false`
+  pour un placement sans institution (ex. immobilier).
+- `renderBeforeInstitution(placement): string` — HTML avant le champ
+  institution. Défaut : chaîne vide.
+- `renderAfterInstitution(placement): string` — HTML après le champ
+  institution. Défaut : chaîne vide.
+- `bindPlacementEvents(): void` — bindings spécifiques au placement.
+  Défaut : no-op.
+- `isPlacementValid(): boolean` — validation spécifique. Défaut : `true`.
+- `collectData(): EditorData` — extraction spécifique. Défaut : `{}`.
+- `notifyValidityChange(): void` — notifie l'hôte d'un changement de validité.
+  À appeler depuis les listeners de l'éditeur.
 
 Les éditeurs peuvent recevoir un `AppStore` optionnel en argument du
 constructeur (utilisé, par ex., par l'éditeur immobilier pour détecter une
@@ -207,41 +244,51 @@ l'éditeur via une `const labels = { ... }`, et non via `I18n.t()`. Seuls les
 libellés partagés (`form.currentValue`, `form.openingDate`, `form.institution`,
 `form.label`, `form.close`, etc.) restent accessibles via `I18n.t()`.
 
-## `TaxExplanation.ts` (optionnel)
+## Explication fiscale
 
-Un simple utilitaire qui produit une chaîne HTML pour le panneau d'explication
-fiscale. Il n'est importé que par le `Editor.ts` du module. Aucune forme
-d'export n'est imposée ; les modules actuels exportent soit une fonction
+Le module fournit une fonction `getTaxExplanation` conforme au type `TaxExplanationProvider`
+(exporté par le kit) :
+
+```ts
+type TaxExplanationProvider = (placement: BasePlacement, fiscalProfile: FiscalProfile) => string;
+```
+
+Le module est libre d'implémenter cette fonction comme il le veut — inline dans
+`module.ts`, ou déléguée à un fichier séparé. Les modules actuels utilisent par
+convention un fichier `TaxExplanation.ts` qui exporte soit une fonction
 (`getCtoTaxExplanation(placement, fiscalProfile)`), soit une classe statique
-(`StockGrantTaxExplanation.get(placement, fiscalProfile)`).
+(`StockGrantTaxExplanation.get(placement, fiscalProfile)`). Aucune forme d'export
+n'est imposée — seul compte ce que `getTaxExplanation` retourne.
 
 Les utilitaires partagés (`getPfuExplanation`, `formatPercentage`,
 `HelpPopover`, etc.) sont accessibles via le kit.
 
 ### Constantes inter-modules
-Certains `TaxExplanation.ts` importent des constantes exportées par leur
-`module.ts` frère (par ex. `ACQUISITION_FEES_FLAT_RATE`, `CSG_2018_THRESHOLD`,
+Certains modules importent des constantes exportées par leur `module.ts` frère
+(par ex. `ACQUISITION_FEES_FLAT_RATE`, `CSG_2018_THRESHOLD`,
 `PFU_AFTER_8Y_PRE_2017`, `StockGrantModule.THRESHOLD`, ...). Ce sont des
 contrats internes au module, pas une API de l'hôte.
 
 ## Ajouter un nouveau module
 
 1. Créer `placements/<nom>/` avec un `module.ts` (default-exportant une
-   sous-classe de `BasePlacement`) et un `Editor.ts`. Ajouter un
-   `TaxExplanation.ts` si nécessaire.
+   sous-classe de `BasePlacement`). L'éditeur peut être placé dans un
+   `Editor.ts` (convention), et l'explication fiscale dans un
+   `TaxExplanation.ts` (convention) — mais le système n'impose que `module.ts`.
 2. Tous les imports externes doivent provenir de `../kit/v1/index.js`.
-3. Ajouter une entrée à `web/modules.json` (`name`).
+3. Ajouter une entrée à `web/placements.json` (`name`).
 4. Recompiler (`npm run build`). Aucune autre modification de code n'est
-   requise — la factory découvre le module depuis `modules.json` et câble son
-   éditeur via `getEditorClass()`.
+   requise — la factory découvre le module depuis `placements.json`, câble son
+   éditeur via `getEditorClass()` et son explication fiscale via
+   `getTaxExplanation()`.
 
 ## Notes / limitations
 
-- Le site est servi sous forme de bundle purement statique. `modules.json` doit
-  être déployé en tant que ressource statique (le workflow GitHub Pages le
+- Le site est servi sous forme de bundle purement statique. `placements.json`
+  doit être déployé en tant que ressource statique (le workflow GitHub Pages le
   copie dans `_site/`).
 - Les chemins des `import()` dynamiques sont relatifs à la factory compilée
-  (`dist/modules/PlacementFactory.js`) et résolvent vers
-  `dist/placements/<nom>/module.js`.
+  (`dist/placements/PlacementFactory.js`) et résolvent vers
+  `dist/placements/modules/<nom>/module.js`.
 - `PlacementFactory.loadModules()` doit être terminé avant toute utilisation
   synchrone de la factory ; `main.ts` le garantit.

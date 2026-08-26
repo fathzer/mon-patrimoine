@@ -1,6 +1,6 @@
 import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
-import { getRealEstateTaxExplanation, getAcquisitionFeesHelp } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile, AppStore } from '../../kit/v1/index.js';
+import { getAcquisitionFeesHelp } from './TaxExplanation.js';
+import type { BasePlacement, AppStore } from '../../kit/v1/index.js';
 import type { RealEstateModule } from './module.js';
 
 const labels = {
@@ -167,9 +167,5 @@ export class RealEstateEditor extends BasePlacementEditor {
       acquisitionFees: primaryResidence ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionFees"]')?.value) || 0),
       works: primaryResidence ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="works"]')?.value) || 0)
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, _fiscalProfile: FiscalProfile): string {
-    return getRealEstateTaxExplanation(placement as RealEstateModule);
   }
 }

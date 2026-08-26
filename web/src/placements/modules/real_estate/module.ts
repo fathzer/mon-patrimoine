@@ -1,5 +1,6 @@
 import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { RealEstateEditor } from './Editor.js';
+import { getRealEstateTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 export interface RealEstateData extends PlacementData {
@@ -38,6 +39,10 @@ export class RealEstateModule extends BasePlacement {
 
   static getEditorClass() {
     return RealEstateEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, _fiscalProfile: FiscalProfile): string {
+    return getRealEstateTaxExplanation(placement as RealEstateModule);
   }
 
   primaryResidence: boolean;

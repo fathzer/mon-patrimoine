@@ -1,6 +1,5 @@
 import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
-import { getSavingsAccountTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { SavingsAccountModule } from './module.js';
 
 const labels = {
@@ -55,9 +54,5 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
       taxExempt,
       promotionalInterest: taxExempt ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="promotionalInterest"]')?.value) || 0)
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getSavingsAccountTaxExplanation(placement as SavingsAccountModule, fiscalProfile);
   }
 }

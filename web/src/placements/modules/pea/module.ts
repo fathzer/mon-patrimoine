@@ -1,5 +1,6 @@
 import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { PeaEditor } from './Editor.js';
+import { getPeaTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
 export interface PeaData extends PlacementData {
@@ -19,6 +20,10 @@ export class PeaModule extends BasePlacement {
 
   static getEditorClass() {
     return PeaEditor;
+  }
+
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+    return getPeaTaxExplanation(placement as PeaModule, fiscalProfile);
   }
 
   totalDeposits: number;

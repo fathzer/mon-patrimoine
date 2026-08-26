@@ -1,7 +1,6 @@
 import { I18n } from '../../kit/v1/index.js';
 import { SavingsAccountBaseEditor } from '../savings_account/SavingsAccountBaseEditor.js';
-import { getHomeSavingsTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { HomeSavingsModule } from './module.js';
 
 const labels = {
@@ -69,9 +68,5 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
       taxExempt: false,
       promotionalInterest: 0
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile);
   }
 }

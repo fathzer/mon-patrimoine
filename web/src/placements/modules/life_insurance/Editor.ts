@@ -1,6 +1,5 @@
 import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
-import { getLifeInsuranceTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { LifeInsuranceModule } from './module.js';
 
 const labels = {
@@ -90,9 +89,5 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       euroFundsValue: Number(this.container.querySelector<HTMLInputElement>('input[name="euroFundsValue"]')?.value) || 0
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getLifeInsuranceTaxExplanation(placement as LifeInsuranceModule, fiscalProfile);
   }
 }

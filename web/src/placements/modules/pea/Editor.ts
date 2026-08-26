@@ -1,6 +1,5 @@
 import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
-import { getPeaTaxExplanation } from './TaxExplanation.js';
-import type { BasePlacement, FiscalProfile } from '../../kit/v1/index.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
 import type { PeaModule } from './module.js';
 
 const labels = {
@@ -47,9 +46,5 @@ export class PeaEditor extends BasePlacementEditor {
       totalDeposits: Number(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value) || 0,
       openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || ''
     };
-  }
-
-  override buildTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPeaTaxExplanation(placement as PeaModule, fiscalProfile);
   }
 }
