@@ -13,7 +13,7 @@ const labels = {
 };
 
 export class StockGrantEditor extends BasePlacementEditor {
-  override _renderAfterInstitution(placement: BasePlacement | null): string {
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
     const p = placement as StockGrantModule | null;
     const attributions = Array.isArray(p?.attributions) ? p!.attributions : [];
 
@@ -39,7 +39,7 @@ export class StockGrantEditor extends BasePlacementEditor {
             </tr>
           </thead>
           <tbody id="attributions-list">
-            ${attributions.length > 0 ? attributions.map(a => this._renderAttributionRow(a)).join('') : this._renderAttributionRow()}
+            ${attributions.length > 0 ? attributions.map(a => this.renderAttributionRow(a)).join('') : this.renderAttributionRow()}
           </tbody>
         </table>
         <button type="button" id="btn-add-attribution" class="btn-secondary" style="margin-top: 0.5rem;">${labels.addAttribution}</button>
@@ -47,7 +47,7 @@ export class StockGrantEditor extends BasePlacementEditor {
     `;
   }
 
-  _renderAttributionRow(attribution: StockGrantData | null = null): string {
+  private renderAttributionRow(attribution: StockGrantData | null = null): string {
     return `
       <tr class="attribution-row">
         <td>
@@ -69,37 +69,35 @@ export class StockGrantEditor extends BasePlacementEditor {
     `;
   }
 
-  override _bindEvents(): void {
-    super._bindEvents();
+  protected override bindPlacementEvents(): void {
     (['stockName', 'currentPrice'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
 
     const addBtn = this.container.querySelector<HTMLElement>('#btn-add-attribution');
-    addBtn?.addEventListener('click', () => this._onAddAttribution());
+    addBtn?.addEventListener('click', () => this.onAddAttribution());
 
     const list = this.container.querySelector<HTMLElement>('#attributions-list');
-    list?.addEventListener('input', () => this._notifyValidityChange());
+    list?.addEventListener('input', () => this.notifyValidityChange());
     list?.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       if (target.closest('.btn-remove-attribution')) {
         (target.closest('.attribution-row') as HTMLElement).remove();
-        this._notifyValidityChange();
+        this.notifyValidityChange();
       }
     });
   }
 
-  _onAddAttribution(): void {
+  private onAddAttribution(): void {
     const list = this.container.querySelector<HTMLElement>('#attributions-list')!;
     const wrapper = document.createElement('tbody');
-    wrapper.innerHTML = this._renderAttributionRow();
+    wrapper.innerHTML = this.renderAttributionRow();
     list.appendChild(wrapper.firstElementChild as HTMLElement);
-    this._notifyValidityChange();
+    this.notifyValidityChange();
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentPrice = this.container.querySelector<HTMLInputElement>('input[name="currentPrice"]');
     const currentPriceValid = currentPrice ? currentPrice.checkValidity() : true;
     const rows = this.container.querySelectorAll<HTMLElement>('.attribution-row');
@@ -113,7 +111,7 @@ export class StockGrantEditor extends BasePlacementEditor {
     return currentPriceValid && rowsValid;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     const attributions = Array.from(this.container.querySelectorAll<HTMLElement>('.attribution-row')).map(row => ({
       attributionDate: row.querySelector<HTMLInputElement>('.attribution-date')?.value || '',
       acquisitionDate: row.querySelector<HTMLInputElement>('.attribution-acquisition-date')?.value || '',
@@ -122,7 +120,6 @@ export class StockGrantEditor extends BasePlacementEditor {
     }));
 
     return {
-      ...super.getData(),
       stockName: this.container.querySelector<HTMLInputElement>('input[name="stockName"]')?.value || '',
       currentPrice: Number(this.container.querySelector<HTMLInputElement>('input[name="currentPrice"]')?.value) || 0,
       attributions

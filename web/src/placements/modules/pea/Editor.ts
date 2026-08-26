@@ -8,11 +8,9 @@ const labels = {
 };
 
 export class PeaEditor extends BasePlacementEditor {
-  override render(placement: BasePlacement | null = null): void {
-    super.render(placement);
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
     const p = placement as PeaModule | null;
-    const field = document.createElement('div');
-    field.innerHTML = `
+    return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
         <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
@@ -26,19 +24,16 @@ export class PeaEditor extends BasePlacementEditor {
         <input type="date" name="openingDate" class="form-control" value="${p?.openingDate || ''}" required />
       </div>
     `;
-    this.container.appendChild(field);
-    this._bindSpecificEvents();
   }
 
-  _bindSpecificEvents(): void {
+  protected override bindPlacementEvents(): void {
     (['currentValue', 'totalDeposits', 'openingDate'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]');
     const currentValueValid = currentValue ? currentValue.checkValidity() : true;
@@ -46,9 +41,8 @@ export class PeaEditor extends BasePlacementEditor {
     return currentValueValid && openingDateValid;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     return {
-      ...super.getData(),
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       totalDeposits: Number(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value) || 0,
       openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || ''

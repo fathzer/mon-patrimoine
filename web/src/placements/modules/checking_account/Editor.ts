@@ -7,39 +7,34 @@ const labels = {
 };
 
 export class CheckingAccountEditor extends BasePlacementEditor {
-  override render(placement: BasePlacement | null = null): void {
-    super.render(placement);
-    const field = document.createElement('div');
-    field.innerHTML = `
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
+    const p = placement as CheckingAccountModule | null;
+    return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${(placement as CheckingAccountModule)?.currentValue || 0}" required />
+        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.cardBalance}</label>
-        <input type="number" step="0.01" name="cardBalance" class="form-control" value="${(placement as CheckingAccountModule)?.cardBalance || 0}" />
+        <input type="number" step="0.01" name="cardBalance" class="form-control" value="${p?.cardBalance || 0}" />
       </div>
     `;
-    this.container.appendChild(field);
-    this._bindSpecificEvents();
   }
 
-  _bindSpecificEvents(): void {
+  protected override bindPlacementEvents(): void {
     (['currentValue', 'cardBalance'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     return currentValue ? currentValue.checkValidity() : true;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     return {
-      ...super.getData(),
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       cardBalance: Number(this.container.querySelector<HTMLInputElement>('input[name="cardBalance"]')?.value) || 0
     };

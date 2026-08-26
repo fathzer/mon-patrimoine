@@ -10,7 +10,7 @@ const labels = {
 };
 
 export class CtoEditor extends BasePlacementEditor {
-  override _renderAfterInstitution(placement: BasePlacement | null): string {
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
     const p = placement as CtoModule | null;
     return `
       <div class="form-group">
@@ -28,23 +28,20 @@ export class CtoEditor extends BasePlacementEditor {
     `;
   }
 
-  override _bindEvents(): void {
-    super._bindEvents();
+  protected override bindPlacementEvents(): void {
     (['currentValue', 'acquisitionValue', 'cashBalance'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     return currentValue ? currentValue.checkValidity() : true;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     return {
-      ...super.getData(),
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       acquisitionValue: Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionValue"]')?.value) || 0,
       cashBalance: Number(this.container.querySelector<HTMLInputElement>('input[name="cashBalance"]')?.value) || 0

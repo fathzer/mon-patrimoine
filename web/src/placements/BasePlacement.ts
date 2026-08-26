@@ -4,6 +4,10 @@ import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.
 import { BasePlacementEditor } from '../ui/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
 
+/**
+ * Minimal data required to create a placement.
+ * Module-specific data interfaces extend this with their own fields.
+ */
 export interface PlacementData {
   id?: string;
   type: string;
@@ -11,6 +15,15 @@ export interface PlacementData {
   institution?: string;
 }
 
+/**
+ * Result of evaluating a placement's financial position.
+ * @property grossValue - Total gross value of the placement.
+ * @property netValueBeforeIR - Value after social charges but before income tax.
+ * @property socialCharges - Total social contributions paid.
+ * @property latentGain - Unrealized capital gain.
+ * @property imposition - Income tax due on this placement.
+ * @property netValue - Final net value (after IR), if applicable.
+ */
 export interface Evaluation {
   grossValue: number;
   netValueBeforeIR: number;
@@ -20,6 +33,12 @@ export interface Evaluation {
   netValue?: number;
 }
 
+/**
+ * Constructor signature for placement editors.
+ * The host creates an editor via `PlacementFactory.getEditorClass(type)`.
+ * The optional AppStore is passed to editors that need cross-placement
+ * context (e.g. real estate detecting an existing primary residence).
+ */
 export type PlacementEditorConstructor = new (container: HTMLElement, store?: AppStore) => BasePlacementEditor;
 
 /**
@@ -36,14 +55,28 @@ export interface PlacementModuleStatic {
 
 /**
  * Base class for all placements.
- * Subclasses must define static getCategory, getLabel, getEditorClass (enforced
- * via {@link PlacementModuleStatic}) and implement getEvaluation and
- * getTaxableIncomes.
+ *
+ * Each placement type (checking account, PEA, real estate, ...) extends this
+ * class and provides:
+ * - Static metadata: `getCategory()`, `getLabel()`, `getEditorClass()`
+ *   (enforced at compile time via {@link PlacementModuleStatic}).
+ * - Instance evaluation: `getEvaluation()` and `getTaxableIncomes()`.
+ *
+ * The host (AppStore) creates placements via `PlacementFactory.create(data)`,
+ * reads their evaluation via `getEvaluation()`, and serializes them via
+ * `toJSON()`.
+ *
+ * Subclasses call `getImposition()` from within `getEvaluation()` to compute
+ * the income tax due; they do not reimplement it.
  */
 export abstract class BasePlacement {
+  /** Unique identifier (auto-generated if not provided in data). */
   id: string;
+  /** Placement type name (matches the folder name under placements/modules/). */
   type: string;
+  /** User-defined label for this placement. */
   label: string;
+  /** Financial institution holding this placement. */
   institution: string;
 
   constructor(data: PlacementData) {
@@ -58,25 +91,36 @@ export abstract class BasePlacement {
   }
 
   /**
-   * Evaluates the gross/net values and social charges of this placement.
+   * Evaluates the gross/net values, social charges, and income tax for this
+   * placement. Called by the host (AppStore) to compute the portfolio state.
+   *
+   * Implementations typically call `this.getImposition(fiscalProfile, now)`
+   * to obtain the `imposition` field of the returned {@link Evaluation}.
    */
   abstract getEvaluation(fiscalProfile: FiscalProfile, now?: Date): Evaluation;
 
   /**
-   * Returns the taxable income components for this placement.
+   * Returns the taxable income components produced by this placement.
+   * Used internally by {@link getImposition} to compute income tax.
+   * Not called directly by the host.
    */
-  abstract getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[];
+  protected abstract getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[];
 
   /**
    * Computes the income tax due on this placement.
-   * Relies on getTaxableIncomes and delegates tax computation to the TaxCalculator.
+   * Delegates tax computation to {@link TaxCalculator.calculatePlacementTax}
+   * using the taxable incomes from {@link getTaxableIncomes}.
+   *
+   * Subclasses call this from `getEvaluation()`; they do not override it.
    */
-  getImposition(fiscalProfile: FiscalProfile, now: Date = new Date()): number {
+  protected getImposition(fiscalProfile: FiscalProfile, now: Date = new Date()): number {
     return TaxCalculator.calculatePlacementTax(fiscalProfile, this.getTaxableIncomes(fiscalProfile, now));
   }
 
   /**
-   * Serializes this placement to a plain object.
+   * Serializes this placement to a plain object for persistence.
+   * Subclasses override and merge their specific fields with `super.toJSON()`.
+   * Called by the host (AppStore) when saving the portfolio.
    */
   toJSON(): PlacementData {
     return {

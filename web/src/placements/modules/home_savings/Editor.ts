@@ -11,7 +11,7 @@ const labels = {
 };
 
 export class HomeSavingsEditor extends SavingsAccountBaseEditor {
-  override _renderBeforeInstitution(placement: BasePlacement | null): string {
+  protected override renderBeforeInstitution(placement: BasePlacement | null): string {
     const homeSavingsType = (placement as HomeSavingsModule)?.homeSavingsType || 'pel';
     return `
       <div class="form-group">
@@ -30,7 +30,7 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
     `;
   }
 
-  override _renderOpeningDate(placement: BasePlacement | null): string {
+  protected override renderOpeningDate(placement: BasePlacement | null): string {
     return `
       <div class="form-group">
         <label>${I18n.t('form.openingDate')}</label>
@@ -39,20 +39,19 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
     `;
   }
 
-  override _renderTaxExempt(_placement: BasePlacement | null): string {
+  protected override renderTaxExempt(_placement: BasePlacement | null): string {
     return '';
   }
 
-  override _bindEvents(): void {
-    super._bindEvents();
+  protected override bindPlacementEvents(): void {
+    super.bindPlacementEvents();
     const homeSavingsType = this.container.querySelectorAll<HTMLInputElement>('input[name="homeSavingsType"]');
     homeSavingsType.forEach(radio => {
-      radio.addEventListener('change', () => this._notifyValidityChange());
+      radio.addEventListener('change', () => this.notifyValidityChange());
     });
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]');
     const currentValueValid = currentValue ? currentValue.checkValidity() : true;
@@ -60,10 +59,10 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
     return currentValueValid && openingDateValid;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     const homeSavingsTypeInput = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]:checked');
     return {
-      ...super.getData(),
+      ...super.collectData(),
       homeSavingsType: homeSavingsTypeInput ? homeSavingsTypeInput.value : 'pel',
       openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '',
       interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,

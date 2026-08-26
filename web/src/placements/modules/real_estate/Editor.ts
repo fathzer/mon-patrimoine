@@ -17,19 +17,21 @@ interface ConfigureFieldOptions {
 }
 
 export class RealEstateEditor extends BasePlacementEditor {
-  store: AppStore | undefined;
-  _currentPlacementId: string | undefined;
+  private readonly store: AppStore | undefined;
+  private currentPlacementId: string | undefined;
 
   constructor(container: HTMLElement, store?: AppStore) {
     super(container);
     this.store = store;
   }
 
-  override _renderInstitution(_placement: BasePlacement | null): string {
-    return '';
+  /** Real estate does not use an institution field. */
+  protected override hasInstitution(): boolean {
+    return false;
   }
 
-  override _renderAfterInstitution(placement: BasePlacement | null): string {
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
+    this.currentPlacementId = placement?.id;
     const p = placement as RealEstateModule | null;
     const isPrimary = p?.primaryResidence === true;
     const displayDetails = isPrimary ? 'none' : 'block';
@@ -80,34 +82,36 @@ export class RealEstateEditor extends BasePlacementEditor {
     `;
   }
 
-  override _bindEvents(): void {
+  protected override bindPlacementEvents(): void {
+    this.updatePrimaryResidenceWarning();
+
     const primaryResidence = this.container.querySelector<HTMLInputElement>('input[name="primaryResidence"]');
-    primaryResidence?.addEventListener('change', () => this._onPrimaryResidenceChange());
+    primaryResidence?.addEventListener('change', () => this.onPrimaryResidenceChange());
 
     (['currentValue', 'acquisitionDate', 'acquisitionPrice', 'acquisitionFees', 'works'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
   }
 
-  _onPrimaryResidenceChange(): void {
+  private onPrimaryResidenceChange(): void {
     const primaryResidence = this.container.querySelector<HTMLInputElement>('input[name="primaryResidence"]');
     const isPrimary = primaryResidence?.checked ?? false;
 
     const details = this.container.querySelector<HTMLElement>('#acquisition-details');
     if (details) details.style.display = isPrimary ? 'none' : 'block';
 
-    this._configureField('acquisitionDate', isPrimary, { reset: '', required: true });
-    this._configureField('acquisitionPrice', isPrimary, { reset: 0, required: true });
-    this._configureField('acquisitionFees', isPrimary, { reset: 0 });
-    this._configureField('works', isPrimary, { reset: 0 });
-    this._configureCheckbox('freeAcquisition', isPrimary);
+    this.configureField('acquisitionDate', isPrimary, { reset: '', required: true });
+    this.configureField('acquisitionPrice', isPrimary, { reset: 0, required: true });
+    this.configureField('acquisitionFees', isPrimary, { reset: 0 });
+    this.configureField('works', isPrimary, { reset: 0 });
+    this.configureCheckbox('freeAcquisition', isPrimary);
 
-    this._updatePrimaryResidenceWarning();
-    this._notifyValidityChange();
+    this.updatePrimaryResidenceWarning();
+    this.notifyValidityChange();
   }
 
-  _configureField(name: string, isPrimary: boolean, options: ConfigureFieldOptions): void {
+  private configureField(name: string, isPrimary: boolean, options: ConfigureFieldOptions): void {
     const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
     if (!input) return;
 
@@ -116,7 +120,7 @@ export class RealEstateEditor extends BasePlacementEditor {
     if (isPrimary && 'reset' in options) input.value = String(options.reset);
   }
 
-  _configureCheckbox(name: string, isPrimary: boolean): void {
+  private configureCheckbox(name: string, isPrimary: boolean): void {
     const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
     if (!input) return;
 
@@ -124,29 +128,22 @@ export class RealEstateEditor extends BasePlacementEditor {
     if (isPrimary) input.checked = false;
   }
 
-  _updatePrimaryResidenceWarning(): void {
+  private updatePrimaryResidenceWarning(): void {
     const warning = this.container.querySelector<HTMLElement>('#primary-residence-warning');
     const primaryResidence = this.container.querySelector<HTMLInputElement>('input[name="primaryResidence"]');
     const isPrimary = primaryResidence?.checked ?? false;
 
     if (!warning) return;
-    warning.style.display = isPrimary && this._hasOtherPrimaryResidence() ? 'block' : 'none';
+    warning.style.display = isPrimary && this.hasOtherPrimaryResidence() ? 'block' : 'none';
   }
 
-  _hasOtherPrimaryResidence(): boolean {
+  private hasOtherPrimaryResidence(): boolean {
     const placements = this.store?.state?.placements || [];
-    const currentId = this._currentPlacementId;
+    const currentId = this.currentPlacementId;
     return placements.some(p => p.type === 'real_estate' && (p as RealEstateModule).primaryResidence === true && p.id !== currentId);
   }
 
-  override render(placement: BasePlacement | null = null): void {
-    this._currentPlacementId = placement?.id;
-    super.render(placement);
-    this._updatePrimaryResidenceWarning();
-  }
-
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     const acquisitionDate = this.container.querySelector<HTMLInputElement>('input[name="acquisitionDate"]');
     const acquisitionPrice = this.container.querySelector<HTMLInputElement>('input[name="acquisitionPrice"]');
@@ -156,13 +153,12 @@ export class RealEstateEditor extends BasePlacementEditor {
     return currentValueValid && dateValid && priceValid;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     const primaryResidence = this.container.querySelector<HTMLInputElement>('input[name="primaryResidence"]')?.checked ?? false;
     const acquisitionPrice = primaryResidence ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionPrice"]')?.value) || 0);
     const acquisitionDate = primaryResidence ? '' : (this.container.querySelector<HTMLInputElement>('input[name="acquisitionDate"]')?.value || '');
 
     return {
-      ...super.getData(),
       primaryResidence,
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       acquisitionDate,

@@ -10,7 +10,7 @@ const labels = {
 };
 
 export class SavingsAccountEditor extends SavingsAccountBaseEditor {
-  override _renderTaxExempt(placement: BasePlacement | null): string {
+  protected override renderTaxExempt(placement: BasePlacement | null): string {
     const taxExempt = (placement as SavingsAccountModule)?.taxExempt !== false;
     return `
       <div class="form-group">
@@ -23,7 +23,7 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
     `;
   }
 
-  override _renderPromotionalInterest(placement: BasePlacement | null): string {
+  protected override renderPromotionalInterest(placement: BasePlacement | null): string {
     const taxExempt = (placement as SavingsAccountModule)?.taxExempt !== false;
     const value = taxExempt ? 0 : ((placement as SavingsAccountModule)?.promotionalInterest || 0);
     return `
@@ -34,7 +34,7 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
     `;
   }
 
-  override _onTaxExemptChange(): void {
+  protected override onTaxExemptChange(): void {
     const taxExempt = this.container.querySelector<HTMLInputElement>('input[name="taxExempt"]');
     const promotionalGroup = this.container.querySelector<HTMLElement>('#promotional-interest-group');
     const promotionalInput = this.container.querySelector<HTMLInputElement>('input[name="promotionalInterest"]');
@@ -44,19 +44,13 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
       promotionalGroup.style.display = isExempt ? 'none' : 'block';
       promotionalInput.value = isExempt ? '0' : (promotionalInput.value || '0');
     }
-    this._notifyValidityChange();
+    this.notifyValidityChange();
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
-    const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
-    return currentValue ? currentValue.checkValidity() : true;
-  }
-
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     const taxExempt = this.container.querySelector<HTMLInputElement>('input[name="taxExempt"]')?.checked ?? true;
     return {
-      ...super.getData(),
+      ...super.collectData(),
       interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,
       taxExempt,
       promotionalInterest: taxExempt ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="promotionalInterest"]')?.value) || 0)

@@ -13,10 +13,10 @@ const labels = {
 const REFORM_DATE = '2017-09-27';
 
 export class LifeInsuranceEditor extends BasePlacementEditor {
-  override _renderAfterInstitution(placement: BasePlacement | null): string {
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
     const p = placement as LifeInsuranceModule | null;
     const openingDate = p?.openingDate || new Date().toISOString().split('T')[0];
-    const showPre2017 = this._isPre2017(openingDate);
+    const showPre2017 = this.isPre2017(openingDate);
 
     return `
       <div class="form-group">
@@ -45,36 +45,34 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
     `;
   }
 
-  _isPre2017(dateString: string): boolean {
+  private isPre2017(dateString: string): boolean {
     return !!dateString && dateString < REFORM_DATE;
   }
 
-  override _bindEvents(): void {
-    super._bindEvents();
+  protected override bindPlacementEvents(): void {
     const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]');
-    openingDate?.addEventListener('input', () => this._onOpeningDateChange());
+    openingDate?.addEventListener('input', () => this.onOpeningDateChange());
     (['openingDate', 'totalPremiums', 'pre2017Premiums', 'currentValue', 'euroFundsValue'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
   }
 
-  _onOpeningDateChange(): void {
+  private onOpeningDateChange(): void {
     const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '';
     const group = this.container.querySelector<HTMLElement>('#pre-2017-group');
     const input = this.container.querySelector<HTMLInputElement>('input[name="pre2017Premiums"]');
     if (group && input) {
-      const show = this._isPre2017(openingDate);
+      const show = this.isPre2017(openingDate);
       group.style.display = show ? 'block' : 'none';
       if (!show) {
         input.value = '0';
       }
     }
-    this._notifyValidityChange();
+    this.notifyValidityChange();
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const required = (['openingDate', 'totalPremiums', 'currentValue', 'euroFundsValue'] as const);
     return required.every(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
@@ -82,11 +80,10 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
     });
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '';
-    const isPre2017 = this._isPre2017(openingDate);
+    const isPre2017 = this.isPre2017(openingDate);
     return {
-      ...super.getData(),
       openingDate,
       totalPremiums: Number(this.container.querySelector<HTMLInputElement>('input[name="totalPremiums"]')?.value) || 0,
       pre2017Premiums: isPre2017 ? (Number(this.container.querySelector<HTMLInputElement>('input[name="pre2017Premiums"]')?.value) || 0) : 0,

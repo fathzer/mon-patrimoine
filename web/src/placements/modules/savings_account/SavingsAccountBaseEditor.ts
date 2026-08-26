@@ -11,22 +11,32 @@ const labels = {
   grossRate: 'Taux brut (%)'
 };
 
+/**
+ * Shared base editor for savings-account-like placements (savings_account
+ * and home_savings). Provides the common form fields (current value, interest,
+ * calculator, tax-exempt checkbox, promotional interest) and the interest
+ * calculator logic.
+ *
+ * Subclasses override the protected hooks to customize specific sections.
+ */
 export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
-  override _renderAfterInstitution(placement: BasePlacement | null): string {
+  protected override renderAfterInstitution(placement: BasePlacement | null): string {
     return `
-      ${this._renderOpeningDate(placement)}
-      ${this._renderCurrentValue(placement)}
-      ${this._renderInterest(placement)}
-      ${this._renderTaxExempt(placement)}
-      ${this._renderPromotionalInterest(placement)}
+      ${this.renderOpeningDate(placement)}
+      ${this.renderCurrentValue(placement)}
+      ${this.renderInterest(placement)}
+      ${this.renderTaxExempt(placement)}
+      ${this.renderPromotionalInterest(placement)}
     `;
   }
 
-  _renderOpeningDate(_placement: BasePlacement | null): string {
+  /** Hook: renders the opening date field. Default: empty. */
+  protected renderOpeningDate(_placement: BasePlacement | null): string {
     return '';
   }
 
-  _renderCurrentValue(placement: BasePlacement | null): string {
+  /** Renders the current value field (shared by all savings account editors). */
+  protected renderCurrentValue(placement: BasePlacement | null): string {
     return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
@@ -35,7 +45,8 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
     `;
   }
 
-  _renderInterest(placement: BasePlacement | null): string {
+  /** Renders the interest field with the calculator button and panel. */
+  protected renderInterest(placement: BasePlacement | null): string {
     return `
       <div class="form-group">
         <label>${labels.interestAmount}</label>
@@ -54,51 +65,53 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
     `;
   }
 
-  _renderTaxExempt(_placement: BasePlacement | null): string {
+  /** Hook: renders the tax-exempt checkbox. Default: empty. */
+  protected renderTaxExempt(_placement: BasePlacement | null): string {
     return '';
   }
 
-  _renderPromotionalInterest(_placement: BasePlacement | null): string {
+  /** Hook: renders the promotional interest field. Default: empty. */
+  protected renderPromotionalInterest(_placement: BasePlacement | null): string {
     return '';
   }
 
-  override _bindEvents(): void {
-    super._bindEvents();
+  protected override bindPlacementEvents(): void {
     (['currentValue', 'interestAmount', 'promotionalInterest', 'grossRate', 'openingDate'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-      input?.addEventListener('input', () => this._notifyValidityChange());
+      input?.addEventListener('input', () => this.notifyValidityChange());
     });
 
     const taxExempt = this.container.querySelector<HTMLInputElement>('input[name="taxExempt"]');
-    taxExempt?.addEventListener('change', () => this._onTaxExemptChange());
+    taxExempt?.addEventListener('change', () => this.onTaxExemptChange());
 
     const calculatorBtn = this.container.querySelector<HTMLElement>('#btn-calculator');
     const closeBtn = this.container.querySelector<HTMLElement>('#btn-close-calculator');
     const grossRate = this.container.querySelector<HTMLInputElement>('input[name="grossRate"]');
 
-    calculatorBtn?.addEventListener('click', () => this._openCalculator());
-    closeBtn?.addEventListener('click', () => this._closeCalculator());
-    grossRate?.addEventListener('input', () => this._updateInterestFromRate());
+    calculatorBtn?.addEventListener('click', () => this.openCalculator());
+    closeBtn?.addEventListener('click', () => this.closeCalculator());
+    grossRate?.addEventListener('input', () => this.updateInterestFromRate());
   }
 
-  _onTaxExemptChange(): void {
-    this._notifyValidityChange();
+  /** Hook: called when the tax-exempt checkbox changes. Default: notify validity. */
+  protected onTaxExemptChange(): void {
+    this.notifyValidityChange();
   }
 
-  _openCalculator(): void {
+  private openCalculator(): void {
     this.container.querySelector<HTMLElement>('#btn-calculator')!.style.display = 'none';
     this.container.querySelector<HTMLElement>('#calculator-panel')!.style.display = 'block';
     this.container.querySelector<HTMLInputElement>('input[name="grossRate"]')?.focus();
-    this._updateInterestFromRate();
+    this.updateInterestFromRate();
   }
 
-  _closeCalculator(): void {
+  private closeCalculator(): void {
     this.container.querySelector<HTMLElement>('#btn-calculator')!.style.display = '';
     this.container.querySelector<HTMLElement>('#calculator-panel')!.style.display = 'none';
-    this._notifyValidityChange();
+    this.notifyValidityChange();
   }
 
-  _updateInterestFromRate(): void {
+  private updateInterestFromRate(): void {
     const grossRateInput = this.container.querySelector<HTMLInputElement>('input[name="grossRate"]');
     const currentValueInput = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     const interestInput = this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]');
@@ -107,27 +120,25 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
 
     const rate = Number(grossRateInput.value) || 0;
     const currentValue = Number(currentValueInput.value) || 0;
-    const elapsedFortnights = this._getElapsedFortnights(new Date());
+    const elapsedFortnights = this.getElapsedFortnights(new Date());
     const interest = currentValue * (rate / 100) * (elapsedFortnights / 24);
     interestInput.value = interest.toFixed(2);
-    this._notifyValidityChange();
+    this.notifyValidityChange();
   }
 
-  _getElapsedFortnights(date: Date): number {
+  private getElapsedFortnights(date: Date): number {
     const monthIndex = date.getMonth();
     const day = date.getDate();
     return monthIndex * 2 + (day > 15 ? 1 : 0);
   }
 
-  override isValid(): boolean {
-    if (!super.isValid()) return false;
+  protected override isPlacementValid(): boolean {
     const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
     return currentValue ? currentValue.checkValidity() : true;
   }
 
-  override getData(): Record<string, unknown> {
+  protected override collectData(): Record<string, unknown> {
     return {
-      ...super.getData(),
       currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
       interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0
     };
