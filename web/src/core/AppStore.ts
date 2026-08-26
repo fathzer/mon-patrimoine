@@ -1,8 +1,8 @@
 import { EventBus } from './EventBus.js';
 import { Household } from '../fiscality/Household.js';
 import type { HouseholdData } from '../fiscality/Household.js';
-import { PlacementFactory } from '../modules/PlacementFactory.js';
-import type { BasePlacement, PlacementData, Evaluation } from '../modules/BasePlacement.js';
+import { PlacementFactory } from '../placements/PlacementFactory.js';
+import type { BasePlacement, PlacementData, Evaluation } from '../placements/BasePlacement.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 import type { StorageManager } from '../storage/StorageManager.js';
 

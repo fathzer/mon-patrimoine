@@ -1,10 +1,10 @@
 import { I18n } from '../core/I18n.js';
 import { UiState } from '../core/UiState.js';
 import type { SortLevel, SortField } from '../core/UiState.js';
-import { PlacementFactory } from '../modules/PlacementFactory.js';
+import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
 import type { AppStore, EvaluationEntry, GlobalSummary } from '../core/AppStore.js';
-import type { BasePlacement, Evaluation } from '../modules/BasePlacement.js';
+import type { BasePlacement, Evaluation } from '../placements/BasePlacement.js';
 
 const NO_INSTITUTION_KEY = '__NONE__';
 

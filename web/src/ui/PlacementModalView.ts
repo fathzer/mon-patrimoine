@@ -1,9 +1,9 @@
 import { I18n } from '../core/I18n.js';
-import { PlacementFactory } from '../modules/PlacementFactory.js';
+import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
 import type { AppStore } from '../core/AppStore.js';
-import type { BasePlacement, PlacementData } from '../modules/BasePlacement.js';
-import type { BasePlacementEditor, EditorData } from './editors/BasePlacementEditor.js';
+import type { BasePlacement, PlacementData } from '../placements/BasePlacement.js';
+import type { BasePlacementEditor, EditorData } from './BasePlacementEditor.js';
 
 interface TypeOption {
   key: string;

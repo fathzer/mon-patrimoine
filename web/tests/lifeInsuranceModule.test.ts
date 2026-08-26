@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { LifeInsuranceModule } from "../src/placements/life_insurance/module.js";
+import { LifeInsuranceModule } from "../src/placements/modules/life_insurance/module.js";
 
 const NOW = new Date("2024-01-01");
 

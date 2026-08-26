@@ -1,5 +1,5 @@
 import { I18n } from '../core/I18n.js';
-import { PlacementFactory } from '../modules/PlacementFactory.js';
+import { PlacementFactory } from '../placements/PlacementFactory.js';
 import type { EvaluationEntry } from '../core/AppStore.js';
 
 const DONUT_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];

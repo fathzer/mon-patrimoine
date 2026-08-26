@@ -1,6 +1,6 @@
 import { I18n } from '../core/I18n.js';
 import { AssetDonutChartView } from './AssetDonutChartView.js';
-import { PlacementFactory } from '../modules/PlacementFactory.js';
+import { PlacementFactory } from '../placements/PlacementFactory.js';
 import type { GlobalSummary, EvaluationEntry } from '../core/AppStore.js';
 
 interface BreakdownRowData {

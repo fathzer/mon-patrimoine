@@ -1,26 +1,25 @@
 import { describe, it, expect } from "bun:test";
-import { CheckingAccountEditor } from "../src/placements/checking_account/Editor.js";
-import { CtoEditor } from "../src/placements/cto/Editor.js";
-import { HomeSavingsEditor } from "../src/placements/home_savings/Editor.js";
-import { LifeInsuranceEditor } from "../src/placements/life_insurance/Editor.js";
-import { PeaEditor } from "../src/placements/pea/Editor.js";
-import { RealEstateEditor } from "../src/placements/real_estate/Editor.js";
-import { SavingsAccountEditor } from "../src/placements/savings_account/Editor.js";
-import { CtoModule } from "../src/placements/cto/module.js";
-import { HomeSavingsModule } from "../src/placements/home_savings/module.js";
-import { LifeInsuranceModule } from "../src/placements/life_insurance/module.js";
-import { PeaModule } from "../src/placements/pea/module.js";
-import { RealEstateModule } from "../src/placements/real_estate/module.js";
-import { SavingsAccountModule } from "../src/placements/savings_account/module.js";
-import type { BasePlacement } from "../src/modules/BasePlacement.js";
+import { CheckingAccountEditor } from "../src/placements/modules/checking_account/Editor.js";
+import { CtoEditor } from "../src/placements/modules/cto/Editor.js";
+import { HomeSavingsEditor } from "../src/placements/modules/home_savings/Editor.js";
+import { LifeInsuranceEditor } from "../src/placements/modules/life_insurance/Editor.js";
+import { PeaEditor } from "../src/placements/modules/pea/Editor.js";
+import { RealEstateEditor } from "../src/placements/modules/real_estate/Editor.js";
+import { SavingsAccountEditor } from "../src/placements/modules/savings_account/Editor.js";
+import { CtoModule } from "../src/placements/modules/cto/module.js";
+import { HomeSavingsModule } from "../src/placements/modules/home_savings/module.js";
+import { LifeInsuranceModule } from "../src/placements/modules/life_insurance/module.js";
+import { PeaModule } from "../src/placements/modules/pea/module.js";
+import { RealEstateModule } from "../src/placements/modules/real_estate/module.js";
+import { SavingsAccountModule } from "../src/placements/modules/savings_account/module.js";
+import type { BasePlacement, PlacementEditorConstructor } from "../src/placements/BasePlacement.js";
 import type { FiscalProfile } from "../src/fiscality/TaxCalculator.js";
-import type { BasePlacementEditor } from "../src/ui/editors/BasePlacementEditor.js";
 
 const PROFILE: FiscalProfile = { usePfu: true, taxableIncome: 0, household: { maritalStatus: 'single', childrenCount: 0, alternateChildrenCount: 0, isSingleParent: false } } as never;
 
 interface EditorCase {
   name: string;
-  EditorClass: new (container: HTMLElement, store?: unknown) => BasePlacementEditor;
+  EditorClass: PlacementEditorConstructor;
   placement: BasePlacement;
 }
 
@@ -38,7 +37,7 @@ describe("buildTaxExplanation", () => {
   for (const { name, EditorClass, placement } of EDITOR_CASES) {
     it(`${name} implements buildTaxExplanation`, () => {
       expect(EditorClass.prototype.hasOwnProperty('buildTaxExplanation')).toBe(true);
-      const editor = new EditorClass(null as never, null);
+      const editor = new EditorClass(null as never);
       const result = editor.buildTaxExplanation(placement, PROFILE);
       expect(typeof result).toBe("string");
     });

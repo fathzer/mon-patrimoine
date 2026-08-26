@@ -2,7 +2,7 @@ import { I18n } from './core/I18n.js';
 import { StorageManager } from './storage/StorageManager.js';
 import { AppStore } from './core/AppStore.js';
 import { DashboardView } from './ui/DashboardView.js';
-import { PlacementFactory } from './modules/PlacementFactory.js';
+import { PlacementFactory } from './placements/PlacementFactory.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   await PlacementFactory.loadModules();

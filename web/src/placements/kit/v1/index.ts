@@ -12,11 +12,11 @@
  */
 
 // --- Base classes and core types ---
-export { BasePlacement } from '../../../modules/BasePlacement.js';
-export type { PlacementData, Evaluation, PlacementEditorConstructor, PlacementModuleStatic } from '../../../modules/BasePlacement.js';
+export { BasePlacement } from '../../BasePlacement.js';
+export type { PlacementData, Evaluation, PlacementEditorConstructor, PlacementModuleStatic } from '../../BasePlacement.js';
 
 // --- Editor base classes ---
-export { BasePlacementEditor } from '../../../ui/editors/BasePlacementEditor.js';
+export { BasePlacementEditor } from '../../../ui/BasePlacementEditor.js';
 
 // --- Categories ---
 export { Category, CategoryValues } from '../../../core/Categories.js';
