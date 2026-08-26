@@ -2,8 +2,8 @@ import { formatPercentage, formatCurrency, HelpPopover } from '../../kit/v1/inde
 import { ACQUISITION_FEES_FLAT_RATE, WORKS_FLAT_RATE, FIVE_YEARS_LIMIT } from './module.js';
 import type { RealEstateModule } from './module.js';
 
-export function getAcquisitionFeesHelp(label: string = '?'): string {
-  return HelpPopover.getHtml({ title: 'Frais d\'acquisition', content: 'le prix d’acquisition à retenir est le prix stipulé dans l\'acte notarié effectivement acquitté par le cédant, ou en cas d’acquisition à titre gratuit, tel qu’il a été stipulé dans l’acte.En cas d’acquisition à titre gratuit, le prix d\'acquisition s\'entend de la valeur vénale au jour du transfert, diminué le cas échéant de l\'abattement de 20 % prévu à l\'article 764 bis du CGI. A défaut de prix stipulé dans l\'acte ou de valeur retenue pour les droits de mutation à titre gratuit, le prix d\'acquisition s\'entend de la valeur vénale réelle à la date d\'entrée dans le patrimoine du cédant d\'après une déclaration détaillée et estimative des parties.', label: label });
+export function getAcquisitionFeesHelp(label: string = '?', icon: boolean = false): string {
+  return HelpPopover.getHtml({ title: 'Frais d\'acquisition', content: 'le prix d’acquisition à retenir est le prix stipulé dans l\'acte notarié effectivement acquitté par le cédant, ou en cas d’acquisition à titre gratuit, tel qu’il a été stipulé dans l’acte.En cas d’acquisition à titre gratuit, le prix d\'acquisition s\'entend de la valeur vénale au jour du transfert, diminué le cas échéant de l\'abattement de 20 % prévu à l\'article 764 bis du CGI. A défaut de prix stipulé dans l\'acte ou de valeur retenue pour les droits de mutation à titre gratuit, le prix d\'acquisition s\'entend de la valeur vénale réelle à la date d\'entrée dans le patrimoine du cédant d\'après une déclaration détaillée et estimative des parties.', label: label, icon: icon });
 }
 
 export function getRealEstateTaxExplanation(placement: RealEstateModule): string {

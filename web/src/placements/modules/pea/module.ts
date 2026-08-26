@@ -3,10 +3,13 @@ import { PeaEditor } from './Editor.js';
 import { getPeaTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
 
+export type PeaType = 'pea' | 'pea_pme';
+
 export interface PeaData extends PlacementData {
   totalDeposits?: number;
   currentValue?: number;
   openingDate?: string;
+  peaType?: PeaType;
 }
 
 export class PeaModule extends BasePlacement {
@@ -29,12 +32,14 @@ export class PeaModule extends BasePlacement {
   totalDeposits: number;
   currentValue: number;
   openingDate: string;
+  peaType: PeaType;
 
   constructor(data: PeaData) {
     super(data);
     this.totalDeposits = Number(data.totalDeposits) || 0;
     this.currentValue = Number(data.currentValue) || 0;
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
+    this.peaType = data.peaType || 'pea';
   }
 
   getHoldingYears(now: Date = new Date()): number {
@@ -93,7 +98,8 @@ export class PeaModule extends BasePlacement {
       ...super.toJSON(),
       totalDeposits: this.totalDeposits,
       currentValue: this.currentValue,
-      openingDate: this.openingDate
+      openingDate: this.openingDate,
+      peaType: this.peaType
     };
   }
 }

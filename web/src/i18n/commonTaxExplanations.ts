@@ -59,8 +59,8 @@ export function getWarning(content: string): string {
 </section>`;
 }
 
-export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true): string {
-  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: { fiscalProfile, personalCase } });
+export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true, icon: boolean = false): string {
+  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: { fiscalProfile, personalCase }, icon });
 }
 
 export function getLatentGainsHelpPopover(label: string = 'gain latent'): string {

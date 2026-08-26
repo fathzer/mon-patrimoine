@@ -6,6 +6,9 @@ interface HelpPopoverOptions {
   contentKey?: string;
   contentArgs?: unknown;
   label?: string;
+  /** When true, renders the trigger as a circled icon (e.g. "?") instead of
+   *  an underlined text link. */
+  icon?: boolean;
 }
 
 let activeCard: HTMLElement | null = null;
@@ -60,7 +63,7 @@ function show(trigger: HTMLElement): void {
     const provider = contentProviders.get(trigger.dataset.contentKey);
     const rawArgs = trigger.dataset.contentArgs;
     const args = rawArgs ? JSON.parse(rawArgs) : undefined;
-    contentHtml = typeof provider === 'function' ? provider(args) : (provider || '');
+    contentHtml = typeof provider === 'function' ? provider(args) : (provider ?? '');
   }
 
   const card = document.createElement('div');
@@ -132,19 +135,20 @@ function init(): void {
 init();
 
 export class HelpPopover {
-  static getHtml({ title = '', content = '', contentKey = '', contentArgs, label = '?' }: HelpPopoverOptions = {}): string {
+  static getHtml({ title = '', content = '', contentKey = '', contentArgs, label = '?', icon = false }: HelpPopoverOptions = {}): string {
     const argsAttr = contentArgs !== undefined
       ? ` data-content-args="${escapeHtml(JSON.stringify(contentArgs))}"`
       : '';
+    const iconClass = icon ? ' help-popover-icon' : '';
     if (contentKey) {
-      return `<span class="help-popover" role="button" tabindex="0" aria-expanded="false" data-title="${escapeHtml(title)}" data-content-key="${escapeHtml(contentKey)}"${argsAttr}>${escapeHtml(label)}</span>`;
+      return `<span class="help-popover${iconClass}" role="button" tabindex="0" aria-expanded="false" data-title="${escapeHtml(title)}" data-content-key="${escapeHtml(contentKey)}"${argsAttr}>${escapeHtml(label)}</span>`;
     }
     if (typeof content === 'function') {
       const key = `__dynamic-${nextContentId++}`;
       contentProviders.set(key, content);
-      return `<span class="help-popover" role="button" tabindex="0" aria-expanded="false" data-title="${escapeHtml(title)}" data-content-key="${escapeHtml(key)}"${argsAttr}>${escapeHtml(label)}</span>`;
+      return `<span class="help-popover${iconClass}" role="button" tabindex="0" aria-expanded="false" data-title="${escapeHtml(title)}" data-content-key="${escapeHtml(key)}"${argsAttr}>${escapeHtml(label)}</span>`;
     }
-    return `<span class="help-popover" role="button" tabindex="0" aria-expanded="false" data-title="${escapeHtml(title)}" data-content="${escapeHtml(content)}"${argsAttr}>${escapeHtml(label)}</span>`;
+    return `<span class="help-popover${iconClass}" role="button" tabindex="0" aria-expanded="false" data-title="${escapeHtml(title)}" data-content="${escapeHtml(content)}"${argsAttr}>${escapeHtml(label)}</span>`;
   }
 
   static register(key: string, provider: ContentProvider): void {

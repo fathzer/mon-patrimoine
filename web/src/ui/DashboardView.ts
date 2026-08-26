@@ -3,6 +3,7 @@ import { UiState } from '../core/UiState.js';
 import { getWelcomeHtml } from '../i18n/welcome.js';
 import { TopBarView } from './TopBarView.js';
 import { SettingsModalView } from './SettingsModalView.js';
+import { ToggleSwitch } from './ToggleSwitch.js';
 import { AssetBreakdownView } from './AssetBreakdownView.js';
 import { AssetTableView } from './AssetTableView.js';
 import { HelpModalView } from './HelpModalView.js';
@@ -113,13 +114,13 @@ export class DashboardView {
           <div class="label">${I18n.t('summary.totalNet')}</div>
           <div class="value net">${this.formatCurrency(displayed.net)}</div>
         </div>
-        <div class="summary-filter">
-          <label class="summary-filter-label" for="summary-filter-toggle">${I18n.t('summary.filterTotals')}</label>
-          <label class="summary-filter-track">
-            <input type="checkbox" id="summary-filter-toggle" ${this._filterTotals ? 'checked' : ''}>
-            <span class="summary-filter-slider"></span>
-          </label>
-        </div>
+        ${ToggleSwitch.create({
+          name: 'summary-filter-toggle',
+          id: 'summary-filter-toggle',
+          label: I18n.t('summary.filterTotals'),
+          checked: this._filterTotals,
+          containerClass: 'summary-filter'
+        })}
       </div>
     `;
 

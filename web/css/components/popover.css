@@ -8,6 +8,22 @@
   outline: none;
 }
 
+.help-popover.help-popover-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid var(--accent-blue);
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  line-height: 1;
+  position: relative;
+  top: -0.4rem;
+}
+
 .help-popover:hover {
   text-decoration: none;
 }

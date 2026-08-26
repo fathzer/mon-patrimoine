@@ -1,4 +1,5 @@
 import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
+import { ToggleSwitch } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { SavingsAccountModule } from './module.js';
 
@@ -13,11 +14,13 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
     const taxExempt = (placement as SavingsAccountModule)?.taxExempt !== false;
     return `
       <div class="form-group">
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-          <input type="checkbox" name="taxExempt" id="tax-exempt" ${taxExempt ? 'checked' : ''} />
-          <label for="tax-exempt" style="margin: 0;">${labels.taxExempt}</label>
-        </div>
-        <p class="text-muted" style="font-size: 0.8rem; margin: 0; padding-left: 1.5rem;">${labels.taxExemptTooltip}</p>
+        ${ToggleSwitch.create({
+          name: 'taxExempt',
+          id: 'tax-exempt',
+          label: labels.taxExempt,
+          checked: taxExempt
+        })}
+        <p class="text-muted" style="font-size: 0.8rem; margin: 0.5rem 0 0 0;">${labels.taxExemptTooltip}</p>
       </div>
     `;
   }

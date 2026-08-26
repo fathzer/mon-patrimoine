@@ -1,4 +1,4 @@
-import { I18n } from '../../kit/v1/index.js';
+import { I18n, ToggleSwitch } from '../../kit/v1/index.js';
 import { SavingsAccountBaseEditor } from '../savings_account/SavingsAccountBaseEditor.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { HomeSavingsModule } from './module.js';
@@ -11,20 +11,16 @@ const labels = {
 
 export class HomeSavingsEditor extends SavingsAccountBaseEditor {
   protected override renderBeforeInstitution(placement: BasePlacement | null): string {
-    const homeSavingsType = (placement as HomeSavingsModule)?.homeSavingsType || 'pel';
+    const isCel = (placement as HomeSavingsModule)?.homeSavingsType === 'cel';
     return `
       <div class="form-group">
         <label>${labels.homeSavingsType}</label>
-        <div style="display: flex; gap: 1rem;">
-          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-            <input type="radio" name="homeSavingsType" value="pel" ${homeSavingsType === 'pel' ? 'checked' : ''} />
-            ${labels.pel}
-          </label>
-          <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-            <input type="radio" name="homeSavingsType" value="cel" ${homeSavingsType === 'cel' ? 'checked' : ''} />
-            ${labels.cel}
-          </label>
-        </div>
+        ${ToggleSwitch.create({
+          name: 'homeSavingsType',
+          labelOff: labels.pel,
+          labelOn: labels.cel,
+          checked: isCel
+        })}
       </div>
     `;
   }
@@ -44,10 +40,8 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
 
   protected override bindPlacementEvents(): void {
     super.bindPlacementEvents();
-    const homeSavingsType = this.container.querySelectorAll<HTMLInputElement>('input[name="homeSavingsType"]');
-    homeSavingsType.forEach(radio => {
-      radio.addEventListener('change', () => this.notifyValidityChange());
-    });
+    const homeSavingsType = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]');
+    homeSavingsType?.addEventListener('change', () => this.notifyValidityChange());
   }
 
   protected override isPlacementValid(): boolean {
@@ -59,10 +53,10 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
   }
 
   protected override collectData(): Record<string, unknown> {
-    const homeSavingsTypeInput = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]:checked');
+    const isCel = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]')?.checked ?? false;
     return {
       ...super.collectData(),
-      homeSavingsType: homeSavingsTypeInput ? homeSavingsTypeInput.value : 'pel',
+      homeSavingsType: isCel ? 'cel' : 'pel',
       openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '',
       interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,
       taxExempt: false,

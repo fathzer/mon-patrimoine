@@ -39,6 +39,7 @@ export type { TaxBracket } from '../../../fiscality/rates.js';
 
 // --- Help popover ---
 export { HelpPopover } from '../../../ui/HelpPopover.js';
+export { ToggleSwitch } from '../../../ui/ToggleSwitch.js';
 
 // --- Shared tax explanation helpers ---
 export {

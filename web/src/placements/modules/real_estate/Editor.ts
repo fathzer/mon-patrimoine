@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, ToggleSwitch } from '../../kit/v1/index.js';
 import { getAcquisitionFeesHelp } from './TaxExplanation.js';
 import type { BasePlacement, AppStore } from '../../kit/v1/index.js';
 import type { RealEstateModule } from './module.js';
@@ -44,9 +44,13 @@ export class RealEstateEditor extends BasePlacementEditor {
     const worksValue = p?.works || 0;
 
     return `
-      <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
-        <input type="checkbox" name="primaryResidence" id="primary-residence" ${isPrimary ? 'checked' : ''} />
-        <label for="primary-residence" style="margin: 0;">${labels.primaryResidence}</label>
+      <div class="form-group">
+        ${ToggleSwitch.create({
+          name: 'primaryResidence',
+          id: 'primary-residence',
+          label: labels.primaryResidence,
+          checked: isPrimary
+        })}
       </div>
       <div id="primary-residence-warning" class="form-group text-muted" style="font-size: 0.8rem; display: none; color: var(--danger);">
         ${labels.multiplePrimaryResidenceWarning}
@@ -60,14 +64,16 @@ export class RealEstateEditor extends BasePlacementEditor {
           <label>${I18n.t('form.acquisitionDate')}</label>
           <div style="display: flex; align-items: center; gap: 1rem;">
             <input type="date" name="acquisitionDate" class="form-control" value="${acquisitionDateValue}" ${required} ${disabled} style="flex: 1;" />
-            <div style="display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
-              <input type="checkbox" name="freeAcquisition" id="free-acquisition" ${freeAcquisition ? 'checked' : ''} ${disabled} />
-              <label for="free-acquisition" style="margin: 0;">${labels.freeAcquisition}</label>
-            </div>
+            ${ToggleSwitch.create({
+              name: 'freeAcquisition',
+              id: 'free-acquisition',
+              label: labels.freeAcquisition,
+              checked: freeAcquisition
+            })}
           </div>
         </div>
         <div class="form-group">
-          <label>${I18n.t('form.acquisitionPrice')} ${getAcquisitionFeesHelp('?')}</label>
+          <label>${I18n.t('form.acquisitionPrice')} ${getAcquisitionFeesHelp('?', true)}</label>
           <input type="number" step="0.01" name="acquisitionPrice" class="form-control" value="${acquisitionPriceValue}" ${required} ${disabled} />
         </div>
         <div class="form-group">
@@ -105,7 +111,6 @@ export class RealEstateEditor extends BasePlacementEditor {
     this.configureField('acquisitionPrice', isPrimary, { reset: 0, required: true });
     this.configureField('acquisitionFees', isPrimary, { reset: 0 });
     this.configureField('works', isPrimary, { reset: 0 });
-    this.configureCheckbox('freeAcquisition', isPrimary);
 
     this.updatePrimaryResidenceWarning();
     this.notifyValidityChange();
@@ -118,14 +123,6 @@ export class RealEstateEditor extends BasePlacementEditor {
     input.disabled = isPrimary;
     if (options.required) input.required = !isPrimary;
     if (isPrimary && 'reset' in options) input.value = String(options.reset);
-  }
-
-  private configureCheckbox(name: string, isPrimary: boolean): void {
-    const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-    if (!input) return;
-
-    input.disabled = isPrimary;
-    if (isPrimary) input.checked = false;
   }
 
   private updatePrimaryResidenceWarning(): void {

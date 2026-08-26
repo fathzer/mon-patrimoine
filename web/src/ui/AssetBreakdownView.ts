@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { AssetDonutChartView } from './AssetDonutChartView.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
+import { ToggleSwitch } from './ToggleSwitch.js';
 import type { GlobalSummary, EvaluationEntry } from '../core/AppStore.js';
 
 interface BreakdownRowData {
@@ -37,14 +38,12 @@ export class AssetBreakdownView {
     this.container!.innerHTML = `
       <div class="breakdown-header">
         <h3 style="margin: 0;">${I18n.t('summary.breakdownTitle')}</h3>
-        <div class="breakdown-switch">
-          <span class="breakdown-switch-label">${I18n.t('summary.gross')}</span>
-          <label class="breakdown-switch-track">
-            <input type="checkbox" data-mode-toggle ${this._useNet ? 'checked' : ''}>
-            <span class="breakdown-switch-slider"></span>
-          </label>
-          <span class="breakdown-switch-label">${I18n.t('summary.net')}</span>
-        </div>
+        ${ToggleSwitch.create({
+          name: 'mode-toggle',
+          labelOff: I18n.t('summary.gross'),
+          labelOn: I18n.t('summary.net'),
+          checked: this._useNet
+        })}
         <button class="breakdown-close" type="button" data-action="close">&times;</button>
       </div>
       <div class="breakdown-content">
@@ -100,7 +99,7 @@ export class AssetBreakdownView {
   }
 
   _bindEvents(): void {
-    const modeToggle = this.container!.querySelector('[data-mode-toggle]') as HTMLInputElement | null;
+    const modeToggle = this.container!.querySelector('input[name="mode-toggle"]') as HTMLInputElement | null;
     modeToggle?.addEventListener('change', () => {
       this._useNet = modeToggle!.checked;
       this.render(this._summary!);

@@ -3,6 +3,7 @@ import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { getTaxRulesHelpPopover } from '../i18n/TaxExplanation.js';
 import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
+import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
 
 export class SettingsModalView {
@@ -58,10 +59,13 @@ export class SettingsModalView {
                   <label for="single-parent-input" style="display: block; font-weight: bold; margin-bottom: 0.3rem; ${singleParentDisabled ? 'color: var(--text-muted);' : ''}">
                     ${I18n.t('settings.singleParent')}
                   </label>
-                  <label style="display: flex; align-items: center; gap: 0.4rem; cursor: ${singleParentDisabled ? 'not-allowed' : 'pointer'}; opacity: ${singleParentDisabled ? '0.6' : '1'};">
-                    <input type="checkbox" id="single-parent-input" name="isSingleParent" value="on" ${singleParentChecked ? 'checked' : ''} ${singleParentDisabled ? 'disabled' : ''} />
-                    ${I18n.t('settings.singleParent')}
-                  </label>
+                  ${ToggleSwitch.create({
+                    name: 'isSingleParent',
+                    id: 'single-parent-input',
+                    label: I18n.t('settings.singleParent'),
+                    checked: singleParentChecked,
+                    disabled: singleParentDisabled
+                  })}
                 </div>
               </div>
 
@@ -102,7 +106,7 @@ export class SettingsModalView {
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <label for="taxable-income-input" style="font-weight: bold; display: flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
                     ${I18n.t('settings.taxableIncome')}
-                    ${HelpPopover.getHtml({ content: netIncomeHelp, label: '?' })}
+                    ${HelpPopover.getHtml({ content: netIncomeHelp, label: '?', icon: true })}
                   </label>
                   <input type="number" id="taxable-income-input" name="taxableIncome" step="100" min="0" value="${profile.taxableIncome}" class="form-control" style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
                 </div>
@@ -121,15 +125,14 @@ export class SettingsModalView {
 
               <div style="margin-bottom: 1rem;">
                 <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">${I18n.t('settings.pfuMode')}</label>
-                <div style="display: flex; gap: 1.5rem;">
-                  <label style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <input type="radio" name="usePfu" value="true" ${profile.usePfu === true ? 'checked' : ''} />
-                    ${getPfuHelpPopover(profile, I18n.t('settings.pfuEnabled'), false)}
-                  </label>
-                  <label style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <input type="radio" name="usePfu" value="false" ${profile.usePfu === false ? 'checked' : ''} />
-                    ${I18n.t('settings.pfuDisabled')}
-                  </label>
+                <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                  ${ToggleSwitch.create({
+                    name: 'usePfu',
+                    labelOff: I18n.t('settings.pfuDisabled'),
+                    labelOn: I18n.t('settings.pfuEnabled'),
+                    checked: profile.usePfu !== false
+                  })}
+                  ${getPfuHelpPopover(profile, '?', false, true)}
                 </div>
               </div>
             </section>
@@ -185,9 +188,7 @@ export class SettingsModalView {
       const children = Number.parseInt(childrenInput.value || '0', 10);
       const alternateChildren = Number.parseInt(alternateChildrenInput.value || '0', 10);
       const isActive = isSingle && (children + alternateChildren) > 0;
-      singleParentInput.disabled = !isActive;
-      singleParentInput.parentElement!.style.cursor = isActive ? 'pointer' : 'not-allowed';
-      singleParentInput.parentElement!.style.opacity = isActive ? '1' : '0.6';
+      ToggleSwitch.setEnabled(singleParentInput, isActive);
       if (!isActive) {
         singleParentInput.checked = false;
       }
@@ -250,8 +251,7 @@ export class SettingsModalView {
       const alternateChildrenCount = Number.parseInt(formData.get('alternateChildrenCount') as string || '0', 10);
       const totalChildren = childrenCount + alternateChildrenCount;
       const isSingleParent = maritalStatus === 'single' && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
-      const usePfuValue = formData.get('usePfu');
-      const usePfu = usePfuValue ? usePfuValue === 'true' : this.store.getTaxProfile().usePfu;
+      const usePfu = formData.get('usePfu') === 'on';
 
       const profileData: TaxProfileInput = {
         household: { maritalStatus, childrenCount, alternateChildrenCount, isSingleParent },

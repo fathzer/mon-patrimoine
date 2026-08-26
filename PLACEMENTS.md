@@ -133,6 +133,11 @@ et `kit/v1/` sera conservé pour ne pas casser les modules existants.
 **Aide contextuelle :**
 - `HelpPopover` — création de popovers d'aide en HTML.
 
+**Composants UI :**
+- `ToggleSwitch` — génération du HTML d'un switch on/off (slider). Supporte
+  un libellé unique (`label`) ou deux libellés (`labelOff` / `labelOn`).
+  Utilise les classes CSS `toggle-switch*` (voir ci-dessous).
+
 **Utilitaires d'explication fiscale (depuis `commonTaxExplanations.ts`) :**
 - `getPfuExplanation`, `getPfuHelpPopover`, `getTaxDisclaimer`,
   `getLatentGainsHelpPopover`, `getWarning`, `formatPercentage`,
