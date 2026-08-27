@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { TaxCalculator } from "../src/fiscality/TaxCalculator.js";
+import { TaxCalculator } from "./TaxCalculator.js";
 
 describe("TaxCalculator.computeFinalTax", () => {
   it("computes final tax for 29 700 € with 1.5 parts and 0.5 extra part capped at 1 079 €", () => {

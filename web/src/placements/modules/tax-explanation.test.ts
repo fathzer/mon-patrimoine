@@ -1,14 +1,14 @@
 import { describe, it, expect } from "bun:test";
-import { CheckingAccountModule } from "../src/placements/modules/checking_account/module.js";
-import { CtoModule } from "../src/placements/modules/cto/module.js";
-import { HomeSavingsModule } from "../src/placements/modules/home_savings/module.js";
-import { LifeInsuranceModule } from "../src/placements/modules/life_insurance/module.js";
-import { PeaModule } from "../src/placements/modules/pea/module.js";
-import { RealEstateModule } from "../src/placements/modules/real_estate/module.js";
-import { SavingsAccountModule } from "../src/placements/modules/savings_account/module.js";
-import { StockGrantModule } from "../src/placements/modules/stock_grant/module.js";
-import type { BasePlacement, PlacementModuleStatic } from "../src/placements/BasePlacement.js";
-import type { FiscalProfile } from "../src/fiscality/TaxCalculator.js";
+import { CheckingAccountModule } from "./checking_account/module.js";
+import { CtoModule } from "./cto/module.js";
+import { HomeSavingsModule } from "./home_savings/module.js";
+import { LifeInsuranceModule } from "./life_insurance/module.js";
+import { PeaModule } from "./pea/module.js";
+import { RealEstateModule } from "./real_estate/module.js";
+import { SavingsAccountModule } from "./savings_account/module.js";
+import { StockGrantModule } from "./stock_grant/module.js";
+import type { BasePlacement, PlacementModuleStatic } from "../BasePlacement.js";
+import type { FiscalProfile } from "../../fiscality/TaxCalculator.js";
 
 const PROFILE: FiscalProfile = { usePfu: true, taxableIncome: 0, household: { maritalStatus: 'single', childrenCount: 0, alternateChildrenCount: 0, isSingleParent: false } } as never;
 

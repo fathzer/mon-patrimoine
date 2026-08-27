@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { CategoryValues } from "../src/core/Categories.js";
-import { fr } from "../src/i18n/fr.js";
+import { CategoryValues } from "../core/Categories.js";
+import { fr } from "./fr.js";
 
 describe("i18n category labels", () => {
   for (const category of CategoryValues) {

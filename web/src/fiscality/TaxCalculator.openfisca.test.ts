@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "bun:test";
-import { Openfisca } from "./Openfisca.js";
-import { TaxCalculator } from "../src/fiscality/TaxCalculator.js";
-import { Household } from "../src/fiscality/Household.js";
+import { Openfisca } from "../../tests/Openfisca.js";
+import { TaxCalculator } from "./TaxCalculator.js";
+import { Household } from "./Household.js";
 
 const year = new Date().getFullYear();
 

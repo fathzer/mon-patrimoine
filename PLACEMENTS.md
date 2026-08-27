@@ -16,6 +16,7 @@ placements/
     module.ts             # obligatoire (nom imposé par PlacementFactory)
     Editor.ts             # convention : l'éditeur du placement
     TaxExplanation.ts     # convention : explication fiscale HTML
+    *.test.ts             # convention : tests co-localisés avec le code
 ```
 
 Le seul fichier dont le nom est imposé par le système est `module.ts` :
@@ -27,6 +28,45 @@ d'éditeur via `getEditorClass()`, une fonction d'explication fiscale via
 
 Les noms `Editor.ts` et `TaxExplanation.ts` sont des conventions partagées par
 tous les modules actuels, pas une exigence du système.
+
+## Tests
+
+Les tests sont co-localisés avec le code qu'ils testent, à côté des fichiers
+source. Le runner [Bun](https://bun.sh/) découvre automatiquement tous les
+fichiers `*.test.ts` récursivement — aucune configuration supplémentaire n'est
+nécessaire.
+
+```
+placements/modules/
+  pea/
+    Caps.ts               # logique de plafonds
+    Caps.test.ts          # tests des plafonds
+    module.ts
+    module.test.ts        # tests du module (si applicable)
+  life_insurance/
+    module.ts
+    module.test.ts
+  stock_grant/
+    module.ts
+    module.test.ts
+  tax-explanation.test.ts # test cross-module (getTaxExplanation pour tous)
+```
+
+Convention de nommage :
+- `module.test.ts` — tests du module lui-même (calculs, évaluation).
+- `<Fichier>.test.ts` — tests d'un fichier spécifique (ex. `Caps.test.ts`).
+- `<sujet>.test.ts` — tests transverses (ex. `tax-explanation.test.ts`).
+
+Pour exécuter les tests :
+
+```bash
+cd web && npm test
+```
+
+Les fichiers `*.test.ts` sont exclus de la compilation TypeScript
+(`tsconfig.json` → `exclude: ["src/**/*.test.ts"]`) car ils importent
+`bun:test` qui n'a pas de types pour `tsc`. Les tests d'intégration externes
+(ex. appels à l'API OpenFisca) restent dans `web/tests/`.
 
 `<nom>` doit correspondre au champ `name` d'une entrée de `web/placements.json`,
 par ex. `cto`, `pea`, `real_estate`, `stock_grant`, ...
@@ -282,7 +322,9 @@ contrats internes au module, pas une API de l'hôte.
    `TaxExplanation.ts` (convention) — mais le système n'impose que `module.ts`.
 2. Tous les imports externes doivent provenir de `../kit/v1/index.js`.
 3. Ajouter une entrée à `web/placements.json` (`name`).
-4. Recompiler (`npm run build`). Aucune autre modification de code n'est
+4. Ajouter des tests co-localisés (`module.test.ts`, `<Fichier>.test.ts`) pour
+   les calculs et logiques spécifiques au module.
+5. Recompiler (`npm run build`). Aucune autre modification de code n'est
    requise — la factory découvre le module depuis `placements.json`, câble son
    éditeur via `getEditorClass()` et son explication fiscale via
    `getTaxExplanation()`.
