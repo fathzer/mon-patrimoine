@@ -640,7 +640,7 @@ export class AssetTableView {
     if (evaluation.grossValue === netValue) {
       return '';
     }
-    return `<button type="button" class="tax-help-btn" data-id="${instance.id}" title="${I18n.t('taxExplanation.title')}" style="background: none; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer;">?</button>`;
+    return `<button type="button" class="tax-help-btn" data-id="${instance.id}" title="${I18n.t('taxExplanation.title')}">?</button>`;
   }
 
   _escapeHtml(str: string | null | undefined): string {
