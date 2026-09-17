@@ -49,6 +49,7 @@ export {
   getLatentGainsHelpPopover,
   getWarning,
   formatPercentage,
-  formatCurrency
+  formatCurrency,
+  getTaxSection
 } from '../../../i18n/commonTaxExplanations.js';
 export type { PfuExplanationArgs } from '../../../i18n/commonTaxExplanations.js';

@@ -181,7 +181,8 @@ et `kit/v1/` sera conservé pour ne pas casser les modules existants.
 **Utilitaires d'explication fiscale (depuis `commonTaxExplanations.ts`) :**
 - `getPfuExplanation`, `getPfuHelpPopover`, `getTaxDisclaimer`,
   `getLatentGainsHelpPopover`, `getWarning`, `formatPercentage`,
-  `formatCurrency`.
+  `formatCurrency`, `getTaxSection` (cadre avec titre dans le liseré,
+  utilise la classe CSS `form-section`).
 
 ### CSS disponible pour les modules
 
@@ -197,6 +198,7 @@ modules dans leur HTML :
 | `btn-danger` | `components/buttons.css` | Bouton de suppression |
 | `text-muted` | `components/utilities.css` | Texte atténué |
 | `tax-explanation` | `components/tax-explanation.css` | Conteneur d'explication fiscale |
+| `form-section` | `components/forms.css` | Cadre avec titre dans le liseré (fieldset/legend), pour grouper des champs ou des sections |
 
 Tout autre style doit être défini en inline dans l'éditeur ou via des classes
 propres au module. Les classes non listées ci-dessus peuvent changer ou

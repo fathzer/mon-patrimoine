@@ -8,6 +8,7 @@ import { PeeModule } from "./pee/module.js";
 import { RealEstateModule } from "./real_estate/module.js";
 import { SavingsAccountModule } from "./savings_account/module.js";
 import { StockGrantModule } from "./stock_grant/module.js";
+import { PerModule } from "./per/module.js";
 import type { BasePlacement, PlacementModuleStatic } from "../BasePlacement.js";
 import type { FiscalProfile } from "../../fiscality/TaxCalculator.js";
 
@@ -28,7 +29,8 @@ const MODULE_CASES: ModuleCase[] = [
   { name: "PeeModule", ModuleClass: PeeModule, placement: new PeeModule({ label: 'Test', type: 'pee', currentValue: 10000, totalDeposits: 8000, knowsNetValue: false }) },
   { name: "RealEstateModule", ModuleClass: RealEstateModule, placement: new RealEstateModule({ label: 'Test', type: 'real_estate', currentValue: 300000, acquisitionPrice: 250000, primaryResidence: false }) },
   { name: "SavingsAccountModule", ModuleClass: SavingsAccountModule, placement: new SavingsAccountModule({ label: 'Test', type: 'savings_account', currentValue: 1000, interestAmount: 50 }) },
-  { name: "StockGrantModule", ModuleClass: StockGrantModule, placement: new StockGrantModule({ label: 'Test', type: 'stock_grant', stockName: 'Test', currentPrice: 100, attributions: [{ attributionDate: '2020-01-01', acquisitionDate: '2021-01-01', acquisitionPrice: 50, numberOfShares: 100 }] }) }
+  { name: "StockGrantModule", ModuleClass: StockGrantModule, placement: new StockGrantModule({ label: 'Test', type: 'stock_grant', stockName: 'Test', currentPrice: 100, attributions: [{ attributionDate: '2020-01-01', acquisitionDate: '2021-01-01', acquisitionPrice: 50, numberOfShares: 100 }] }) },
+  { name: "PerModule", ModuleClass: PerModule, placement: new PerModule({ label: 'Test', type: 'per', grossValue: 10000, deducted: { contributions: 3000 }, nonDeducted: { contributions: 2000 }, employeeSavings: { contributions: 1000 } }) }
 ];
 
 describe("getTaxExplanation", () => {

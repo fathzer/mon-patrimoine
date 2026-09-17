@@ -2,7 +2,7 @@
  * Tax explanation content displayed in modals.
  *
  * The classes below are part of the Placement Kit (v1) and are guaranteed
- * stable for placement modules. See MODULES.md for the full list.
+ * stable for placement modules. See PLACEMENTS.md for the full list.
  *
  * Kit classes: tax-explanation
  */
@@ -11,6 +11,12 @@
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   color: var(--text-main);
+}
+
+.tax-explanation h2 {
+  color: var(--accent-blue);
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--font-size-xl);
 }
 
 .tax-explanation h3 {
@@ -42,3 +48,4 @@
   padding: 0.1rem 0.3rem;
   border-radius: var(--radius-sm);
 }
+

@@ -2,9 +2,9 @@
  * Form controls and groups.
  *
  * The classes below are part of the Placement Kit (v1) and are guaranteed
- * stable for placement modules. See MODULES.md for the full list.
+ * stable for placement modules. See PLACEMENTS.md for the full list.
  *
- * Kit classes: form-group, form-control
+ * Kit classes: form-group, form-control, form-section
  */
 
 .form-group {
@@ -38,4 +38,28 @@ select.form-control {
 select.form-control option {
   background-color: #1e293b;
   color: #ffffff;
+}
+
+/*
+ * Framed section with the title displayed in the top border (fieldset/legend
+ * style). Used to group related fields in editors and sections in tax
+ * explanations.
+ */
+.form-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.form-section > legend {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  color: var(--text-main);
+  padding: 0 var(--space-sm);
+  margin-bottom: var(--space-md);
 }

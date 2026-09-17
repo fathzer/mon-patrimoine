@@ -66,3 +66,15 @@ export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = und
 export function getLatentGainsHelpPopover(label: string = 'gain latent'): string {
   return HelpPopover.getHtml({ contentKey: 'help-gains-latents', label });
 }
+
+/**
+ * Wraps content in a framed section with the title displayed in the top border
+ * (fieldset/legend style). Used to group "Prélèvements sociaux" and
+ * "Imposition à l'impôt sur le revenu" sections in tax explanations.
+ *
+ * The CSS class `form-section` is part of the Placement Kit v1 and is defined
+ * in `components/forms.css`.
+ */
+export function getTaxSection(title: string, content: string): string {
+  return `<fieldset class="form-section"><legend>${title}</legend>${content}</fieldset>`;
+}
