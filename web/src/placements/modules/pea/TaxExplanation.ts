@@ -1,4 +1,4 @@
-import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning, getTaxSection } from '../../kit/v1/index.js';
+import { getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { PeaModule } from './module.js';
 
@@ -19,10 +19,8 @@ export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: Fiscal
   if (exemptFromIncomeTax) {
     incomeTaxSection = `Ce ${planName} est ouvert depuis ${years} an${years > 1 ? 's' : ''}. Les gains sont exonérés d'impôt sur le revenu.`;
   } else {
-    const taxDisclaimer = fiscalProfile?.usePfu ? '' : getTaxDisclaimer();
     incomeTaxSection = `
       <p>Ce ${planName} est ouvert depuis ${years} an${years > 1 ? 's' : ''}. L'impôt sur le revenu est dû sur les gains.</p>
-      ${taxDisclaimer}
     `;
   }
 

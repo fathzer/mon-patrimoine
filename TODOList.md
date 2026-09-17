@@ -1,7 +1,9 @@
-
 # TODO List
 
-## Ajouter une détection des PEA multiples (attention, un couple peut avoir 2 PEA distincts)
+
+## Il y a un bug quand on change de compte. Les données ne sont pas chargées (il faut faire un reload)
+
+## Refaire le parcours d'accueil pour forcer le renseignement du profi fiscal.
 
 ## Refaire le parcours d'accueil pour forcer le renseignement du profi fiscal.
 
