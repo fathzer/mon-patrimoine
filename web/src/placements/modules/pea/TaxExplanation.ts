@@ -1,4 +1,4 @@
-import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning } from '../../kit/v1/index.js';
+import { getTaxDisclaimer, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { PeaModule } from './module.js';
 
@@ -29,17 +29,15 @@ export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: Fiscal
   return `
 <div class="tax-explanation">
   <h2>${planFullName}</h2>
-
-  <h3>Prélèvements sociaux</h3>
-  <p>Le ${getLatentGainsHelpPopover()} est soumis aux prélèvements sociaux au taux de ${socialRate}.</p>
-  ${pre2018Warning}
-
-  <h3>Imposition à l'impôt sur le revenu</h3>
-  <p>L'imposition d'un ${planName} dépend de l'ancienneté du contrat :</p>
-  <ul>
-    <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</li>
-    <li><b>Après 5 ans</b> : les gains sont exonérés d'impôt sur le revenu.</li>
-  </ul>
-  ${incomeTaxSection}
-  </div>`;
+  ${getTaxSection('Prélèvements sociaux', `
+    <p>Le ${getLatentGainsHelpPopover()} est soumis aux prélèvements sociaux au taux de ${socialRate}.</p>
+    ${pre2018Warning}`)}
+  ${getTaxSection('Imposition à l\'impôt sur le revenu', `
+    <p>L'imposition d'un ${planName} dépend de l'ancienneté du contrat :</p>
+    <ul>
+      <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</li>
+      <li><b>Après 5 ans</b> : les gains sont exonérés d'impôt sur le revenu.</li>
+    </ul>
+    ${incomeTaxSection}`)}
+</div>`;
 }

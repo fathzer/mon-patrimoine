@@ -1,4 +1,4 @@
-import { SOCIAL_CONTRIBUTION_RATES, formatPercentage, getPfuHelpPopover, getTaxDisclaimer } from '../../kit/v1/index.js';
+import { SOCIAL_CONTRIBUTION_RATES, formatPercentage, getPfuHelpPopover, getTaxDisclaimer, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import { CSG_2018_THRESHOLD } from './module.js';
 import type { HomeSavingsModule } from './module.js';
@@ -39,15 +39,15 @@ function _getPelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: Fisc
 
   <p>La base de taxation de ce placement est constituée des intérêts bruts de l'année.</p>
 
-  <h3>Prélèvements sociaux</h3>
-  <p>Le taux applicable dépend de la date d'ouverture et de l'ancienneté du contrat :</p>
-  <ul>
-    <li>PEL ouvert à compter du ${getCsg2018Date()} : taux de ${NEW_RATE}.</li>
-    <li>PEL ouvert avant le ${getCsg2018Date()} : taux de ${OLD_RATE} tant que le contrat n'a pas atteint ${TRIGGER_AGE} ans, puis taux de ${NEW_RATE} au-delà de ${TRIGGER_AGE} ans.</li>
-  </ul>
+  ${getTaxSection('Prélèvements sociaux', `
+    <p>Le taux applicable dépend de la date d'ouverture et de l'ancienneté du contrat :</p>
+    <ul>
+      <li>PEL ouvert à compter du ${getCsg2018Date()} : taux de ${NEW_RATE}.</li>
+      <li>PEL ouvert avant le ${getCsg2018Date()} : taux de ${OLD_RATE} tant que le contrat n'a pas atteint ${TRIGGER_AGE} ans, puis taux de ${NEW_RATE} au-delà de ${TRIGGER_AGE} ans.</li>
+    </ul>`)}
 
-  <h3>Imposition à l'impôt sur le revenu</h3>
-  <p>Les intérêts de l'année sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)} pour les PEL ouverts à compter du ${getCsg2018Date()}, ainsi que pour les PEL ouverts avant cette date ayant dépassé ${TRIGGER_AGE} ans. Avant ${TRIGGER_AGE} ans, les intérêts sont exonérés d'impôt sur le revenu.</p>
+  ${getTaxSection('Imposition à l\'impôt sur le revenu', `
+    <p>Les intérêts de l'année sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)} pour les PEL ouverts à compter du ${getCsg2018Date()}, ainsi que pour les PEL ouverts avant cette date ayant dépassé ${TRIGGER_AGE} ans. Avant ${TRIGGER_AGE} ans, les intérêts sont exonérés d'impôt sur le revenu.</p>`)}
 
   <h3>Cas de ce placement</h3>
   <p>Ce PEL est ouvert depuis ${moreThanTwelve ? 'plus de' : 'moins de'} ${TRIGGER_AGE} ans.</p>

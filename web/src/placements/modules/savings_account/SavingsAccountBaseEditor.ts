@@ -1,10 +1,12 @@
 import { BasePlacementEditor } from '../../../ui/BasePlacementEditor.js';
 import { I18n } from '../../../core/I18n.js';
+import { HelpPopover } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../BasePlacement.js';
 import type { SavingsAccountModule } from './module.js';
 
 const labels = {
-  interestAmount: 'Montant des intérêts (€)',
+  interestAmount: 'Montant des intérêts en cours d\'acquisition (€)',
+  interestHelp: 'Ne saisir que les intérêts de l\'année en cours. La taxation des intérêts des années précédentes a déjà eu lieu.',
   calculator: 'Calculer',
   closeCalculator: 'Fermer',
   interestRateWarning: 'Attention, les taux ou l\'encours peuvent avoir évolué en cours d\'année, le calcul fait l\'hypothèse qu\'ils sont constants depuis le 1er janvier.',
@@ -47,9 +49,10 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
 
   /** Renders the interest field with the calculator button and panel. */
   protected renderInterest(placement: BasePlacement | null): string {
+    const interestHelp = HelpPopover.getHtml({ content: labels.interestHelp, label: '?', icon: true });
     return `
       <div class="form-group">
-        <label>${labels.interestAmount}</label>
+        <label>${labels.interestAmount} ${interestHelp}</label>
         <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
           <input type="number" step="0.01" name="interestAmount" class="form-control" value="${(placement as SavingsAccountModule)?.interestAmount || 0}" />
           <button type="button" id="btn-calculator" class="btn-secondary" title="${labels.calculator}">🔢</button>

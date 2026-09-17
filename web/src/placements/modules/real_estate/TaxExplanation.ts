@@ -1,4 +1,4 @@
-import { formatPercentage, formatCurrency, HelpPopover } from '../../kit/v1/index.js';
+import { formatPercentage, formatCurrency, HelpPopover, getTaxSection } from '../../kit/v1/index.js';
 import { ACQUISITION_FEES_FLAT_RATE, WORKS_FLAT_RATE, FIVE_YEARS_LIMIT } from './module.js';
 import type { RealEstateModule } from './module.js';
 
@@ -74,17 +74,17 @@ export function getRealEstateTaxExplanation(placement: RealEstateModule): string
     <li>Travaux déductibles : Soit sur justificatifs, soit pour un forfait de ${defaultWorksRate} du prix d'acquisition (ce forfait n'est valable qu'après ${FIVE_YEARS_LIMIT} ans de détention)</li>
   </ul>
 
-  <h3>Prélèvements sociaux</h3>
-  <p>Les prélèvements sociaux sont dus au taux de ${socialRate}.</p>
-  <p>L'abattement pour durée de détention réduit la base taxable de :</p>
-  <ul>
-    <li>${year6To21Rate} par an de la 6<sup>ème</sup> à la 21<sup>ème</sup> année</li>
-    <li>${year22Rate} la 22<sup>ème</sup> année</li>
-    <li>${year23To30Rate} par an de la 23<sup>ème</sup> à la 30<sup>ème</sup> année</li>
-  </ul>
+  ${getTaxSection('Prélèvements sociaux', `
+    <p>Les prélèvements sociaux sont dus au taux de ${socialRate}.</p>
+    <p>L'abattement pour durée de détention réduit la base taxable de :</p>
+    <ul>
+      <li>${year6To21Rate} par an de la 6<sup>ème</sup> à la 21<sup>ème</sup> année</li>
+      <li>${year22Rate} la 22<sup>ème</sup> année</li>
+      <li>${year23To30Rate} par an de la 23<sup>ème</sup> à la 30<sup>ème</sup> année</li>
+    </ul>`)}
 
-  <h3>Impôt sur le revenu</h3>
-  <p>L'impôt sur le revenu est calculé au taux forfaitaire de ${irRate} sur la plus-value, après abattement de la base taxable de ${irReductionRate} par année de détention au-delà de ${FIVE_YEARS_LIMIT} ans.</p>
+  ${getTaxSection('Impôt sur le revenu', `
+    <p>L'impôt sur le revenu est calculé au taux forfaitaire de ${irRate} sur la plus-value, après abattement de la base taxable de ${irReductionRate} par année de détention au-delà de ${FIVE_YEARS_LIMIT} ans.</p>`)}
 
   <h3>Dans le cas de ce bien :</h3>
   ${deductionParagraph}
