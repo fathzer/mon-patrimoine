@@ -26,6 +26,7 @@ interface GisOauth2 {
     callback: (resp: GisTokenResponse) => void;
     error_callback?: (error: GisErrorCallbackPayload) => void;
   }) => GisTokenClient;
+  hasGrantedAllScopes: (resp: GisTokenResponse, ...scopes: string[]) => boolean;
 }
 
 declare global {
@@ -39,6 +40,8 @@ type ApiCall = () => Promise<Response>;
 
 export class GoogleDriveProvider extends StorageProvider {
   static readonly TOKEN_EXPIRATION_MS = 3600 * 1000; // 1 heure en millisecondes
+  static readonly DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  static readonly EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email';
 
   clientId: string;
   fileName: string;
@@ -83,7 +86,7 @@ export class GoogleDriveProvider extends StorageProvider {
   _setupTokenClient(resolve: (value: boolean) => void): void {
     this.tokenClient = google!.accounts.oauth2.initTokenClient({
       client_id: this.clientId,
-      scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
+      scope: `${GoogleDriveProvider.DRIVE_SCOPE} ${GoogleDriveProvider.EMAIL_SCOPE}`,
       callback: () => {},
       error_callback: (error: GisErrorCallbackPayload) => {
         console.error('Google token client error:', error);
@@ -98,7 +101,17 @@ export class GoogleDriveProvider extends StorageProvider {
     return new Promise((resolve) => {
       this.tokenClient!.callback = async (resp: GisTokenResponse) => {
         if (resp.error) return resolve(false);
+
+        // Google's granular consent lets the user uncheck the Drive access
+        // (it may even be unchecked by default). A token without the scope is
+        // useless, so inform the user and restart the authentication.
+        if (!this._hasGrantedRequiredScopes(resp)) {
+          const retry = await this._showMissingScopesDialog();
+          return resolve(retry ? await this.authenticate() : false);
+        }
+
         this._saveToken(resp.access_token!);
+        this.fileId = null; // The account may have changed, the cached file id is no longer valid
 
         // Fetch user email from userinfo endpoint
         await this._fetchUserEmail();
@@ -107,6 +120,12 @@ export class GoogleDriveProvider extends StorageProvider {
       };
       this.tokenClient!.requestAccessToken({ prompt: 'consent' });
     });
+  }
+
+  _hasGrantedRequiredScopes(resp: GisTokenResponse): boolean {
+    return google!.accounts.oauth2.hasGrantedAllScopes(
+      resp, GoogleDriveProvider.DRIVE_SCOPE, GoogleDriveProvider.EMAIL_SCOPE
+    );
   }
 
   async _fetchUserEmail(): Promise<void> {
@@ -156,6 +175,9 @@ export class GoogleDriveProvider extends StorageProvider {
       this.tokenClient!.callback = (resp: GisTokenResponse) => {
         if (resp.error) {
           console.error('Silent token refresh failed:', resp.error);
+          resolve(false);
+        } else if (!this._hasGrantedRequiredScopes(resp)) {
+          console.error('Silent token refresh returned a token without the required scopes');
           resolve(false);
         } else {
           this._saveToken(resp.access_token!);
@@ -245,6 +267,65 @@ export class GoogleDriveProvider extends StorageProvider {
     });
   }
 
+  _showMissingScopesDialog(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const dialog = document.createElement('div');
+      dialog.innerHTML = `
+        <div class="modal-overlay">
+          <div class="modal-content help-modal-content">
+            <h2 class="help-modal-header">
+              🔐 Autorisation manquante
+            </h2>
+            <div class="help-modal-body">
+              <section class="help-section">
+                <h3 class="help-section-title">
+                  ⚠️ Autorisations Google non accordées
+                </h3>
+                <p>
+                  <strong>Pourquoi cette fenêtre ?</strong>
+                </p>
+                <p>
+                  Vous êtes connecté, mais vous n'avez pas accordé à l'application toutes les autorisations dont elle a besoin : l'accès aux fichiers de votre Google Drive (pour lire et enregistrer vos données) et l'accès à votre adresse e-mail (pour identifier votre compte).
+                </p>
+                <p>
+                  <strong>Ce que vous devez faire :</strong>
+                </p>
+                <p>
+                  Cliquez sur "Réessayer" pour afficher à nouveau l'écran d'autorisation de Google, puis cochez toutes les options demandées.
+                </p>
+              </section>
+            </div>
+            <div class="modal-actions help-modal-footer">
+              <button type="button" id="btn-cancel-scopes" class="btn-secondary">
+                Annuler
+              </button>
+              <button type="button" id="btn-retry-scopes" class="btn-primary">
+                Réessayer
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(dialog);
+
+      const retryBtn = dialog.querySelector<HTMLButtonElement>('#btn-retry-scopes');
+      const cancelBtn = dialog.querySelector<HTMLButtonElement>('#btn-cancel-scopes');
+      const overlay = dialog.querySelector<HTMLElement>('.modal-overlay');
+
+      const close = (confirmed = false) => {
+        dialog.remove();
+        resolve(confirmed);
+      };
+
+      retryBtn?.addEventListener('click', () => close(true));
+      cancelBtn?.addEventListener('click', () => close(false));
+      overlay?.addEventListener('click', (e) => {
+        if (e.target === overlay) close(false);
+      });
+    });
+  }
+
   async _executeWithAuthRetry(apiCall: ApiCall): Promise<Response> {
     await this._handleTokenExpiration();
     const result = await apiCall();
@@ -297,17 +378,36 @@ export class GoogleDriveProvider extends StorageProvider {
   async _findFileId(): Promise<string | null> {
     if (this.fileId) return this.fileId;
 
+    // The drive.file scope only lists files created by this app, and it rejects
+    // queries on appProperties. So list every app-created file and filter
+    // client-side: the data file is identified by its private appProperties tag
+    // (users may rename or move it), falling back to the file name for files
+    // created before tagging was introduced.
     const res = await this._executeWithAuthRetry(async () => {
-      const q = encodeURIComponent("name = 'patrimoine_data.json' and trashed = false");
+      const params = new URLSearchParams({
+        q: 'trashed = false',
+        orderBy: 'modifiedTime desc',
+        pageSize: '100',
+        fields: 'files(id,name,appProperties)'
+      });
       return await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=${q}`,
+        `https://www.googleapis.com/drive/v3/files?${params}`,
         { headers: { Authorization: `Bearer ${this.accessToken}` } }
       );
     });
 
-    const data = await res.json() as { files?: Array<{ id: string }> };
-    if (data.files && data.files.length > 0) {
-      this.fileId = data.files[0].id;
+    if (!res.ok) {
+      throw new Error(`Failed to search data file on Google Drive: HTTP ${res.status}`);
+    }
+
+    const data = await res.json() as {
+      files?: Array<{ id: string; name?: string; appProperties?: Record<string, string> }>
+    };
+    const files = data.files ?? [];
+    const file = files.find(f => f.appProperties?.['patrimoine'] === 'data')
+      ?? files.find(f => f.name === this.fileName);
+    if (file) {
+      this.fileId = file.id;
       return this.fileId;
     }
     return null;
@@ -325,7 +425,14 @@ export class GoogleDriveProvider extends StorageProvider {
       );
     });
 
-    return await res.json();
+    if (!res.ok) {
+      throw new Error(`Failed to load data file from Google Drive: HTTP ${res.status}`);
+    }
+    try {
+      return await res.json();
+    } catch {
+      throw new Error('Data file content is not valid JSON');
+    }
   }
 
   override async saveData(data: unknown): Promise<boolean> {
@@ -361,7 +468,8 @@ export class GoogleDriveProvider extends StorageProvider {
   async _createNewFile(content: string): Promise<boolean> {
     const metadata = {
       name: this.fileName,
-      mimeType: 'application/json'
+      mimeType: 'application/json',
+      appProperties: { patrimoine: 'data' }
     };
 
     const form = new FormData();

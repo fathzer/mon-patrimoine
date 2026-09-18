@@ -35,6 +35,7 @@ export type AppStoreEvents = {
   'state:changed': GlobalSummary;
   'state:loading': boolean;
   'save:error': Error;
+  'load:error': Error;
 };
 
 export interface TaxProfileInput {
@@ -79,12 +80,24 @@ export class AppStore extends EventBus<AppStoreEvents> {
     this.state.isAuthenticated = status.isConnected;
 
     if (this.state.isAuthenticated) {
-      let rawData = await this.storageManager.load() as Partial<ExportPayload> | null;
-      if (!rawData) {
+      let rawData: Partial<ExportPayload> | null = null;
+      let loadFailed = false;
+      try {
+        rawData = await this.storageManager.load() as Partial<ExportPayload> | null;
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        loadFailed = true;
+        this.emit('load:error', error as Error);
+      }
+      // Only create the default file when no file exists yet. On a load failure,
+      // the existing file must not be overwritten with empty data.
+      if (!rawData && !loadFailed) {
         rawData = this._getDefaultData();
         await this.storageManager.save(rawData);
       }
-      this._hydrateState(rawData);
+      if (rawData != null && typeof rawData === 'object') {
+        this._hydrateState(rawData);
+      }
     }
 
     this.state.isLoading = false;
@@ -149,7 +162,8 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   _hydrateState(rawData: Partial<ExportPayload>): void {
     this.state.taxProfile = this._normalizeTaxProfile(rawData.taxProfile);
-    this.state.placements = (rawData.placements || []).map(pData => PlacementFactory.create(pData));
+    this.state.placements = (Array.isArray(rawData.placements) ? rawData.placements : [])
+      .map(pData => PlacementFactory.create(pData));
   }
 
   _normalizeTaxProfile(taxProfile: TaxProfileInput = {}): FiscalProfile {

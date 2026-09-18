@@ -1,7 +1,5 @@
 # TODO List
 
-## Il y a un bug quand on change de compte. Les données ne sont pas chargées (il faut faire un reload)
-
 ## Refaire le parcours d'accueil pour forcer le renseignement du profi fiscal.
 
 ## Prévoir une information sur les nouveautés ... probablement dans la barre d'outils

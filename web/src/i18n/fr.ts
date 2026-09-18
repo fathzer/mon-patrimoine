@@ -72,6 +72,7 @@ export const fr = {
   },
   alerts: {
     saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",
+    loadError: "Le chargement de vos données a échoué. Vos données existantes n'ont pas été modifiées.",
     importError: "Le fichier sélectionné n'est pas valide ou n'a pas pu être lu."
   },
   settings: {

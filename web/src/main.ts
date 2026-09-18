@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   store.on('state:changed', (summary) => dashboard.render(summary));
   store.on('state:loading', (isLoading) => dashboard.showLoading(isLoading));
   store.on('save:error', () => window.alert(I18n.t('alerts.saveError')));
+  store.on('load:error', () => window.alert(I18n.t('alerts.loadError')));
 
   await store.init();
 
