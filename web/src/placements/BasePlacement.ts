@@ -103,6 +103,15 @@ export abstract class BasePlacement {
   }
 
   /**
+   * Returns the category of this placement instance.
+   * Defaults to the module's static category; modules that let the user
+   * choose a category per placement (e.g. custom) override this.
+   */
+  getCategory(): Category {
+    return (this.constructor as unknown as PlacementModuleStatic).getCategory();
+  }
+
+  /**
    * Evaluates the gross/net values, social charges, and income tax for this
    * placement. Called by the host (AppStore) to compute the portfolio state.
    *

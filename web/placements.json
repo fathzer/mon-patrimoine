@@ -8,5 +8,6 @@
   { "name": "cto" },
   { "name": "life_insurance" },
   { "name": "stock_grant" },
-  { "name": "per" }
+  { "name": "per" },
+  { "name": "custom" }
 ]

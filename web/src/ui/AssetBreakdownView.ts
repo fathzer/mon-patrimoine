@@ -1,6 +1,5 @@
 import { I18n } from '../core/I18n.js';
 import { AssetDonutChartView } from './AssetDonutChartView.js';
-import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
 import type { GlobalSummary, EvaluationEntry } from '../core/AppStore.js';
 
@@ -73,7 +72,7 @@ export class AssetBreakdownView {
     const netByCat: Record<string, number> = {};
     let total = 0;
     for (const { instance, evaluation } of (summary?.evaluations || [])) {
-      const cat = PlacementFactory.getCategory(instance.type);
+      const cat = instance.getCategory();
       const value = evaluation.netValue ?? ((evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0));
       netByCat[cat] = (netByCat[cat] || 0) + value;
       total += value;

@@ -1,5 +1,4 @@
 import { I18n } from '../core/I18n.js';
-import { PlacementFactory } from '../placements/PlacementFactory.js';
 import type { EvaluationEntry } from '../core/AppStore.js';
 
 const DONUT_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];
@@ -46,7 +45,7 @@ export class AssetDonutChartView {
     const byCat: Record<string, number> = {};
     let total = 0;
     for (const { instance, evaluation } of (evaluations || [])) {
-      const cat = PlacementFactory.getCategory(instance.type);
+      const cat = instance.getCategory();
       const amount = evaluation[valueKey] || 0;
       byCat[cat] = (byCat[cat] || 0) + amount;
       total += amount;

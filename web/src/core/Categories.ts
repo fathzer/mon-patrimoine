@@ -3,7 +3,8 @@ export enum Category {
   SAVING_ACCOUNTS = 'saving_accounts',
   INVESTMENTS = 'investments',
   LIFE_INSURANCE = 'life_insurance',
-  REAL_ESTATE = 'real_estate'
+  REAL_ESTATE = 'real_estate',
+  OTHER = 'other'
 }
 
 export const CategoryValues: readonly Category[] = Object.values(Category);

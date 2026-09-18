@@ -182,7 +182,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
       totalGross += evaluation.grossValue;
       totalNet += netValue;
 
-      const cat = PlacementFactory.getCategory(placement.type);
+      const cat = placement.getCategory();
       categoriesSet.add(cat);
       if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
       breakdown[cat].gross += evaluation.grossValue;

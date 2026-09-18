@@ -20,7 +20,8 @@ export const fr = {
     investments: "Investissements",
     saving_accounts: "Livrets",
     life_insurance: "Assurance-vie",
-    real_estate: "Immobilier"
+    real_estate: "Immobilier",
+    other: "Divers"
   },
   filters: {
     all: "Tous les actifs",
