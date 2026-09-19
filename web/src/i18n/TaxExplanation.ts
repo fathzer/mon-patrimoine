@@ -15,6 +15,7 @@ function getTaxExplanation(): string {
   const childPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
   const childCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.CHILD;
   const singleParentCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.SINGLE_PARENT;
+  const caseLCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.CASE_L;
 
   const exampleIncome = 30000;
   const exampleParts = 1.5;
@@ -37,10 +38,11 @@ function getTaxExplanation(): string {
     Le nombre de parts d'un foyer fiscal est la somme des parts des parents et des parts supplémentaires issues des enfants et de situations particulières (parent isolé, handicap, etc.).
   </p>
   <ul>
-    <li><b>Parents</b> : 2 parts si marié ou pacsé, 1 part sinon.</li>
+    <li><b>Parents</b> : 2 parts si marié ou pacsé, 1 part sinon. Un veuf avec personnes à charge conserve la part de son conjoint décédé.</li>
     <li><b>Enfants à charge</b> : les deux premiers comptent pour ${childPart} part chacun ; à partir du troisième, chacun compte pour ${2 * childPart} part.</li>
     <li><b>Enfants en garde alternée</b> : comptent pour la moitié d'un enfant à charge exclusive dans le calcul des parts.</li>
     <li><b>Parent isolé</b> : 1 demi-part supplémentaire si au moins un enfant est à la charge exclusive de ce parent (sinon 1 quart de part pour au moins un enfant en garde alternée).</li>
+    <li><b>Case L</b> : 1 demi-part supplémentaire pour une personne seule sans enfant à charge qui a élevé seule un enfant pendant au moins cinq ans.</li>
   </ul>
 
   <h3 class="help-section-title">Plafonds de réduction</h3>
@@ -50,6 +52,8 @@ function getTaxExplanation(): string {
   <ul>
     <li>Demi-part enfant : plafond de ${formatNumber(childCeiling)} €.</li>
     <li>Demi-part supplémentaire parent isolé : plafond de ${formatNumber(singleParentCeiling)} € (la moitié, soit ${formatNumber(singleParentCeiling * childPart)} €, si les enfants sont tous en garde alternée).</li>
+    <li>Demi-part supplémentaire case L : plafond de ${formatNumber(caseLCeiling)} €.</li>
+    <li>Veuf avec enfants à charge : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.WIDOW_POST_CAP_REDUCTION)} € (réduction complémentaire post-plafonnement).</li>
   </ul>
   <p>Ces plafonds se cumulent.</p>
 

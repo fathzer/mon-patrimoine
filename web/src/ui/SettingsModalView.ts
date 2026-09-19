@@ -5,6 +5,7 @@ import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
+import type { MaritalStatus } from '../fiscality/Household.js';
 
 export class SettingsModalView {
   container: HTMLElement;
@@ -20,8 +21,16 @@ export class SettingsModalView {
     const totalChildren = profile.household.childrenCount + profile.household.alternateChildrenCount;
     const singleParentDisabled = profile.household.maritalStatus !== 'single' || totalChildren === 0;
     const singleParentChecked = singleParentDisabled ? false : (profile.household.isSingleParent ?? false);
+    const caseLDisabled = profile.household.maritalStatus === 'married' || totalChildren > 0;
+    const caseLChecked = caseLDisabled ? false : (profile.household.caseL ?? false);
 
     const netIncomeHelp='Votre revenu net est constitué de votre revenu imposable diminué des charges déductibles. Par exemple, vos salaires diminués du forfait de 10% de frais professionnels.';
+    const caseLHelp=`Vous viviez seul au 1er janvier 2025 (ou au 31 décembre 2025 en cas de divorce/séparation/rupture de Pacs en 2025) et vous avez un enfant :
+      <ul>
+        <li>majeur non rattaché à votre foyer (ou mineur imposé en son nom propre)</li>
+        <li>ou décédé après l'âge de 16 ans ou par suite de faits de guerre.</li>
+      </ul>
+      Vous avez élevé cet enfant pendant au moins cinq années au cours desquelles vous viviez seul.`;
 
     const fiscalSummary = TaxCalculator.computeFiscalMetrics(profile);
     const parentsParts = profile.household.maritalStatus === 'married' ? 2 : 1;
@@ -52,13 +61,11 @@ export class SettingsModalView {
                   <select id="status-select" name="maritalStatus" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
                     <option value="single" ${profile.household.maritalStatus === 'single' ? 'selected' : ''}>${I18n.t('settings.maritalStatusSingle')}</option>
                     <option value="married" ${profile.household.maritalStatus === 'married' ? 'selected' : ''}>${I18n.t('settings.maritalStatusMarried')}</option>
+                    <option value="widowed" ${profile.household.maritalStatus === 'widowed' ? 'selected' : ''}>${I18n.t('settings.maritalStatusWidowed')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label for="single-parent-input" style="display: block; font-weight: bold; margin-bottom: 0.3rem; ${singleParentDisabled ? 'color: var(--text-muted);' : ''}">
-                    ${I18n.t('settings.singleParent')}
-                  </label>
                   ${ToggleSwitch.create({
                     name: 'isSingleParent',
                     id: 'single-parent-input',
@@ -66,6 +73,16 @@ export class SettingsModalView {
                     checked: singleParentChecked,
                     disabled: singleParentDisabled
                   })}
+                  <div style="display: flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem;">
+                    ${ToggleSwitch.create({
+                      name: 'caseL',
+                      id: 'case-l-input',
+                      label: I18n.t('settings.caseL'),
+                      checked: caseLChecked,
+                      disabled: caseLDisabled
+                    })}
+                    ${HelpPopover.getHtml({ content: caseLHelp, label: '?', icon: true })}
+                  </div>
                 </div>
               </div>
 
@@ -176,6 +193,7 @@ export class SettingsModalView {
     const childrenInput = form.querySelector('#children-input') as HTMLInputElement;
     const alternateChildrenInput = form.querySelector('#alternate-children-input') as HTMLInputElement;
     const singleParentInput = form.querySelector('#single-parent-input') as HTMLInputElement;
+    const caseLInput = form.querySelector('#case-l-input') as HTMLInputElement;
     const taxableIncomeInput = form.querySelector('#taxable-income-input') as HTMLInputElement;
     const partsDisplay = form.querySelector('#parts-display');
     const reductionCeilingWrapper = form.querySelector('#reduction-ceiling-wrapper') as HTMLElement | null;
@@ -192,23 +210,29 @@ export class SettingsModalView {
       if (!isActive) {
         singleParentInput.checked = false;
       }
+      const isCaseLActive = statusSelect.value !== 'married' && (children + alternateChildren) === 0;
+      ToggleSwitch.setEnabled(caseLInput, isCaseLActive);
+      if (!isCaseLActive) {
+        caseLInput.checked = false;
+      }
     };
 
     const updateFiscalSummary = (): void => {
       const taxableIncome = Number.parseFloat(taxableIncomeInput.value || '0');
       const summary = TaxCalculator.computeFiscalMetrics({
         household: {
-          maritalStatus: statusSelect.value as 'single' | 'married',
+          maritalStatus: statusSelect.value as MaritalStatus,
           childrenCount: Number.parseInt(childrenInput.value || '0', 10),
           alternateChildrenCount: Number.parseInt(alternateChildrenInput.value || '0', 10),
-          isSingleParent: singleParentInput.checked
+          isSingleParent: singleParentInput.checked,
+          caseL: caseLInput.checked
         },
         taxableIncome
       });
 
       const parentsParts = statusSelect.value === 'married' ? 2 : 1;
       const extraParts = summary.parts - parentsParts;
-      const taxResult = TaxCalculator.computeFinalTax(taxableIncome, statusSelect.value as 'single' | 'married', extraParts, summary.halfPartReductionCeiling);
+      const taxResult = TaxCalculator.computeFinalTax(taxableIncome, statusSelect.value as MaritalStatus, extraParts, summary.halfPartReductionCeiling);
 
       if (partsDisplay) {
         partsDisplay.textContent = summary.parts.toLocaleString('fr-FR');
@@ -240,21 +264,23 @@ export class SettingsModalView {
       updateFiscalSummary();
     });
     singleParentInput?.addEventListener('change', updateFiscalSummary);
+    caseLInput?.addEventListener('change', updateFiscalSummary);
     taxableIncomeInput?.addEventListener('input', updateFiscalSummary);
 
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       const taxableIncome = Number.parseFloat(formData.get('taxableIncome') as string || '0');
-      const maritalStatus = formData.get('maritalStatus') as 'single' | 'married';
+      const maritalStatus = formData.get('maritalStatus') as MaritalStatus;
       const childrenCount = Number.parseInt(formData.get('childrenCount') as string || '0', 10);
       const alternateChildrenCount = Number.parseInt(formData.get('alternateChildrenCount') as string || '0', 10);
       const totalChildren = childrenCount + alternateChildrenCount;
       const isSingleParent = maritalStatus === 'single' && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
+      const caseL = maritalStatus !== 'married' && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
       const usePfu = formData.get('usePfu') === 'on';
 
       const profileData: TaxProfileInput = {
-        household: { maritalStatus, childrenCount, alternateChildrenCount, isSingleParent },
+        household: { maritalStatus, childrenCount, alternateChildrenCount, isSingleParent, caseL },
         taxableIncome,
         usePfu
       };

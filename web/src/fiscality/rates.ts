@@ -22,7 +22,11 @@ export const FISCAL_RATES = {
     CHILD: 0.5,
     CEILING: {
       CHILD: 1807,
-      SINGLE_PARENT: 2455
+      SINGLE_PARENT: 2455,
+      CASE_L: 1079,
+      // Post-ceiling complementary reduction for widowed taxpayers with
+      // dependent children (reduc_postplafond_veuf)
+      WIDOW_POST_CAP_REDUCTION: 2011
     }
   },
   DECOTE: {

@@ -62,8 +62,9 @@ export class ToggleSwitch {
 
     const extraClass = containerClass ? ` ${containerClass}` : '';
     const disabledAttr = disabled ? ' disabled' : '';
+    const disabledStyle = disabled ? ' style="opacity: 0.6; cursor: not-allowed;"' : '';
 
-    return `<div class="toggle-switch${extraClass}">
+    return `<div class="toggle-switch${extraClass}"${disabledStyle}>
   ${leftLabelHtml}
   <label class="toggle-switch-track">
     <input type="checkbox" name="${name}" id="${id}"${checked ? ' checked' : ''}${disabledAttr}>

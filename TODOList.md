@@ -19,12 +19,8 @@ Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
 Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
 
-## Calcul de l'imposition (peut-être déjà fait)
+## Calcul de l'imposition
 - Le profil fiscal est actuellement trop simplifié et ne prend pas en compte tous les cas possibles de 1/2 parts et leurs plafonds de réduction d'impôts.
-
-## Faire une revue complète des taux de prélèvements sociaux :
-  - Il semble qu'on ne puisse avoir auune confiance en ChatGPT en la matière' :-(
-  - Il faut s'assurer que le module appele bien le module fiscal et n'applique pas le taux PFU (par exemple) dans son coin sans vérifier le profil fiscal de l'utilisateur.
 
 ## Ajout de test case pour les calculs de prélèvements
 ### Reprendre lifeInsuranceModule.test.js pour vérifier que le module est correctement appelé, plutôt que de tester directement l'impôt calculé

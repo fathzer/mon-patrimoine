@@ -21,12 +21,14 @@ type YearMap<T> = Record<number, T>;
 interface OpenfiscaIndividu {
   date_naissance?: YearMap<string>;
   garde_alternee?: YearMap<boolean>;
+  statut_marital?: Record<string, string>;
 }
 
 interface OpenfiscaFoyer {
   declarants: string[];
   personnes_a_charge: string[];
   caseT: YearMap<boolean>;
+  caseL: YearMap<boolean>;
   rni: YearMap<number | null>;
   nbptr: YearMap<number | null>;
   ir_taux_marginal: YearMap<number | null>;
@@ -51,18 +53,30 @@ function _formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+const OPENFISCA_MARITAL_STATUS: Record<string, string> = {
+  single: 'celibataire',
+  married: 'marie',
+  widowed: 'veuf'
+};
+
 /**
  * Builds the individus and personnes a charge for one case.
+ * statut_marital is set explicitly on the declarant: it is a monthly variable
+ * read in January, and providing it as input disables its formula (which would
+ * otherwise infer pacsé/célibataire from the declarants count) globally.
  */
 function _buildIndividu(
   id: string,
   childrenCount: number,
   alternateChildrenCount: number,
   totalChildren: number,
+  maritalStatus: string,
   year: number
 ): { individus: Record<string, OpenfiscaIndividu>; personnesACharge: string[] } {
   const now = new Date();
-  const individus: Record<string, OpenfiscaIndividu> = { [id]: {} };
+  const individus: Record<string, OpenfiscaIndividu> = {
+    [id]: { statut_marital: { [`${year}-01`]: OPENFISCA_MARITAL_STATUS[maritalStatus] ?? 'celibataire' } }
+  };
   const personnesACharge: string[] = [];
 
   for (let i = 1; i <= totalChildren; i += 1) {
@@ -91,6 +105,7 @@ function _buildFoyerInputs(
   declarants: string[],
   personnesACharge: string[],
   isSingleParent: boolean,
+  caseL: boolean,
   rni: number,
   year: number
 ): OpenfiscaFoyer {
@@ -98,6 +113,7 @@ function _buildFoyerInputs(
     declarants,
     personnes_a_charge: personnesACharge,
     caseT: { [year]: isSingleParent },
+    caseL: { [year]: caseL },
     rni: { [year]: rni },
     nbptr: { [year]: null },
     ir_taux_marginal: { [year]: null },
@@ -183,6 +199,7 @@ export class Openfisca {
     const childrenCount = household?.childrenCount ?? 0;
     const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
     const isSingleParent = household?.isSingleParent ?? false;
+    const caseL = household?.caseL ?? false;
     const totalChildren = childrenCount + alternateChildrenCount;
     const moiId = 'moi';
 
@@ -191,6 +208,7 @@ export class Openfisca {
       childrenCount,
       alternateChildrenCount,
       totalChildren,
+      maritalStatus,
       year
     );
 
@@ -207,6 +225,7 @@ export class Openfisca {
           declarants,
           personnesACharge,
           isSingleParent && maritalStatus === 'single',
+          caseL && maritalStatus !== 'married',
           rni,
           year
         )
@@ -227,6 +246,7 @@ export class Openfisca {
       const childrenCount = household?.childrenCount ?? 0;
       const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
       const isSingleParent = household?.isSingleParent ?? false;
+      const caseL = household?.caseL ?? false;
       const totalChildren = childrenCount + alternateChildrenCount;
 
       const prefix = `c${index}`;
@@ -237,6 +257,7 @@ export class Openfisca {
         childrenCount,
         alternateChildrenCount,
         totalChildren,
+        maritalStatus,
         year
       );
 
@@ -253,6 +274,7 @@ export class Openfisca {
         declarants,
         personnesACharge,
         isSingleParent && maritalStatus === 'single',
+        caseL && maritalStatus !== 'married',
         rni,
         year
       );

@@ -55,6 +55,65 @@ const cases = [
       isSingleParent: true
     }),
     rni: 200000
+  },
+  {
+    name: "single with case L (raised a child alone) and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      isSingleParent: false,
+      caseL: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with case L ignored when children are dependent and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      isSingleParent: false,
+      caseL: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed without children and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 0,
+      alternateChildrenCount: 0
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 exclusive child and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 0
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 2 children (1 alternate) and 100 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 1
+    }),
+    rni: 100000
+  },
+  {
+    name: "widowed with case L (raised a child alone) and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseL: true
+    }),
+    rni: 150000
   }
 ];
 
