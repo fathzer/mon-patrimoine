@@ -35,7 +35,7 @@ export class PeaModule extends BasePlacement {
   peaType: PeaType;
 
   constructor(data: PeaData) {
-    super(data);
+    super({ ...data, type: 'pea' });
     this.totalDeposits = Number(data.totalDeposits) || 0;
     this.currentValue = Number(data.currentValue) || 0;
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];

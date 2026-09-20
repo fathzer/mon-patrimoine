@@ -31,7 +31,7 @@ export class CtoModule extends BasePlacement {
   currentValue: number;
 
   constructor(data: CtoData) {
-    super(data);
+    super({ ...data, type: 'cto' });
     this.acquisitionValue = Number(data.acquisitionValue) || 0;
     this.cashBalance = Number(data.cashBalance) || 0;
     this.currentValue = Number(data.currentValue) || 0;

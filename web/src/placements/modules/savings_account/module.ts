@@ -33,7 +33,7 @@ export class SavingsAccountModule extends BasePlacement {
   promotionalInterest: number;
 
   constructor(data: SavingsAccountData) {
-    super(data);
+    super({ ...data, type: 'savings_account' });
     this.currentValue = Number(data.currentValue) || 0;
     this.interestAmount = Number(data.interestAmount) || 0;
     this.taxExempt = data.taxExempt !== false;

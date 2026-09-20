@@ -257,11 +257,17 @@ export class TaxCalculator {
 
     const childParts = this._computeChildrenParts(childrenCount, totalChildren);
 
+    // Disabled children grant extra parts on top of their custody part
+    // (OpenFisca n2: 0.5 per exclusive-custody child, 0.25 per alternated).
+    const halfPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
+    const disabledParts = (household?.disabledChildrenCount ?? 0) * halfPart
+      + (household?.disabledAlternateChildrenCount ?? 0) * halfPart / 2;
+
     // Widowed taxpayers with dependent children keep the deceased spouse's part.
     const widowParts = maritalStatus === 'widowed' && totalChildren > 0 ? 1 : 0;
 
     const statusParts = this._computeStatusParts(household, maritalStatus, childrenCount, alternateChildrenCount);
-    const extraParts = childParts + widowParts + statusParts;
+    const extraParts = childParts + disabledParts + widowParts + statusParts;
     const ceiling = this._computeReductionCeiling(household, maritalStatus, childrenCount, extraParts);
     return { extraParts, ceiling };
   }
@@ -390,6 +396,12 @@ export class TaxCalculator {
       ceiling += ceilings.DISABILITY_POST_CAP_REDUCTION
         * (maritalStatus === 'married' && caseP && caseF ? 2 : 1);
     }
+
+    // Disabled children cumulate with the adult cases in the same
+    // complementary reduction: a full amount per exclusive-custody child,
+    // half per alternated-custody child (OpenFisca nbG + nbI/2 term).
+    ceiling += ceilings.DISABILITY_POST_CAP_REDUCTION
+      * ((household?.disabledChildrenCount ?? 0) + (household?.disabledAlternateChildrenCount ?? 0) / 2);
 
     // Widowed taxpayers with a child in exclusive custody get an additional
     // complementary reduction (reduc_postplafond_veuf).

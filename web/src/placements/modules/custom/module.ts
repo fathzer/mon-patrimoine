@@ -41,7 +41,7 @@ export class CustomModule extends BasePlacement {
   category: Category;
 
   constructor(data: CustomData) {
-    super(data);
+    super({ ...data, type: 'custom' });
     this.grossValue = Number(data.grossValue) || 0;
     this.socialCharges = Number(data.socialCharges) || 0;
     this.incomeTax = Number(data.incomeTax) || 0;

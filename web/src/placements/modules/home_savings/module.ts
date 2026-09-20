@@ -41,7 +41,7 @@ export class HomeSavingsModule extends BasePlacement {
   promotionalInterest: number;
 
   constructor(data: HomeSavingsData) {
-    super(data);
+    super({ ...data, type: 'home_savings' });
     this.currentValue = Number(data.currentValue) || 0;
     this.interestAmount = Number(data.interestAmount) || 0;
     this.homeSavingsType = data.homeSavingsType || 'pel';

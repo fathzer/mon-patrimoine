@@ -122,7 +122,7 @@ export class MonModule extends BasePlacement {
     return getMonTaxExplanation(placement as MonModule, fiscalProfile);
   }
 
-  constructor(data: MesDonnees) { super(data); /* ... */ }
+  constructor(data: MesDonnees) { super({ ...data, type: '<nom>' }); /* ... */ }
 
   override getEvaluation(fiscalProfile: FiscalProfile, now?: Date): Evaluation { /* ... */ }
   override getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[] { /* ... */ }
@@ -241,8 +241,11 @@ Membres abstraits qu'un module **doit** implémenter :
 - `getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[]`
 
 Types :
-- `PlacementData` — `{ id?, type, label?, institution? }` ; les modules
-  l'étendent avec leurs propres champs.
+- `PlacementData` — `{ id?, type?, label?, institution? }` ; les modules
+  l'étendent avec leurs propres champs. `type` est optionnel en entrée de
+  constructeur : chaque module le fixe lui-même (`super({ ...data, type:
+  '<nom>' })`). Il n'est requis que dans les données sérialisées, où
+  `PlacementFactory` s'en sert pour choisir la classe à instancier.
 - `Evaluation` — `{ grossValue, netValueBeforeIR, socialCharges, latentGain,
   imposition, netValue? }`.
 - `PlacementEditorConstructor` — `new (container: HTMLElement, store?: AppStore)

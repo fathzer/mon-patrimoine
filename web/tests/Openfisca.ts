@@ -21,6 +21,7 @@ type YearMap<T> = Record<number, T>;
 interface OpenfiscaIndividu {
   date_naissance?: YearMap<string>;
   garde_alternee?: YearMap<boolean>;
+  invalidite?: Record<string, boolean>;
   statut_marital?: Record<string, string>;
 }
 
@@ -72,13 +73,16 @@ const OPENFISCA_MARITAL_STATUS: Record<string, string> = {
  */
 function _buildIndividu(
   id: string,
-  childrenCount: number,
-  alternateChildrenCount: number,
-  totalChildren: number,
-  maritalStatus: string,
+  household: HouseholdLike,
   year: number
 ): { individus: Record<string, OpenfiscaIndividu>; personnesACharge: string[] } {
   const now = new Date();
+  const maritalStatus = household?.maritalStatus ?? 'single';
+  const childrenCount = household?.childrenCount ?? 0;
+  const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
+  const disabledChildrenCount = household?.disabledChildrenCount ?? 0;
+  const disabledAlternateChildrenCount = household?.disabledAlternateChildrenCount ?? 0;
+  const totalChildren = childrenCount + alternateChildrenCount;
   const individus: Record<string, OpenfiscaIndividu> = {
     [id]: { statut_marital: { [`${year}-01`]: OPENFISCA_MARITAL_STATUS[maritalStatus] ?? 'celibataire' } }
   };
@@ -95,6 +99,15 @@ function _buildIndividu(
 
     if (isAlternated) {
       child.garde_alternee = { [year]: true };
+    }
+
+    // A disabled child is flagged invalidite on the individual, from which
+    // OpenFisca derives the nbG (exclusive) and nbI (alternated) counts.
+    const isDisabled = isAlternated
+      ? i - childrenCount <= disabledAlternateChildrenCount
+      : i <= disabledChildrenCount;
+    if (isDisabled) {
+      child.invalidite = { [`${year}-01`]: true };
     }
 
     individus[childId] = child;
@@ -206,19 +219,9 @@ export class Openfisca {
    */
   static _buildPayload(household: HouseholdLike, rni: number, year: number): Record<string, unknown> {
     const maritalStatus = household?.maritalStatus ?? 'single';
-    const childrenCount = household?.childrenCount ?? 0;
-    const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
-    const totalChildren = childrenCount + alternateChildrenCount;
     const moiId = 'moi';
 
-    const { individus, personnesACharge } = _buildIndividu(
-      moiId,
-      childrenCount,
-      alternateChildrenCount,
-      totalChildren,
-      maritalStatus,
-      year
-    );
+    const { individus, personnesACharge } = _buildIndividu(moiId, household, year);
 
     const declarants = [moiId];
     if (maritalStatus === 'married') {
@@ -250,21 +253,11 @@ export class Openfisca {
 
     for (const [index, { household, rni, year = new Date().getFullYear() }] of cases.entries()) {
       const maritalStatus = household?.maritalStatus ?? 'single';
-      const childrenCount = household?.childrenCount ?? 0;
-      const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
-      const totalChildren = childrenCount + alternateChildrenCount;
 
       const prefix = `c${index}`;
       const moiId = `${prefix}_moi`;
 
-      const { individus: caseIndividus, personnesACharge } = _buildIndividu(
-        moiId,
-        childrenCount,
-        alternateChildrenCount,
-        totalChildren,
-        maritalStatus,
-        year
-      );
+      const { individus: caseIndividus, personnesACharge } = _buildIndividu(moiId, household, year);
 
       Object.assign(individus, caseIndividus);
 

@@ -117,6 +117,9 @@ export class PlacementFactory {
   }
 
   static create(placementData: PlacementData): BasePlacement {
+    if (!placementData.type) {
+      throw new TypeError('PlacementFactory.create() requires data.type to select the module class');
+    }
     return new (this._getModule(placementData.type).ModuleClass)(placementData);
   }
 

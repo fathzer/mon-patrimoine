@@ -46,7 +46,7 @@ export class LifeInsuranceModule extends BasePlacement {
   euroFundsValue: number;
 
   constructor(data: LifeInsuranceData) {
-    super(data);
+    super({ ...data, type: 'life_insurance' });
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
     this.totalPremiums = Number(data.totalPremiums) || 0;
     const rawPre2017 = Number(data.pre2017Premiums) || 0;

@@ -1,15 +1,25 @@
+/// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
 import { LifeInsuranceModule } from "./module.js";
+import { Household, type MaritalStatus } from "../../../fiscality/Household.js";
+import type { FiscalProfile } from "../../../fiscality/TaxCalculator.js";
 
 const NOW = new Date("2024-01-01");
 
-function makeProfile(options = {}) {
+interface ProfileOptions {
+  maritalStatus?: MaritalStatus;
+  usePfu?: boolean;
+  taxableIncome?: number;
+  tmi?: number;
+}
+
+function makeProfile(options: ProfileOptions = {}): FiscalProfile {
   const maritalStatus = options.maritalStatus ?? 'single';
-  const { maritalStatus: _, tmi, ...rest } = options;
+  const { maritalStatus: _ignored, tmi: _tmi, ...rest } = options;
   return {
     usePfu: true,
     taxableIncome: 29580,
-    household: { maritalStatus, childrenCount: 0, alternateChildrenCount: 0, isSingleParent: false },
+    household: new Household({ maritalStatus, childrenCount: 0, alternateChildrenCount: 0, isSingleParent: false }),
     ...rest
   };
 }

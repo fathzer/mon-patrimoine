@@ -33,7 +33,7 @@ export class PeeModule extends BasePlacement {
   knowsNetValue: boolean;
 
   constructor(data: PeeData) {
-    super(data);
+    super({ ...data, type: 'pee' });
     this.totalDeposits = Number(data.totalDeposits) || 0;
     this.currentValue = Number(data.currentValue) || 0;
     this.netValue = Number(data.netValue) || 0;

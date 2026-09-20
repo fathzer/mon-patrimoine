@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
 import { CategoryValues } from "../core/Categories.js";
 import { fr } from "./fr.js";

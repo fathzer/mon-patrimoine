@@ -61,7 +61,7 @@ export class PerModule extends BasePlacement {
   employeeSavings: PerCompartmentData;
 
   constructor(data: PerData) {
-    super(data);
+    super({ ...data, type: 'per' });
     this.grossValue = Number(data.grossValue) || 0;
     this.netValue = Number(data.netValue) || 0;
     this.knowsNetValue = data.knowsNetValue === true;

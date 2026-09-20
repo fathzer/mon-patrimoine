@@ -54,7 +54,7 @@ export class RealEstateModule extends BasePlacement {
   works: number;
 
   constructor(data: RealEstateData) {
-    super(data);
+    super({ ...data, type: 'real_estate' });
     this.primaryResidence = data.primaryResidence === true;
     this.currentValue = Number(data.currentValue) || 0;
     this.acquisitionDate = data.acquisitionDate || '';

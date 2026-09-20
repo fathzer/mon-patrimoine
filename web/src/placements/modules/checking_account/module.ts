@@ -28,7 +28,7 @@ export class CheckingAccountModule extends BasePlacement {
   cardBalance: number;
 
   constructor(data: CheckingAccountData) {
-    super(data);
+    super({ ...data, type: 'checking_account' });
     this.currentValue = Number(data.currentValue) || 0;
     this.cardBalance = Number(data.cardBalance) || 0;
   }

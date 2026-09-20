@@ -1,9 +1,11 @@
+/// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
 import { Openfisca } from "./Openfisca.js";
+import type { HouseholdData } from "../src/fiscality/Household.js";
 
 describe("Openfisca smoke test", () => {
   it("calls the Openfisca API and logs the result", async () => {
-    const household = {
+    const household: HouseholdData = {
       maritalStatus: "single",
       childrenCount: 1,
       alternateChildrenCount: 0,

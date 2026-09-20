@@ -159,12 +159,20 @@ export class SettingsModalView {
                       ${I18n.t('settings.childrenCount')}
                     </label>
                     <input type="number" id="children-input" name="childrenCount" min="0" max="20" value="${profile.household.childrenCount}" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
+                    <label id="disabled-children-label" for="disabled-children-input" style="display: block; font-size: 0.8rem; margin: 0.4rem 0 0.2rem;">
+                      ${I18n.t('settings.disabledChildrenCount')}
+                    </label>
+                    <input type="number" id="disabled-children-input" name="disabledChildrenCount" min="0" max="${profile.household.childrenCount}" value="${profile.household.disabledChildrenCount ?? 0}" class="form-control" ${profile.household.childrenCount === 0 ? 'disabled' : ''} style="width: 100%; padding: 0.4rem 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
                   </div>
                   <div>
                     <label for="alternate-children-input" style="display: block; font-size: 0.85rem; margin-bottom: 0.2rem;">
                       ${I18n.t('settings.alternateChildrenCount')}
                     </label>
                     <input type="number" id="alternate-children-input" name="alternateChildrenCount" min="0" max="20" value="${profile.household.alternateChildrenCount}" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
+                    <label id="disabled-alternate-children-label" for="disabled-alternate-children-input" style="display: block; font-size: 0.8rem; margin: 0.4rem 0 0.2rem;">
+                      ${I18n.t('settings.disabledChildrenCount')}
+                    </label>
+                    <input type="number" id="disabled-alternate-children-input" name="disabledAlternateChildrenCount" min="0" max="${profile.household.alternateChildrenCount}" value="${profile.household.disabledAlternateChildrenCount ?? 0}" class="form-control" ${profile.household.alternateChildrenCount === 0 ? 'disabled' : ''} style="width: 100%; padding: 0.4rem 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
                   </div>
                 </div>
               </div>
@@ -257,6 +265,10 @@ export class SettingsModalView {
     const statusSelect = form.querySelector('#status-select') as HTMLSelectElement;
     const childrenInput = form.querySelector('#children-input') as HTMLInputElement;
     const alternateChildrenInput = form.querySelector('#alternate-children-input') as HTMLInputElement;
+    const disabledChildrenInput = form.querySelector('#disabled-children-input') as HTMLInputElement;
+    const disabledChildrenLabel = form.querySelector('#disabled-children-label') as HTMLElement;
+    const disabledAlternateChildrenInput = form.querySelector('#disabled-alternate-children-input') as HTMLInputElement;
+    const disabledAlternateChildrenLabel = form.querySelector('#disabled-alternate-children-label') as HTMLElement;
     const singleParentInput = form.querySelector('#single-parent-input') as HTMLInputElement;
     const caseLInput = form.querySelector('#case-l-input') as HTMLInputElement;
     const declarantCaseInput = form.querySelector('#declarant-case-input') as HTMLSelectElement;
@@ -305,6 +317,32 @@ export class SettingsModalView {
       }
     };
 
+    // The disabled-children count is capped at the children count of its
+    // custody type, and the field is disabled when there is no child.
+    const updateDisabledChildren = (
+      parentInput: HTMLInputElement,
+      disabledInput: HTMLInputElement,
+      disabledLabel: HTMLElement | null
+    ): void => {
+      const max = Math.max(0, Number.parseInt(parentInput.value || '0', 10) || 0);
+      disabledInput.max = String(max);
+      const isDisabled = max === 0;
+      disabledInput.disabled = isDisabled;
+      disabledInput.style.opacity = isDisabled ? '0.6' : '';
+      disabledInput.style.cursor = isDisabled ? 'not-allowed' : '';
+      if (disabledLabel) {
+        disabledLabel.style.opacity = isDisabled ? '0.6' : '';
+      }
+      if ((Number.parseInt(disabledInput.value || '0', 10) || 0) > max) {
+        disabledInput.value = String(max);
+      }
+    };
+
+    const updateDisabledChildrenFields = (): void => {
+      updateDisabledChildren(childrenInput, disabledChildrenInput, disabledChildrenLabel);
+      updateDisabledChildren(alternateChildrenInput, disabledAlternateChildrenInput, disabledAlternateChildrenLabel);
+    };
+
     const updateFiscalSummary = (): void => {
       const taxableIncome = Number.parseFloat(taxableIncomeInput.value || '0');
       const summary = TaxCalculator.computeFiscalMetrics({
@@ -312,6 +350,8 @@ export class SettingsModalView {
           maritalStatus: statusSelect.value as MaritalStatus,
           childrenCount: Number.parseInt(childrenInput.value || '0', 10),
           alternateChildrenCount: Number.parseInt(alternateChildrenInput.value || '0', 10),
+          disabledChildrenCount: Number.parseInt(disabledChildrenInput.value || '0', 10),
+          disabledAlternateChildrenCount: Number.parseInt(disabledAlternateChildrenInput.value || '0', 10),
           isSingleParent: singleParentInput.checked,
           caseL: caseLInput.checked,
           caseP: declarantCaseInput.value === 'P',
@@ -351,10 +391,20 @@ export class SettingsModalView {
     });
     childrenInput?.addEventListener('input', () => {
       updateSingleParent();
+      updateDisabledChildrenFields();
       updateFiscalSummary();
     });
     alternateChildrenInput?.addEventListener('input', () => {
       updateSingleParent();
+      updateDisabledChildrenFields();
+      updateFiscalSummary();
+    });
+    disabledChildrenInput?.addEventListener('input', () => {
+      updateDisabledChildrenFields();
+      updateFiscalSummary();
+    });
+    disabledAlternateChildrenInput?.addEventListener('input', () => {
+      updateDisabledChildrenFields();
       updateFiscalSummary();
     });
     singleParentInput?.addEventListener('change', updateFiscalSummary);
@@ -365,6 +415,7 @@ export class SettingsModalView {
 
     // Apply the initial disabled look for the spouse case select
     updateDisabilityCases();
+    updateDisabledChildrenFields();
 
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -373,6 +424,8 @@ export class SettingsModalView {
       const maritalStatus = formData.get('maritalStatus') as MaritalStatus;
       const childrenCount = Number.parseInt(formData.get('childrenCount') as string || '0', 10);
       const alternateChildrenCount = Number.parseInt(formData.get('alternateChildrenCount') as string || '0', 10);
+      const disabledChildrenCount = Number.parseInt(formData.get('disabledChildrenCount') as string || '0', 10);
+      const disabledAlternateChildrenCount = Number.parseInt(formData.get('disabledAlternateChildrenCount') as string || '0', 10);
       const totalChildren = childrenCount + alternateChildrenCount;
       const isSingleParent = maritalStatus === 'single' && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
       const caseL = maritalStatus !== 'married' && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
@@ -389,6 +442,8 @@ export class SettingsModalView {
           maritalStatus,
           childrenCount,
           alternateChildrenCount,
+          disabledChildrenCount,
+          disabledAlternateChildrenCount,
           isSingleParent,
           caseL,
           caseP: declarantCase === 'P',

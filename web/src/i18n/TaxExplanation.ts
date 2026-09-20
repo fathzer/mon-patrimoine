@@ -45,6 +45,7 @@ function getTaxExplanation(): string {
     <li><b>Case L</b> : 1 demi-part supplémentaire pour une personne seule sans enfant à charge qui a élevé seule un enfant pendant au moins cinq ans.</li>
     <li><b>Handicap</b> : la case P (déclarant invalide) accorde 1 demi-part, avec ou sans personne à charge. Pour un couple, la case F (conjoint invalide) s'y ajoute : P + F = 1 part supplémentaire.</li>
     <li><b>Anciens combattants</b> : les cases W (déclarant) et S (conjoint) accordent 1 demi-part uniquement sans personne à charge (célibataire, divorcé ou veuf) ; pour un couple, elles ne se cumulent ni entre elles ni avec les cases d'invalidité. La case G (pension de veuve de guerre) suit les mêmes règles que W. Ces demi-parts ne se cumulent pas avec la case L.</li>
+    <li><b>Enfants handicapés</b> : chaque enfant à charge titulaire de la carte d'invalidité accorde 1 demi-part supplémentaire en garde exclusive (1 quart de part en garde alternée), en plus de sa part d'enfant à charge.</li>
   </ul>
 
   <h3 class="help-section-title">Plafonds de réduction</h3>
@@ -57,6 +58,7 @@ function getTaxExplanation(): string {
     <li>Case L : plafond de ${formatNumber(caseLCeiling)} €, qui remplace entièrement le plafond général.</li>
     <li>Veuf avec enfant à charge en résidence habituelle : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.WIDOW_POST_CAP_REDUCTION)} € (réduction complémentaire post-plafonnement).</li>
     <li>Cases P/F/W/S/G : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € dès qu'une case est cochée, même si elle n'accorde pas de part (×2 pour un couple marié ou pacsé avec les cases P et F).</li>
+    <li>Enfants handicapés : même majoration de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € par enfant en garde exclusive (moitié en garde alternée), cumulable avec les cases P/F/W/S/G.</li>
   </ul>
   <p>Ces plafonds se cumulent.</p>
 

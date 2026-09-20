@@ -1,3 +1,4 @@
+/// <reference types="bun-types" />
 import { describe, it, expect, beforeAll } from "bun:test";
 import { Openfisca, type OpenfiscaResult } from "../../tests/Openfisca.js";
 import { TaxCalculator } from "./TaxCalculator.js";
@@ -311,6 +312,68 @@ const cases = [
       childrenCount: 0,
       alternateChildrenCount: 1,
       caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "married with 1 disabled child and 150 000 €",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      disabledChildrenCount: 1
+    }),
+    rni: 150000
+  },
+  {
+    name: "married with 3 children, 2 disabled, and 200 000 €",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 3,
+      alternateChildrenCount: 0,
+      disabledChildrenCount: 2
+    }),
+    rni: 200000
+  },
+  {
+    name: "married with 1 disabled alternate-custody child and 150 000 €",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 0,
+      alternateChildrenCount: 1,
+      disabledAlternateChildrenCount: 1
+    }),
+    rni: 150000
+  },
+  {
+    name: "single parent with 1 disabled child, case T and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      disabledChildrenCount: 1,
+      isSingleParent: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with 1 disabled child, case P and 150 000 € (reductions cumulate)",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      disabledChildrenCount: 1,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 disabled child and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      disabledChildrenCount: 1
     }),
     rni: 150000
   }

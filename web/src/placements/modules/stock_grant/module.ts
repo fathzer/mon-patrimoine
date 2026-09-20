@@ -220,7 +220,7 @@ export class StockGrantModule extends BasePlacement {
   attributions: StockGrant[];
 
   constructor(data: StockGrantModuleData) {
-    super(data);
+    super({ ...data, type: 'stock_grant' });
     this.stockName = data.stockName || '';
     this.currentPrice = Number(data.currentPrice) || 0;
     this.attributions = Array.isArray(data.attributions)

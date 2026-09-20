@@ -7,10 +7,15 @@ import type { AppStore } from '../core/AppStore.js';
 /**
  * Minimal data required to create a placement.
  * Module-specific data interfaces extend this with their own fields.
+ *
+ * `type` is optional in constructor input: each module stamps its own
+ * constant type (matching its folder name under placements/modules/).
+ * It is required only in serialized data, where PlacementFactory uses it
+ * to select the module class on deserialization.
  */
 export interface PlacementData {
   id?: string;
-  type: string;
+  type?: string;
   label?: string;
   institution?: string;
 }
@@ -95,6 +100,9 @@ export abstract class BasePlacement {
     const category = (this.constructor as unknown as PlacementModuleStatic).getCategory();
     if (!CategoryValues.includes(category)) {
       throw new TypeError(`Invalid category from getCategory() in ${this.constructor.name}. Must be one of: ${CategoryValues.join(', ')}`);
+    }
+    if (!data.type) {
+      throw new TypeError(`Missing placement type: ${this.constructor.name} must set data.type before calling super()`);
     }
     this.id = data.id || String(Date.now());
     this.type = data.type;

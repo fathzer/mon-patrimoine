@@ -1,5 +1,7 @@
+/// <reference types="bun-types" />
 import { describe, it, expect } from 'bun:test';
 import { PerModule } from './module.js';
+import { Category } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../../fiscality/TaxCalculator.js';
 
 const PROFILE_PFU: FiscalProfile = {
@@ -20,7 +22,7 @@ const PFU_RATE = 0.128;
 describe('PerModule - gain allocation', () => {
   it('uses explicitly entered gains when all are provided', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 3000,
+      grossValue: 3000,
       deducted: { contributions: 500, gain: 500 },
       nonDeducted: { contributions: 500, gain: 500 },
       employeeSavings: { contributions: 500, gain: 500 }
@@ -39,7 +41,7 @@ describe('PerModule - gain allocation', () => {
     // deducted 500 contrib (no gain), non_deducted 500 contrib (no gain).
     // Missing gain = 1500 - 500 = 1000, split 500/500.
     const per = new PerModule({
-      type: 'per', grossValue: 3000,
+      grossValue: 3000,
       deducted: { contributions: 500 },
       nonDeducted: { contributions: 500 },
       employeeSavings: { contributions: 500, gain: 500 }
@@ -58,7 +60,7 @@ describe('PerModule - gain allocation', () => {
     // totalContrib = 4000, totalGain = 1000, no gains entered.
     // Missing gain = 1000, split: deducted 250, non_deducted 750.
     const per = new PerModule({
-      type: 'per', grossValue: 5000,
+      grossValue: 5000,
       deducted: { contributions: 1000 },
       nonDeducted: { contributions: 3000 },
       employeeSavings: { contributions: 0 }
@@ -71,7 +73,7 @@ describe('PerModule - gain allocation', () => {
 
   it('assigns zero gain to missing compartments with zero contributions', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 2000,
+      grossValue: 2000,
       deducted: { contributions: 1000, gain: 500 },
       nonDeducted: { contributions: 500 },
       employeeSavings: { contributions: 0 }
@@ -85,7 +87,7 @@ describe('PerModule - gain allocation', () => {
 
   it('clamps total gain to zero when grossValue < totalContributions', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 1000,
+      grossValue: 1000,
       deducted: { contributions: 500 },
       nonDeducted: { contributions: 500 },
       employeeSavings: { contributions: 500 }
@@ -101,7 +103,7 @@ describe('PerModule - gain allocation', () => {
 describe('PerModule - social charges', () => {
   it('computes social charges on total gains at 18.6%', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 4000,
+      grossValue: 4000,
       deducted: { contributions: 1000, gain: 500 },
       nonDeducted: { contributions: 1000, gain: 500 },
       employeeSavings: { contributions: 1000, gain: 500 }
@@ -111,7 +113,7 @@ describe('PerModule - social charges', () => {
 
   it('derives social charges from known net value when provided', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 10000, netValue: 9000, knowsNetValue: true,
+      grossValue: 10000, netValue: 9000, knowsNetValue: true,
       deducted: { contributions: 3000, gain: 500 },
       nonDeducted: { contributions: 2000, gain: 500 },
       employeeSavings: { contributions: 1000, gain: 500 }
@@ -123,7 +125,7 @@ describe('PerModule - social charges', () => {
 describe('PerModule - income tax', () => {
   it('taxes deducted capital at barème (progressive) and gains at PFU', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 5000,
+      grossValue: 5000,
       deducted: { contributions: 3000, gain: 1000 },
       nonDeducted: { contributions: 500, gain: 500 },
       employeeSavings: { contributions: 0, gain: 0 }
@@ -137,7 +139,7 @@ describe('PerModule - income tax', () => {
 
   it('exempts non-deducted capital from income tax', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 5000,
+      grossValue: 5000,
       deducted: { contributions: 0 },
       nonDeducted: { contributions: 3000, gain: 1000 },
       employeeSavings: { contributions: 1000, gain: 0 }
@@ -151,7 +153,7 @@ describe('PerModule - income tax', () => {
 
   it('exempts employee savings from income tax entirely', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 3000,
+      grossValue: 3000,
       deducted: { contributions: 0 },
       nonDeducted: { contributions: 0 },
       employeeSavings: { contributions: 2000, gain: 1000 }
@@ -163,7 +165,7 @@ describe('PerModule - income tax', () => {
 
   it('taxes gains at barème when PFU is not selected', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 2000,
+      grossValue: 2000,
       deducted: { contributions: 0, gain: 1000 },
       nonDeducted: { contributions: 0, gain: 500 },
       employeeSavings: { contributions: 500, gain: 0 }
@@ -181,7 +183,7 @@ describe('PerModule - income tax', () => {
 describe('PerModule - evaluation', () => {
   it('computes netValueBeforeIR as grossValue minus social charges', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 5000,
+      grossValue: 5000,
       deducted: { contributions: 1000, gain: 1000 },
       nonDeducted: { contributions: 1000, gain: 1000 },
       employeeSavings: { contributions: 1000, gain: 0 }
@@ -196,7 +198,7 @@ describe('PerModule - evaluation', () => {
 
   it('uses known net value as netValueBeforeIR', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 10000, netValue: 9000, knowsNetValue: true,
+      grossValue: 10000, netValue: 9000, knowsNetValue: true,
       deducted: { contributions: 3000, gain: 500 },
       nonDeducted: { contributions: 2000, gain: 500 },
       employeeSavings: { contributions: 1000, gain: 500 }
@@ -208,7 +210,7 @@ describe('PerModule - evaluation', () => {
 
   it('computes netValue as netValueBeforeIR minus imposition', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 2000,
+      grossValue: 2000,
       deducted: { contributions: 0, gain: 1000 },
       nonDeducted: { contributions: 0, gain: 500 },
       employeeSavings: { contributions: 500, gain: 0 }
@@ -221,7 +223,7 @@ describe('PerModule - evaluation', () => {
 describe('PerModule - serialization', () => {
   it('round-trips through toJSON and constructor', () => {
     const original = new PerModule({
-      type: 'per', label: 'My PER', institution: 'AXA',
+      label: 'My PER', institution: 'AXA',
       grossValue: 10000,
       deducted: { contributions: 3000, gain: 500 },
       nonDeducted: { contributions: 2000 },
@@ -246,7 +248,7 @@ describe('PerModule - serialization', () => {
 
   it('preserves undefined gain through serialization', () => {
     const per = new PerModule({
-      type: 'per', grossValue: 5000,
+      grossValue: 5000,
       deducted: { contributions: 2000 },
       nonDeducted: { contributions: 1000 },
       employeeSavings: { contributions: 500, gain: 500 }
@@ -267,7 +269,7 @@ describe('PerModule - serialization', () => {
 
 describe('PerModule - static contract', () => {
   it('returns Category.INVESTMENTS', () => {
-    expect(PerModule.getCategory()).toBe('investments');
+    expect(PerModule.getCategory()).toBe(Category.INVESTMENTS);
   });
 
   it('returns a label', () => {

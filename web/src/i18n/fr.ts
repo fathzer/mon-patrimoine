@@ -93,6 +93,7 @@ export const fr = {
     children: "Enfants",
     childrenCount: "Enfants en garde exclusive",
     alternateChildrenCount: "Enfants en garde alternée",
+    disabledChildrenCount: "dont handicapé(s)",
     singleParent: "Parent isolé",
     caseL: "Case L",
     incomeSection: "Revenus",
