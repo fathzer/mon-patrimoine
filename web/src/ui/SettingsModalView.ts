@@ -64,13 +64,16 @@ export class SettingsModalView {
     const declarantCase = householdCase(profile.household, DECLARANT_CASE_OPTIONS[profile.household.maritalStatus]);
     const spouseCase = householdCase(profile.household, SPOUSE_CASE_OPTIONS[profile.household.maritalStatus]);
 
-    const netIncomeHelp='Votre revenu net est constitué de votre revenu imposable diminué des charges déductibles. Par exemple, vos salaires diminués du forfait de 10% de frais professionnels.';
+    const netIncomeHelp=`Votre revenu net est constitué de votre revenu imposable diminué des charges déductibles. Par exemple, vos salaires diminués du forfait de 10% de frais professionnels.
+      <br><br>Si vous rattachez un enfant marié, pacsé ou chargé de famille (case N), déduisez vous-même l'abattement de rattachement : 6 855 € par personne rattachée en 2025 (l'enfant, son conjoint et chacun de ses enfants).`;
     const caseLHelp=`Vous viviez seul au 1er janvier 2025 (ou au 31 décembre 2025 en cas de divorce/séparation/rupture de Pacs en 2025) et vous avez un enfant :
       <ul>
         <li>majeur non rattaché à votre foyer (ou mineur imposé en son nom propre)</li>
         <li>ou décédé après l'âge de 16 ans ou par suite de faits de guerre.</li>
       </ul>
       Vous avez élevé cet enfant pendant au moins cinq années au cours desquelles vous viviez seul.`;
+    const childrenHelp=`Comptez ici vos enfants à charge mineurs <b>et</b> vos enfants majeurs célibataires rattachés (case J) : les deux donnent les mêmes demi-parts (0,5 part chacun, 1 part à partir du 3e).
+      <br><br>Un enfant handicapé compte quel que soit son âge : déclarez-le aussi dans « dont handicapé(s) ».`;
     const disabilityCasesHelp=`
       <ul>
         <li><b>P</b> : vous êtes titulaire d'une pension (militaire, accident du travail) pour invalidité d'au moins 40 %, de la carte d'invalidité ou de la carte mobilité inclusion (CMI) mention « invalidité ».</li>
@@ -157,6 +160,7 @@ export class SettingsModalView {
                   <div>
                     <label for="children-input" style="display: block; font-size: 0.85rem; margin-bottom: 0.2rem;">
                       ${I18n.t('settings.childrenCount')}
+                      ${HelpPopover.getHtml({ content: childrenHelp, label: '?', icon: true })}
                     </label>
                     <input type="number" id="children-input" name="childrenCount" min="0" max="20" value="${profile.household.childrenCount}" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
                     <label id="disabled-children-label" for="disabled-children-input" style="display: block; font-size: 0.8rem; margin: 0.4rem 0 0.2rem;">

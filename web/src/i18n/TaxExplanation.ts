@@ -39,13 +39,14 @@ function getTaxExplanation(): string {
   </p>
   <ul>
     <li><b>Parents</b> : 2 parts si marié ou pacsé, 1 part sinon. Un veuf avec personnes à charge conserve la part de son conjoint décédé.</li>
-    <li><b>Enfants à charge</b> : les deux premiers comptent pour ${childPart} part chacun ; à partir du troisième, chacun compte pour ${2 * childPart} part.</li>
+    <li><b>Enfants à charge</b> : les deux premiers comptent pour ${childPart} part chacun ; à partir du troisième, chacun compte pour ${2 * childPart} part. Les enfants majeurs célibataires rattachés (case J) suivent les mêmes règles que les enfants mineurs : comptez-les dans les enfants en garde exclusive.</li>
     <li><b>Enfants en garde alternée</b> : comptent pour la moitié d'un enfant à charge exclusive dans le calcul des parts.</li>
     <li><b>Parent isolé</b> : 1 demi-part supplémentaire si au moins un enfant est à la charge exclusive de ce parent (sinon 1 quart de part pour au moins un enfant en garde alternée).</li>
     <li><b>Case L</b> : 1 demi-part supplémentaire pour une personne seule sans enfant à charge qui a élevé seule un enfant pendant au moins cinq ans.</li>
     <li><b>Handicap</b> : la case P (déclarant invalide) accorde 1 demi-part, avec ou sans personne à charge. Pour un couple, la case F (conjoint invalide) s'y ajoute : P + F = 1 part supplémentaire.</li>
     <li><b>Anciens combattants</b> : les cases W (déclarant) et S (conjoint) accordent 1 demi-part uniquement sans personne à charge (célibataire, divorcé ou veuf) ; pour un couple, elles ne se cumulent ni entre elles ni avec les cases d'invalidité. La case G (pension de veuve de guerre) suit les mêmes règles que W. Ces demi-parts ne se cumulent pas avec la case L.</li>
-    <li><b>Enfants handicapés</b> : chaque enfant à charge titulaire de la carte d'invalidité accorde 1 demi-part supplémentaire en garde exclusive (1 quart de part en garde alternée), en plus de sa part d'enfant à charge.</li>
+    <li><b>Enfants handicapés</b> : chaque enfant à charge titulaire de la carte d'invalidité accorde 1 demi-part supplémentaire en garde exclusive (1 quart de part en garde alternée), en plus de sa part d'enfant à charge. Un enfant handicapé compte à charge quel que soit son âge.</li>
+    <li><b>Enfants rattachés mariés ou chargés de famille (case N)</b> : pas de part supplémentaire, mais un abattement de 6 855 € par personne rattachée (l'enfant, son conjoint et chacun de ses enfants) sur le revenu net imposable — à déduire vous-même du revenu saisi.</li>
   </ul>
 
   <h3 class="help-section-title">Plafonds de réduction</h3>
