@@ -43,6 +43,8 @@ function getTaxExplanation(): string {
     <li><b>Enfants en garde alternée</b> : comptent pour la moitié d'un enfant à charge exclusive dans le calcul des parts.</li>
     <li><b>Parent isolé</b> : 1 demi-part supplémentaire si au moins un enfant est à la charge exclusive de ce parent (sinon 1 quart de part pour au moins un enfant en garde alternée).</li>
     <li><b>Case L</b> : 1 demi-part supplémentaire pour une personne seule sans enfant à charge qui a élevé seule un enfant pendant au moins cinq ans.</li>
+    <li><b>Handicap</b> : la case P (déclarant invalide) accorde 1 demi-part, avec ou sans personne à charge. Pour un couple, la case F (conjoint invalide) s'y ajoute : P + F = 1 part supplémentaire.</li>
+    <li><b>Anciens combattants</b> : les cases W (déclarant) et S (conjoint) accordent 1 demi-part uniquement sans personne à charge (célibataire, divorcé ou veuf) ; pour un couple, elles ne se cumulent ni entre elles ni avec les cases d'invalidité. La case G (pension de veuve de guerre) suit les mêmes règles que W. Ces demi-parts ne se cumulent pas avec la case L.</li>
   </ul>
 
   <h3 class="help-section-title">Plafonds de réduction</h3>
@@ -51,9 +53,10 @@ function getTaxExplanation(): string {
   </p>
   <ul>
     <li>Demi-part enfant : plafond de ${formatNumber(childCeiling)} €.</li>
-    <li>Demi-part supplémentaire parent isolé : plafond de ${formatNumber(singleParentCeiling)} € (la moitié, soit ${formatNumber(singleParentCeiling * childPart)} €, si les enfants sont tous en garde alternée).</li>
-    <li>Demi-part supplémentaire case L : plafond de ${formatNumber(caseLCeiling)} €.</li>
-    <li>Veuf avec enfants à charge : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.WIDOW_POST_CAP_REDUCTION)} € (réduction complémentaire post-plafonnement).</li>
+    <li>Parent isolé : plafond de ${formatNumber(singleParentCeiling)} € pour les deux premières demi-parts supplémentaires (premier enfant + parent isolé), soit ${formatNumber(singleParentCeiling * childPart)} € si un seul enfant en garde alternée ; les demi-parts suivantes restent au taux général.</li>
+    <li>Case L : plafond de ${formatNumber(caseLCeiling)} €, qui remplace entièrement le plafond général.</li>
+    <li>Veuf avec enfant à charge en résidence habituelle : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.WIDOW_POST_CAP_REDUCTION)} € (réduction complémentaire post-plafonnement).</li>
+    <li>Cases P/F/W/S/G : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € dès qu'une case est cochée, même si elle n'accorde pas de part (×2 pour un couple marié ou pacsé avec les cases P et F).</li>
   </ul>
   <p>Ces plafonds se cumulent.</p>
 

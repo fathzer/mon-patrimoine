@@ -1,9 +1,9 @@
-import type { Household, HouseholdData } from '../src/fiscality/Household.js';
+import type { HouseholdLike } from '../src/fiscality/Household.js';
 
 const ENDPOINT = 'https://api.fr.openfisca.org/latest/calculate';
 
 export interface OpenfiscaCase {
-  household: Household | HouseholdData;
+  household: HouseholdLike;
   rni: number;
   year?: number;
 }
@@ -29,6 +29,11 @@ interface OpenfiscaFoyer {
   personnes_a_charge: string[];
   caseT: YearMap<boolean>;
   caseL: YearMap<boolean>;
+  caseP: YearMap<boolean>;
+  caseF: YearMap<boolean>;
+  caseW: YearMap<boolean>;
+  caseS: YearMap<boolean>;
+  caseG: YearMap<boolean>;
   rni: YearMap<number | null>;
   nbptr: YearMap<number | null>;
   ir_taux_marginal: YearMap<number | null>;
@@ -104,16 +109,21 @@ function _buildIndividu(
 function _buildFoyerInputs(
   declarants: string[],
   personnesACharge: string[],
-  isSingleParent: boolean,
-  caseL: boolean,
+  household: HouseholdLike,
   rni: number,
   year: number
 ): OpenfiscaFoyer {
+  const maritalStatus = household?.maritalStatus ?? 'single';
   return {
     declarants,
     personnes_a_charge: personnesACharge,
-    caseT: { [year]: isSingleParent },
-    caseL: { [year]: caseL },
+    caseT: { [year]: (household?.isSingleParent ?? false) && maritalStatus === 'single' },
+    caseL: { [year]: (household?.caseL ?? false) && maritalStatus !== 'married' },
+    caseP: { [year]: household?.caseP ?? false },
+    caseF: { [year]: household?.caseF ?? false },
+    caseW: { [year]: household?.caseW ?? false },
+    caseS: { [year]: household?.caseS ?? false },
+    caseG: { [year]: household?.caseG ?? false },
     rni: { [year]: rni },
     nbptr: { [year]: null },
     ir_taux_marginal: { [year]: null },
@@ -143,7 +153,7 @@ export class Openfisca {
   /**
    * Computes tax and fiscal metrics for a single household.
    */
-  static async calculate(household: Household | HouseholdData, rni: number, year: number = new Date().getFullYear()): Promise<OpenfiscaResult> {
+  static async calculate(household: HouseholdLike, rni: number, year: number = new Date().getFullYear()): Promise<OpenfiscaResult> {
     const response = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -194,12 +204,10 @@ export class Openfisca {
    * Builds the request payload for a single household.
    * @private
    */
-  static _buildPayload(household: Household | HouseholdData, rni: number, year: number): Record<string, unknown> {
+  static _buildPayload(household: HouseholdLike, rni: number, year: number): Record<string, unknown> {
     const maritalStatus = household?.maritalStatus ?? 'single';
     const childrenCount = household?.childrenCount ?? 0;
     const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
-    const isSingleParent = household?.isSingleParent ?? false;
-    const caseL = household?.caseL ?? false;
     const totalChildren = childrenCount + alternateChildrenCount;
     const moiId = 'moi';
 
@@ -224,8 +232,7 @@ export class Openfisca {
         foyer: _buildFoyerInputs(
           declarants,
           personnesACharge,
-          isSingleParent && maritalStatus === 'single',
-          caseL && maritalStatus !== 'married',
+          household,
           rni,
           year
         )
@@ -245,8 +252,6 @@ export class Openfisca {
       const maritalStatus = household?.maritalStatus ?? 'single';
       const childrenCount = household?.childrenCount ?? 0;
       const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
-      const isSingleParent = household?.isSingleParent ?? false;
-      const caseL = household?.caseL ?? false;
       const totalChildren = childrenCount + alternateChildrenCount;
 
       const prefix = `c${index}`;
@@ -273,8 +278,7 @@ export class Openfisca {
       foyersFiscaux[`foyer_${index}`] = _buildFoyerInputs(
         declarants,
         personnesACharge,
-        isSingleParent && maritalStatus === 'single',
-        caseL && maritalStatus !== 'married',
+        household,
         rni,
         year
       );

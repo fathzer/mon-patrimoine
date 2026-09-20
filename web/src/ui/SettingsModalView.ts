@@ -5,7 +5,45 @@ import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
-import type { MaritalStatus } from '../fiscality/Household.js';
+import type { HouseholdData, MaritalStatus } from '../fiscality/Household.js';
+
+type CaseLetter = 'P' | 'F' | 'W' | 'S' | 'G';
+
+// Invalidity/veteran cases available per marital status, following the
+// official 2042 notice: the declarant ticks P (invalidity) always, W
+// (veteran over 74) when not in a couple, S (couple veteran) when married,
+// and G (war-widow pension) when widowed. The spouse ticks F (invalidity,
+// including a spouse who died during the income year for a widowed person).
+const DECLARANT_CASE_OPTIONS: Record<MaritalStatus, CaseLetter[]> = {
+  single: ['P', 'W'],
+  married: ['P', 'S'],
+  widowed: ['P', 'W', 'G']
+};
+
+const SPOUSE_CASE_OPTIONS: Record<MaritalStatus, CaseLetter[]> = {
+  single: [],
+  married: ['F'],
+  widowed: ['F']
+};
+
+function caseLabel(letter: string): string {
+  return letter === '' ? I18n.t('settings.caseNone') : I18n.t(`settings.case${letter}`);
+}
+
+function caseOptionsHtml(values: CaseLetter[], selected: string): string {
+  const options = [`<option value="" ${selected === '' ? 'selected' : ''}>${caseLabel('')}</option>`];
+  for (const letter of values) {
+    options.push(`<option value="${letter}" ${letter === selected ? 'selected' : ''}>${caseLabel(letter)}</option>`);
+  }
+  return options.join('');
+}
+
+/**
+ * Returns the letter of the first active case among the given ones.
+ */
+function householdCase(household: HouseholdData, letters: CaseLetter[]): string {
+  return letters.find((letter) => household[`case${letter}`] === true) ?? '';
+}
 
 export class SettingsModalView {
   container: HTMLElement;
@@ -23,6 +61,8 @@ export class SettingsModalView {
     const singleParentChecked = singleParentDisabled ? false : (profile.household.isSingleParent ?? false);
     const caseLDisabled = profile.household.maritalStatus === 'married' || totalChildren > 0;
     const caseLChecked = caseLDisabled ? false : (profile.household.caseL ?? false);
+    const declarantCase = householdCase(profile.household, DECLARANT_CASE_OPTIONS[profile.household.maritalStatus]);
+    const spouseCase = householdCase(profile.household, SPOUSE_CASE_OPTIONS[profile.household.maritalStatus]);
 
     const netIncomeHelp='Votre revenu net est constitué de votre revenu imposable diminué des charges déductibles. Par exemple, vos salaires diminués du forfait de 10% de frais professionnels.';
     const caseLHelp=`Vous viviez seul au 1er janvier 2025 (ou au 31 décembre 2025 en cas de divorce/séparation/rupture de Pacs en 2025) et vous avez un enfant :
@@ -31,6 +71,14 @@ export class SettingsModalView {
         <li>ou décédé après l'âge de 16 ans ou par suite de faits de guerre.</li>
       </ul>
       Vous avez élevé cet enfant pendant au moins cinq années au cours desquelles vous viviez seul.`;
+    const disabilityCasesHelp=`
+      <ul>
+        <li><b>P</b> : vous êtes titulaire d'une pension (militaire, accident du travail) pour invalidité d'au moins 40 %, de la carte d'invalidité ou de la carte mobilité inclusion (CMI) mention « invalidité ».</li>
+        <li><b>F</b> : votre conjoint remplit ces conditions, ou votre conjoint décédé en 2025 les remplissait.</li>
+        <li><b>W</b> : célibataire, divorcé(e), séparé(e) ou veuf(ve), vous êtes âgé de plus de 74 ans et titulaire de la carte du combattant ou d'une pension militaire d'invalidité ou de victime de guerre ; ou votre conjoint décédé en bénéficiait.</li>
+        <li><b>S</b> : marié(e) ou pacsé(e), l'un des deux déclarants âgé de plus de 74 ans remplit ces conditions.</li>
+        <li><b>G</b> : vous avez une pension de veuve de guerre.</li>
+      </ul>`;
 
     const fiscalSummary = TaxCalculator.computeFiscalMetrics(profile);
     const parentsParts = profile.household.maritalStatus === 'married' ? 2 : 1;
@@ -62,6 +110,23 @@ export class SettingsModalView {
                     <option value="single" ${profile.household.maritalStatus === 'single' ? 'selected' : ''}>${I18n.t('settings.maritalStatusSingle')}</option>
                     <option value="married" ${profile.household.maritalStatus === 'married' ? 'selected' : ''}>${I18n.t('settings.maritalStatusMarried')}</option>
                     <option value="widowed" ${profile.household.maritalStatus === 'widowed' ? 'selected' : ''}>${I18n.t('settings.maritalStatusWidowed')}</option>
+                  </select>
+
+                  <div style="display: flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem;">
+                    <label for="declarant-case-input" style="display: block; font-weight: bold; margin-bottom: 0.3rem;">
+                      ${I18n.t('settings.declarantCase')}
+                    </label>
+                    ${HelpPopover.getHtml({ content: disabilityCasesHelp, label: '?', icon: true })}
+                  </div>
+                  <select id="declarant-case-input" name="declarantCase" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
+                    ${caseOptionsHtml(DECLARANT_CASE_OPTIONS[profile.household.maritalStatus], declarantCase)}
+                  </select>
+
+                  <label id="spouse-case-label" for="spouse-case-input" style="display: block; font-weight: bold; margin: 0.6rem 0 0.3rem;">
+                    ${I18n.t('settings.spouseCase')}
+                  </label>
+                  <select id="spouse-case-input" name="spouseCase" class="form-control" ${profile.household.maritalStatus === 'single' ? 'disabled' : ''} style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
+                    ${caseOptionsHtml(SPOUSE_CASE_OPTIONS[profile.household.maritalStatus], spouseCase)}
                   </select>
                 </div>
 
@@ -194,6 +259,9 @@ export class SettingsModalView {
     const alternateChildrenInput = form.querySelector('#alternate-children-input') as HTMLInputElement;
     const singleParentInput = form.querySelector('#single-parent-input') as HTMLInputElement;
     const caseLInput = form.querySelector('#case-l-input') as HTMLInputElement;
+    const declarantCaseInput = form.querySelector('#declarant-case-input') as HTMLSelectElement;
+    const spouseCaseInput = form.querySelector('#spouse-case-input') as HTMLSelectElement;
+    const spouseCaseLabel = form.querySelector('#spouse-case-label') as HTMLElement;
     const taxableIncomeInput = form.querySelector('#taxable-income-input') as HTMLInputElement;
     const partsDisplay = form.querySelector('#parts-display');
     const reductionCeilingWrapper = form.querySelector('#reduction-ceiling-wrapper') as HTMLElement | null;
@@ -217,6 +285,26 @@ export class SettingsModalView {
       }
     };
 
+    // The invalidity/veteran cases offered depend on the marital status; the
+    // spouse select is disabled for a single/divorced taxpayer.
+    const updateDisabilityCases = (): void => {
+      const status = statusSelect.value as MaritalStatus;
+      const declarantValues: string[] = DECLARANT_CASE_OPTIONS[status];
+      const spouseValues: string[] = SPOUSE_CASE_OPTIONS[status];
+      const declarantSelected = declarantValues.includes(declarantCaseInput.value) ? declarantCaseInput.value : '';
+      const spouseSelected = spouseValues.includes(spouseCaseInput.value) ? spouseCaseInput.value : '';
+      declarantCaseInput.innerHTML = caseOptionsHtml(DECLARANT_CASE_OPTIONS[status], declarantSelected);
+      spouseCaseInput.innerHTML = caseOptionsHtml(SPOUSE_CASE_OPTIONS[status], spouseSelected);
+      const spouseDisabled = spouseValues.length === 0;
+      spouseCaseInput.disabled = spouseDisabled;
+      spouseCaseInput.value = spouseSelected;
+      spouseCaseInput.style.opacity = spouseDisabled ? '0.6' : '';
+      spouseCaseInput.style.cursor = spouseDisabled ? 'not-allowed' : '';
+      if (spouseCaseLabel) {
+        spouseCaseLabel.style.opacity = spouseDisabled ? '0.6' : '';
+      }
+    };
+
     const updateFiscalSummary = (): void => {
       const taxableIncome = Number.parseFloat(taxableIncomeInput.value || '0');
       const summary = TaxCalculator.computeFiscalMetrics({
@@ -225,7 +313,12 @@ export class SettingsModalView {
           childrenCount: Number.parseInt(childrenInput.value || '0', 10),
           alternateChildrenCount: Number.parseInt(alternateChildrenInput.value || '0', 10),
           isSingleParent: singleParentInput.checked,
-          caseL: caseLInput.checked
+          caseL: caseLInput.checked,
+          caseP: declarantCaseInput.value === 'P',
+          caseW: declarantCaseInput.value === 'W',
+          caseG: declarantCaseInput.value === 'G',
+          caseS: declarantCaseInput.value === 'S',
+          caseF: spouseCaseInput.value === 'F'
         },
         taxableIncome
       });
@@ -253,6 +346,7 @@ export class SettingsModalView {
 
     statusSelect?.addEventListener('change', () => {
       updateSingleParent();
+      updateDisabilityCases();
       updateFiscalSummary();
     });
     childrenInput?.addEventListener('input', () => {
@@ -265,7 +359,12 @@ export class SettingsModalView {
     });
     singleParentInput?.addEventListener('change', updateFiscalSummary);
     caseLInput?.addEventListener('change', updateFiscalSummary);
+    declarantCaseInput?.addEventListener('change', updateFiscalSummary);
+    spouseCaseInput?.addEventListener('change', updateFiscalSummary);
     taxableIncomeInput?.addEventListener('input', updateFiscalSummary);
+
+    // Apply the initial disabled look for the spouse case select
+    updateDisabilityCases();
 
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -277,10 +376,27 @@ export class SettingsModalView {
       const totalChildren = childrenCount + alternateChildrenCount;
       const isSingleParent = maritalStatus === 'single' && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
       const caseL = maritalStatus !== 'married' && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
+      const declarantCaseValues: string[] = DECLARANT_CASE_OPTIONS[maritalStatus];
+      const spouseCaseValues: string[] = SPOUSE_CASE_OPTIONS[maritalStatus];
+      const declarantCaseValue = formData.get('declarantCase') as string;
+      const spouseCaseValue = formData.get('spouseCase') as string;
+      const declarantCase = declarantCaseValues.includes(declarantCaseValue) ? declarantCaseValue : '';
+      const spouseCase = spouseCaseValues.includes(spouseCaseValue) ? spouseCaseValue : '';
       const usePfu = formData.get('usePfu') === 'on';
 
       const profileData: TaxProfileInput = {
-        household: { maritalStatus, childrenCount, alternateChildrenCount, isSingleParent, caseL },
+        household: {
+          maritalStatus,
+          childrenCount,
+          alternateChildrenCount,
+          isSingleParent,
+          caseL,
+          caseP: declarantCase === 'P',
+          caseW: declarantCase === 'W',
+          caseG: declarantCase === 'G',
+          caseS: declarantCase === 'S',
+          caseF: spouseCase === 'F'
+        },
         taxableIncome,
         usePfu
       };

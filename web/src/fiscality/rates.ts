@@ -22,11 +22,18 @@ export const FISCAL_RATES = {
     CHILD: 0.5,
     CEILING: {
       CHILD: 1807,
-      SINGLE_PARENT: 2455,
+      // Case T (single parent): ceiling shared by the first two extra half
+      // parts (first child + single parent half part)
+      SINGLE_PARENT: 4262,
+      // Case L: flat ceiling replacing the general one entirely
       CASE_L: 1079,
       // Post-ceiling complementary reduction for widowed taxpayers with
       // dependent children (reduc_postplafond_veuf)
-      WIDOW_POST_CAP_REDUCTION: 2011
+      WIDOW_POST_CAP_REDUCTION: 2011,
+      // Post-ceiling complementary reduction for disability/veteran cases
+      // (reduc_postplafond, doubled when both spouses of a married couple
+      // are disabled - cases P & F)
+      DISABILITY_POST_CAP_REDUCTION: 1801
     }
   },
   DECOTE: {

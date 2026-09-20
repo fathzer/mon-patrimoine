@@ -16,20 +16,19 @@ Voici la structure globale :
 ### Lancer l'application en local
 
 L'application est écrite en TypeScript et doit être compilée avant d'être servie.
+Le projet utilise [Bun](https://bun.sh/) comme gestionnaire de paquets et pour les tests.
 
 ```bash
 cd web
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Puis ouvrir http://localhost:5500 dans votre navigateur.
 
-`npm run dev` lance `tsc --watch` (recompilation automatique) et un serveur HTTP statique sur le port 5500.
+`bun run dev` lance `tsc --watch` (recompilation automatique) et un serveur HTTP statique sur le port 5500.
 
 ### Tests
-
-Les tests utilisent [Bun](https://bun.sh/) :
 
 ```bash
 cd web

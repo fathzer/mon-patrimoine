@@ -60,7 +60,7 @@ Convention de nommage :
 Pour exécuter les tests :
 
 ```bash
-cd web && npm test
+cd web && bun test
 ```
 
 Les fichiers `*.test.ts` sont exclus de la compilation TypeScript
@@ -326,7 +326,7 @@ contrats internes au module, pas une API de l'hôte.
 3. Ajouter une entrée à `web/placements.json` (`name`).
 4. Ajouter des tests co-localisés (`module.test.ts`, `<Fichier>.test.ts`) pour
    les calculs et logiques spécifiques au module.
-5. Recompiler (`npm run build`). Aucune autre modification de code n'est
+5. Recompiler (`bun run build`). Aucune autre modification de code n'est
    requise — la factory découvre le module depuis `placements.json`, câble son
    éditeur via `getEditorClass()` et son explication fiscale via
    `getTaxExplanation()`.

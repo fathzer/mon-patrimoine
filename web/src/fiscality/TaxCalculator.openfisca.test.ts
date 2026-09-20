@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "bun:test";
-import { Openfisca } from "../../tests/Openfisca.js";
+import { Openfisca, type OpenfiscaResult } from "../../tests/Openfisca.js";
 import { TaxCalculator } from "./TaxCalculator.js";
 import { Household } from "./Household.js";
 
@@ -114,10 +114,209 @@ const cases = [
       caseL: true
     }),
     rni: 150000
+  },
+  {
+    name: "single with case P (invalidity) and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with case W (veteran) and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseW: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with case P, 1 child and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with case W, 1 child and 150 000 € (veteran grants no part but the reduction)",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      caseW: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with case P, 1 alternate-custody child and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 0,
+      alternateChildrenCount: 1,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single parent with case T, case P, 1 child and 150 000 €",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      isSingleParent: true,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "single with cases L and P and 150 000 € (half parts do not cumulate, case L ceiling applies)",
+    household: new Household({
+      maritalStatus: "single",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseL: true,
+      caseP: true
+    }),
+    rni: 150000
+  },
+
+  {
+    name: "married with case P and 150 000 €",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "married with cases P and F and 150 000 €",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseP: true,
+      caseF: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "married with cases P and F and 500 000 € (double reduction)",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseP: true,
+      caseF: true
+    }),
+    rni: 500000
+  },
+  {
+    name: "married with cases W and S and 150 000 € (veteran cases do not cumulate)",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseW: true,
+      caseS: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "married with cases P and W and 150 000 € (same person, no cumulation)",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseP: true,
+      caseW: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "married with cases P and F, 2 children and 200 000 €",
+    household: new Household({
+      maritalStatus: "married",
+      childrenCount: 2,
+      alternateChildrenCount: 0,
+      caseP: true,
+      caseF: true
+    }),
+    rni: 200000
+  },
+  {
+    name: "widowed with case G (war-widow pension) and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 0,
+      alternateChildrenCount: 0,
+      caseG: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 child, case P and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      caseP: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 child, case G and 150 000 € (no part but the reduction)",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      caseG: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 child, case W and 150 000 € (no part but the reduction)",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      caseW: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 child, cases P and G and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 1,
+      alternateChildrenCount: 0,
+      caseP: true,
+      caseG: true
+    }),
+    rni: 150000
+  },
+  {
+    name: "widowed with 1 alternate-custody child, case P and 150 000 €",
+    household: new Household({
+      maritalStatus: "widowed",
+      childrenCount: 0,
+      alternateChildrenCount: 1,
+      caseP: true
+    }),
+    rni: 150000
   }
 ];
 
-let openfiscaResults;
+let openfiscaResults: OpenfiscaResult[];
 
 describe("TaxCalculator vs OpenFisca", () => {
   beforeAll(async () => {
