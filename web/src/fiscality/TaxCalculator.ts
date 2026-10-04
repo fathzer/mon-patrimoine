@@ -1,4 +1,5 @@
-import { FISCAL_RATES } from './rates.js';
+import { getFiscalRates } from './rates.js';
+import type { YearlyFiscalRates } from './rates.js';
 import type { Household, HouseholdLike, MaritalStatus } from './Household.js';
 
 export interface FiscalProfile {
@@ -72,7 +73,7 @@ export class TaxCalculator {
    * Computes the tax impact and RNI delta for a single placement income.
    * @private
    */
-  private static _processPlacementIncome(profile: FiscalProfile | undefined, income: PlacementIncome): IncomeProcessingDelta {
+  private static _processPlacementIncome(profile: FiscalProfile | undefined, income: PlacementIncome, rates: YearlyFiscalRates): IncomeProcessingDelta {
     if (!Number.isFinite(income.assietteImposition)) {
       throw new TypeError('income.assietteImposition must be a number');
     }
@@ -82,14 +83,14 @@ export class TaxCalculator {
     }
 
     if (income?.eligiblePfu) {
-      if (profile?.usePfu) {
-        const rate = income?.tauxSpecifique ?? FISCAL_RATES.PFU_IR_RATE;
+      if (profile?.usePfu && rates.PFU_AVAILABLE) {
+        const rate = income?.tauxSpecifique ?? rates.PFU_IR_RATE;
         return { flatTaxDelta: base * rate, rniDelta: 0 };
       }
       return { flatTaxDelta: 0, rniDelta: base };
     }
 
-    const deduction = (income?.deductionRevenus ?? 0) * FISCAL_RATES.PFU_CSG_REDUCTION_RATE;
+    const deduction = (income?.deductionRevenus ?? 0) * rates.PFU_CSG_REDUCTION_RATE;
     if (income?.tauxSpecifique != null) {
       return { flatTaxDelta: base * income.tauxSpecifique, rniDelta: -deduction };
     }
@@ -102,7 +103,12 @@ export class TaxCalculator {
    * Other incomes are aggregated into a modified taxable income, and the progressive
    * tax difference between this new base and the original RNI is added to the flat tax.
    */
-  static calculatePlacementTax(profile: FiscalProfile, incomes: PlacementIncome[]): number {
+  /**
+   * `incomeYear` is the income year the revenues are attached to and selects
+   * the applicable tax schedule; unknown years fall back to the latest known
+   * schedule (the former fixed-rates behavior).
+   */
+  static calculatePlacementTax(profile: FiscalProfile, incomes: PlacementIncome[], incomeYear: number = new Date().getFullYear()): number {
     if (!Array.isArray(incomes)) {
       throw new TypeError('incomes must be an array of PlacementIncome');
     }
@@ -113,20 +119,21 @@ export class TaxCalculator {
       return 0;
     }
 
+    const rates = getFiscalRates(incomeYear);
     const rni = profile.taxableIncome;
     let flatTax = 0;
     let modifiedRni = rni;
 
     for (const income of incomes) {
-      const { flatTaxDelta, rniDelta } = this._processPlacementIncome(profile, income);
+      const { flatTaxDelta, rniDelta } = this._processPlacementIncome(profile, income, rates);
       flatTax += flatTaxDelta;
       modifiedRni += rniDelta;
     }
 
     if (modifiedRni !== rni) {
-      const fiscalMetrics = this.computeFiscalMetrics(profile);
-      const taxOnModified = this.computeRawTax(modifiedRni, fiscalMetrics.parts).rawTax;
-      const taxOnRni = this.computeRawTax(rni, fiscalMetrics.parts).rawTax;
+      const fiscalMetrics = this.computeFiscalMetrics(profile, incomeYear);
+      const taxOnModified = this.computeRawTax(modifiedRni, fiscalMetrics.parts, incomeYear).rawTax;
+      const taxOnRni = this.computeRawTax(rni, fiscalMetrics.parts, incomeYear).rawTax;
       flatTax += taxOnModified - taxOnRni;
     }
 
@@ -136,25 +143,26 @@ export class TaxCalculator {
   /**
    * Computes tax for a specific placement income using the chosen tax mode.
    */
-  static calculateTax(profile: FiscalProfile | undefined, income: PlacementIncome): number {
+  static calculateTax(profile: FiscalProfile | undefined, income: PlacementIncome, incomeYear: number = new Date().getFullYear()): number {
     const base = income?.assietteImposition ?? 0;
     if (base <= 0) {
       return 0;
     }
 
+    const rates = getFiscalRates(incomeYear);
     const eligiblePfu = income?.eligiblePfu ?? false;
     const deductionRevenus = income?.deductionRevenus ?? 0;
     const tauxSpecifique = income?.tauxSpecifique;
 
     let taxableBase = base;
     if (deductionRevenus > 0) {
-      const deduction = deductionRevenus * FISCAL_RATES.PFU_CSG_REDUCTION_RATE;
+      const deduction = deductionRevenus * rates.PFU_CSG_REDUCTION_RATE;
       taxableBase = Math.max(0, taxableBase - deduction);
     }
 
     let rate = -1;
-    if (eligiblePfu && profile?.usePfu) {
-      rate = tauxSpecifique ?? FISCAL_RATES.PFU_IR_RATE;
+    if (eligiblePfu && profile?.usePfu && rates.PFU_AVAILABLE) {
+      rate = tauxSpecifique ?? rates.PFU_IR_RATE;
     } else if (tauxSpecifique != null) {
       rate = tauxSpecifique;
     }
@@ -164,20 +172,21 @@ export class TaxCalculator {
     }
     // TODO: A corriger (Tout est faux dans le cas hors PFU, en plus il doit manquer les déductions du revenu de la CSG déductible)
 
-    const { tmi } = this.computeFiscalMetrics(profile as FiscalProfile);
+    const { tmi } = this.computeFiscalMetrics(profile as FiscalProfile, incomeYear);
     return taxableBase * tmi;
   }
 
   /**
    * Computes the fiscal metrics displayed in the UI.
    */
-  static computeFiscalMetrics(profile: FiscalMetricsInput | undefined): FiscalMetrics {
+  static computeFiscalMetrics(profile: FiscalMetricsInput | undefined, incomeYear: number = new Date().getFullYear()): FiscalMetrics {
     const household = profile?.household;
     const taxableIncome = Number.isFinite(profile?.taxableIncome) ? (profile as FiscalMetricsInput).taxableIncome! : 0;
+    const rates = getFiscalRates(incomeYear);
     const parentsParts = this._getParentsParts(household?.maritalStatus);
-    const { extraParts, ceiling } = this._computeChildrenImpact(household);
+    const { extraParts, ceiling } = this._computeChildrenImpact(household, rates);
     const parts = parentsParts + extraParts;
-    const tmi = this._computeTmi(taxableIncome, parts);
+    const tmi = this._computeTmi(taxableIncome, parts, rates);
 
     return { parts, halfPartReductionCeiling: ceiling, tmi };
   }
@@ -185,7 +194,7 @@ export class TaxCalculator {
   /**
    * Computes raw income tax for a given taxable income and number of parts.
    */
-  static computeRawTax(taxableIncome: number, parts: number): RawTaxResult {
+  static computeRawTax(taxableIncome: number, parts: number, incomeYear: number = new Date().getFullYear()): RawTaxResult {
     if (parts <= 0 || taxableIncome <= 0) {
       return { rawTax: 0, tmi: 0 };
     }
@@ -193,7 +202,7 @@ export class TaxCalculator {
     let taxPerPart = 0;
     let previousLimit = 0;
     let tmi = 0;
-    for (const bracket of FISCAL_RATES.INCOME_TAX_BRACKETS) {
+    for (const bracket of getFiscalRates(incomeYear).INCOME_TAX_BRACKETS) {
       if (incomePerPart <= previousLimit) {
         break;
       }
@@ -214,25 +223,28 @@ export class TaxCalculator {
     if (!household || !Number.isFinite(rni)) {
       throw new Error('Household and RNI are required');
     }
-    const fiscalMetrics = this.computeFiscalMetrics({ household, taxableIncome: rni });
+    // `year` is the income year: it selects the schedule, decote and
+    // quotient-familial ceilings that apply to this RNI.
+    const fiscalMetrics = this.computeFiscalMetrics({ household, taxableIncome: rni }, year);
     const parentsParts = this._getParentsParts(household.maritalStatus);
     const extraParts = fiscalMetrics.parts - parentsParts;
-    return this.computeFinalTax(rni, household.maritalStatus, extraParts, fiscalMetrics.halfPartReductionCeiling);
+    return this.computeFinalTax(rni, household.maritalStatus, extraParts, fiscalMetrics.halfPartReductionCeiling, year);
   }
 
   /**
    * Computes the final tax including extra parts cap and decote.
    */
-  static computeFinalTax(taxableIncome: number, maritalStatus: MaritalStatus, extraParts: number, reductionCeiling: number): FinalTaxResult {
+  static computeFinalTax(taxableIncome: number, maritalStatus: MaritalStatus, extraParts: number, reductionCeiling: number, incomeYear: number = new Date().getFullYear()): FinalTaxResult {
+    const rates = getFiscalRates(incomeYear);
     const parentsParts = this._getParentsParts(maritalStatus);
     const totalParts = parentsParts + extraParts;
-    const withExtra = this.computeRawTax(taxableIncome, totalParts);
-    const withoutExtra = this.computeRawTax(taxableIncome, parentsParts);
+    const withExtra = this.computeRawTax(taxableIncome, totalParts, incomeYear);
+    const withoutExtra = this.computeRawTax(taxableIncome, parentsParts, incomeYear);
     const cappedRaw = Math.max(0, withoutExtra.rawTax - reductionCeiling);
     const selected = withExtra.rawTax >= cappedRaw ? withExtra : { rawTax: cappedRaw, tmi: withoutExtra.tmi };
     const rawTax = selected.rawTax;
     const tmi = selected.tmi;
-    const decote = this._computeDecote(rawTax, maritalStatus);
+    const decote = this._computeDecote(rawTax, maritalStatus, rates);
     const finalTax = Math.round(Math.max(0, rawTax - decote));
     const extraPartsBenefit = Math.max(0, withoutExtra.rawTax - rawTax);
     return { finalTax, decote, tmi, extraPartsBenefit };
@@ -249,7 +261,7 @@ export class TaxCalculator {
   /**
    * Computes the extra parts and reduction ceiling generated by children.
    */
-  private static _computeChildrenImpact(household: HouseholdLike | undefined): ChildrenImpact {
+  private static _computeChildrenImpact(household: HouseholdLike | undefined, rates: YearlyFiscalRates): ChildrenImpact {
     const maritalStatus = household?.maritalStatus ?? 'single';
     const childrenCount = household?.childrenCount ?? 0;
     const alternateChildrenCount = household?.alternateChildrenCount ?? 0;
@@ -259,16 +271,16 @@ export class TaxCalculator {
 
     // Disabled children grant extra parts on top of their custody part
     // (OpenFisca n2: 0.5 per exclusive-custody child, 0.25 per alternated).
-    const halfPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
+    const halfPart = rates.EXTRA_PARTS.CHILD;
     const disabledParts = (household?.disabledChildrenCount ?? 0) * halfPart
       + (household?.disabledAlternateChildrenCount ?? 0) * halfPart / 2;
 
     // Widowed taxpayers with dependent children keep the deceased spouse's part.
     const widowParts = maritalStatus === 'widowed' && totalChildren > 0 ? 1 : 0;
 
-    const statusParts = this._computeStatusParts(household, maritalStatus, childrenCount, alternateChildrenCount);
+    const statusParts = this._computeStatusParts(household, maritalStatus, childrenCount, alternateChildrenCount, rates);
     const extraParts = childParts + disabledParts + widowParts + statusParts;
-    const ceiling = this._computeReductionCeiling(household, maritalStatus, childrenCount, extraParts);
+    const ceiling = this._computeReductionCeiling(household, maritalStatus, childrenCount, extraParts, rates);
     return { extraParts, ceiling };
   }
 
@@ -296,13 +308,14 @@ export class TaxCalculator {
     household: HouseholdLike | undefined,
     maritalStatus: MaritalStatus,
     childrenCount: number,
-    alternateChildrenCount: number
+    alternateChildrenCount: number,
+    rates: YearlyFiscalRates
   ): number {
     if (maritalStatus === 'married') {
-      return this._computeCoupleCaseParts(household);
+      return this._computeCoupleCaseParts(household, rates);
     }
-    return this._computeLoneAdultCaseParts(household, childrenCount + alternateChildrenCount)
-      + this._computeSingleParentPart(household, maritalStatus, childrenCount, alternateChildrenCount);
+    return this._computeLoneAdultCaseParts(household, childrenCount + alternateChildrenCount, rates)
+      + this._computeSingleParentPart(household, maritalStatus, childrenCount, alternateChildrenCount, rates);
   }
 
   /**
@@ -311,12 +324,12 @@ export class TaxCalculator {
    * part (cases P and F); veteran cases (W, S) grant a single half part, and
    * the two groups never add up: the household gets the better of the two.
    */
-  private static _computeCoupleCaseParts(household: HouseholdLike | undefined): number {
+  private static _computeCoupleCaseParts(household: HouseholdLike | undefined, rates: YearlyFiscalRates): number {
     const caseP = household?.caseP ?? false;
     const caseF = household?.caseF ?? false;
     const invalidityHalfParts = (caseP ? 1 : 0) + (caseF ? 1 : 0);
     const veteranHalfParts = (household?.caseW ?? false) || (household?.caseS ?? false) ? 1 : 0;
-    return Math.max(invalidityHalfParts, veteranHalfParts) * FISCAL_RATES.EXTRA_PARTS.CHILD;
+    return Math.max(invalidityHalfParts, veteranHalfParts) * rates.EXTRA_PARTS.CHILD;
   }
 
   /**
@@ -325,8 +338,8 @@ export class TaxCalculator {
    * invalidity (case P) grants a half part; without dependents, cases P/W/G
    * and case L are mutually exclusive and grant a single half part at most.
    */
-  private static _computeLoneAdultCaseParts(household: HouseholdLike | undefined, totalChildren: number): number {
-    const halfPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
+  private static _computeLoneAdultCaseParts(household: HouseholdLike | undefined, totalChildren: number, rates: YearlyFiscalRates): number {
+    const halfPart = rates.EXTRA_PARTS.CHILD;
     const caseP = household?.caseP ?? false;
     if (totalChildren > 0) {
       return caseP ? halfPart : 0;
@@ -345,9 +358,10 @@ export class TaxCalculator {
     household: HouseholdLike | undefined,
     maritalStatus: MaritalStatus,
     childrenCount: number,
-    alternateChildrenCount: number
+    alternateChildrenCount: number,
+    rates: YearlyFiscalRates
   ): number {
-    const halfPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
+    const halfPart = rates.EXTRA_PARTS.CHILD;
     if (maritalStatus !== 'single' || !(household?.isSingleParent ?? false)) {
       return 0;
     }
@@ -370,9 +384,10 @@ export class TaxCalculator {
     household: HouseholdLike | undefined,
     maritalStatus: MaritalStatus,
     childrenCount: number,
-    extraParts: number
+    extraParts: number,
+    rates: YearlyFiscalRates
   ): number {
-    const ceilings = FISCAL_RATES.EXTRA_PARTS.CEILING;
+    const ceilings = rates.EXTRA_PARTS.CEILING;
     const extraHalfParts = extraParts * 2;
     let ceiling: number;
 
@@ -415,22 +430,22 @@ export class TaxCalculator {
   /**
    * Computes the decote for a raw tax amount and marital status.
    */
-  private static _computeDecote(rawTax: number, maritalStatus: MaritalStatus): number {
+  private static _computeDecote(rawTax: number, maritalStatus: MaritalStatus, rates: YearlyFiscalRates): number {
     const decoteLimit = maritalStatus === 'married'
-      ? FISCAL_RATES.DECOTE.limit_couple
-      : FISCAL_RATES.DECOTE.limit_single;
-    return Math.round(Math.max(0, decoteLimit - FISCAL_RATES.DECOTE.rate * rawTax));
+      ? rates.DECOTE.limit_couple
+      : rates.DECOTE.limit_single;
+    return Math.round(Math.max(0, decoteLimit - rates.DECOTE.rate * rawTax));
   }
 
   /**
    * Computes the marginal income tax rate (TMI) from taxable income and parts.
    */
-  private static _computeTmi(taxableIncome: number, parts: number): number {
+  private static _computeTmi(taxableIncome: number, parts: number, rates: YearlyFiscalRates): number {
     if (parts <= 0 || taxableIncome <= 0) {
       return 0;
     }
     const incomePerPart = taxableIncome / parts;
-    for (const bracket of FISCAL_RATES.INCOME_TAX_BRACKETS) {
+    for (const bracket of rates.INCOME_TAX_BRACKETS) {
       if (incomePerPart <= bracket.limit) {
         return bracket.rate;
       }

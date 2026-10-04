@@ -34,8 +34,8 @@ export type { FiscalProfile, PlacementIncome } from '../../../fiscality/TaxCalcu
 export { TaxCalculator } from '../../../fiscality/TaxCalculator.js';
 
 // --- Fiscal rates ---
-export { SOCIAL_CONTRIBUTION_RATES, FISCAL_RATES } from '../../../fiscality/rates.js';
-export type { TaxBracket } from '../../../fiscality/rates.js';
+export { SOCIAL_CONTRIBUTION_RATES, FISCAL_RATES, FISCAL_RATES_BY_YEAR, getFiscalRates, getSocialContributionRate } from '../../../fiscality/rates.js';
+export type { TaxBracket, YearlyFiscalRates } from '../../../fiscality/rates.js';
 
 // --- Help popover ---
 export { HelpPopover } from '../../../ui/HelpPopover.js';

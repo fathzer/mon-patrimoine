@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
 import { CtoEditor } from './Editor.js';
 import { getCtoTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -41,12 +41,12 @@ export class CtoModule extends BasePlacement {
     return Math.max(0, this.currentValue - this.acquisitionValue - this.cashBalance);
   }
 
-  getSocialChargesRate(): number {
-    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+  getSocialChargesRate(now: Date = new Date()): number {
+    return getSocialContributionRate(now);
   }
 
-  getSocialCharges(): number {
-    return this.getLatentGain() * this.getSocialChargesRate();
+  getSocialCharges(now: Date = new Date()): number {
+    return this.getLatentGain() * this.getSocialChargesRate(now);
   }
 
   override getTaxableIncomes(fiscalProfile: FiscalProfile, now: Date = new Date()): PlacementIncome[] {
@@ -56,15 +56,15 @@ export class CtoModule extends BasePlacement {
       : [];
   }
 
-  override getEvaluation(fiscalProfile: FiscalProfile): Evaluation {
-    const socialCharges = this.getSocialCharges();
+  override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
+    const socialCharges = this.getSocialCharges(now);
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
       latentGain: this.getLatentGain(),
-      imposition: this.getImposition(fiscalProfile)
+      imposition: this.getImposition(fiscalProfile, now)
     };
   }
 

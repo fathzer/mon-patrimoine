@@ -143,7 +143,7 @@ export abstract class BasePlacement {
    * Subclasses call this from `getEvaluation()`; they do not override it.
    */
   protected getImposition(fiscalProfile: FiscalProfile, now: Date = new Date()): number {
-    return TaxCalculator.calculatePlacementTax(fiscalProfile, this.getTaxableIncomes(fiscalProfile, now));
+    return TaxCalculator.calculatePlacementTax(fiscalProfile, this.getTaxableIncomes(fiscalProfile, now), now.getFullYear());
   }
 
   /**

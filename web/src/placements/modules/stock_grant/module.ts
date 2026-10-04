@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
 import { StockGrantEditor } from './Editor.js';
 import { StockGrantTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -133,15 +133,15 @@ export class StockGrant {
     };
   }
 
-  getPlueValueSocialCharges(currentPrice: number): number {
+  getPlueValueSocialCharges(currentPrice: number, now: Date = new Date()): number {
     const plueValue = currentPrice * this.numberOfShares - this.getRealAcquisitionGain(currentPrice);
-    return plueValue * SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+    return plueValue * getSocialContributionRate(now);
   }
 
   /**
    * Computes the social charges on the acquisition gain of this grant (including employer contribution).
    */
-  getAcquisitionSocialCharges(currentPrice: number, threshold: number = 0): number {
+  getAcquisitionSocialCharges(currentPrice: number, threshold: number = 0, now: Date = new Date()): number {
     const acquisitionGain = this.getRealAcquisitionGain(currentPrice);
 
     const attributionDate = new Date(this.attributionDate);
@@ -154,18 +154,19 @@ export class StockGrant {
     const specialRate = SPECIAL_SOCIAL_RATE;
     const employerContributionRate = EMPLOYER_CONTRIBUTION_RATE;
 
+    const socialRate = getSocialContributionRate(now);
     let socialCharges = 0;
     if (attributionDate < BEFORE_2012_REFORM) {
-      socialCharges = acquisitionGain * SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+      socialCharges = acquisitionGain * socialRate;
     } else if (attributionDate < FROM_2015_REFORM) {
       socialCharges = acquisitionGain * specialRate;
     } else if (attributionDate < FROM_2016_REFORM) {
-      socialCharges = acquisitionGain * SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+      socialCharges = acquisitionGain * socialRate;
     } else {
       // From 31/12/2016: split the gain between the standard and special rates.
       const belowThreshold = Math.max(0, Math.min(acquisitionGain, threshold));
       const aboveThreshold = Math.max(0, acquisitionGain - threshold);
-      socialCharges = belowThreshold * SOCIAL_CONTRIBUTION_RATES.CSG_CRDS + aboveThreshold * specialRate;
+      socialCharges = belowThreshold * socialRate + aboveThreshold * specialRate;
     }
 
     // 10% employer contribution (contribution salariale)
@@ -258,7 +259,7 @@ export class StockGrantModule extends BasePlacement {
    * its acquisition social charges (using the allocated threshold) plus its
    * capital gain social charges.
    */
-  getSocialCharges(): number {
+  getSocialCharges(now: Date = new Date()): number {
     const currentPrice = this.currentPrice;
 
     const eligibleGrants = this.attributions.filter(a => a.isEligibleFor300kThreshold());
@@ -277,8 +278,8 @@ export class StockGrantModule extends BasePlacement {
     return this.attributions.reduce((sum, grant) => {
       const threshold = thresholdMap.get(grant) ?? 0;
       return sum
-        + grant.getAcquisitionSocialCharges(currentPrice, threshold)
-        + grant.getPlueValueSocialCharges(currentPrice);
+        + grant.getAcquisitionSocialCharges(currentPrice, threshold, now)
+        + grant.getPlueValueSocialCharges(currentPrice, now);
     }, 0);
   }
 
@@ -321,14 +322,14 @@ export class StockGrantModule extends BasePlacement {
 
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
     const grossValue = this.getLatentGain();
-    const socialCharges = this.getSocialCharges();
+    const socialCharges = this.getSocialCharges(now);
 
     return {
       grossValue,
       netValueBeforeIR: grossValue - socialCharges,
       socialCharges,
       latentGain: grossValue,
-      imposition: this.getImposition(fiscalProfile)
+      imposition: this.getImposition(fiscalProfile, now)
     };
   }
 

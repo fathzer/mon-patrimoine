@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
 import { PerEditor } from './Editor.js';
 import { getPerTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -136,8 +136,8 @@ export class PerModule extends BasePlacement {
     return c.deducted.gain + c.non_deducted.gain + c.employee_savings.gain;
   }
 
-  getSocialChargesRate(): number {
-    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+  getSocialChargesRate(now: Date = new Date()): number {
+    return getSocialContributionRate(now);
   }
 
   /**
@@ -146,11 +146,11 @@ export class PerModule extends BasePlacement {
    * When the user provides a known net value before IR, social charges are
    * derived from it instead of computed from gains.
    */
-  getSocialCharges(): number {
+  getSocialCharges(now: Date = new Date()): number {
     if (this.knowsNetValue) {
       return Math.max(0, this.grossValue - this.netValue);
     }
-    return this.getLatentGain() * this.getSocialChargesRate();
+    return this.getLatentGain() * this.getSocialChargesRate(now);
   }
 
   override getTaxableIncomes(_fiscalProfile: FiscalProfile, _now: Date = new Date()): PlacementIncome[] {
@@ -181,7 +181,7 @@ export class PerModule extends BasePlacement {
   }
 
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
-    const socialCharges = this.getSocialCharges();
+    const socialCharges = this.getSocialCharges(now);
     const netValueBeforeIR = this.knowsNetValue
       ? this.netValue
       : this.grossValue - socialCharges;

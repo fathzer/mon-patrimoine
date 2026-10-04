@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
 import { SavingsAccountEditor } from './Editor.js';
 import { getSavingsAccountTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -44,12 +44,12 @@ export class SavingsAccountModule extends BasePlacement {
     return this.interestAmount + this.promotionalInterest;
   }
 
-  getSocialChargesRate(): number {
-    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+  getSocialChargesRate(now: Date = new Date()): number {
+    return getSocialContributionRate(now);
   }
 
-  getSocialCharges(): number {
-    return this.taxExempt ? 0 : this.getTotalInterest() * this.getSocialChargesRate();
+  getSocialCharges(now: Date = new Date()): number {
+    return this.taxExempt ? 0 : this.getTotalInterest() * this.getSocialChargesRate(now);
   }
 
   override getTaxableIncomes(fiscalProfile: FiscalProfile, now: Date = new Date()): PlacementIncome[] {
@@ -63,14 +63,14 @@ export class SavingsAccountModule extends BasePlacement {
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
     const totalInterest = this.getTotalInterest();
     const grossValue = this.currentValue + totalInterest;
-    const socialCharges = this.getSocialCharges();
+    const socialCharges = this.getSocialCharges(now);
 
     return {
       grossValue,
       netValueBeforeIR: grossValue - socialCharges,
       socialCharges,
       latentGain: totalInterest,
-      imposition: this.getImposition(fiscalProfile)
+      imposition: this.getImposition(fiscalProfile, now)
     };
   }
 
