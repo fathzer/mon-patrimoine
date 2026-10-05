@@ -9,7 +9,7 @@ D'abord rendre le calcul de prélèvements paramétrable par année (jusqu'à 20
 - **`closedAt`** : clôturer ≠ supprimer — le placement/l'attribution restent sérialisés avec leur historique ; `getDataAt(D) → null` pour D > `closedAt`. Une vraie suppression physique = correction destructive documentée.
 - **Sérialisation possédée par le module** : chaque module décide quels champs sont absolus (dates d'ouverture/acquisition, label, institution…) vs évolutifs (valeurs, versements…). Pas de `getHistoryFields()` — la couche générique n'a besoin que de `getHistoryDates()` et `getDataAt(date)`.
 - **Champs absolus = correction globale** ; entrées d'historique = états par date éditables individuellement. Propagation des corrections : reportée (option UI ultérieure).
-- **Profil fiscal historisé** : `taxProfileHistory: [{ from, profile }]` lu en escalier — naissance/mariage/divorce non rétroactifs, RNI par période. Seed de migration : `{ from: "1970-01-01" }` (« depuis toujours »).
+- **Profil fiscal historisé** : `taxProfileHistory: [{ date, profile }]` lu en escalier — naissance/mariage/divorce non rétroactifs, RNI par période. Seed de migration : `{ date: "1970-01-01" }` (« depuis toujours »).
 - **Net historique** : barèmes locaux par année, validés contre OpenFisca **en tests uniquement** (jamais au runtime — chaîne d'évaluation synchrone et offline).
 - **Indexation temporelle** : prélèvements sociaux au taux en vigueur **à la date** de l'événement ; IR au barème des **revenus de l'année** de l'événement, avec repli sur le dernier barème connu tant que la LF de l'année suivante n'est pas votée (comportement actuel préservé).
 - **Graphe** : SVG maison (aucune dépendance runtime — choix validé).
@@ -45,8 +45,8 @@ Tâches :
   "taxProfile": { "household": {…}, "taxableIncome": 80000, "usePfu": true },
   "taxProfileAsOf": "2026-01-20",
   "taxProfileHistory": [
-    { "from": "1970-01-01", "profile": {…} },   // seed migration : « depuis toujours »
-    { "from": "2027-03-15", "profile": {…} }
+    { "date": "1970-01-01", "profile": {…} },   // seed migration : « depuis toujours »
+    { "date": "2027-03-15", "profile": {…} }
   ],
   "placements": [{
     "id": "…", "type": "cto", "label": "…", "institution": "…",
@@ -63,17 +63,18 @@ Tâches :
 - Champs de niveau 1 = **état courant** (inchangé — compatibilité 1.0 : lecture dans les deux sens, l'ancien code ignore les clés en plus).
 - `history[i].values` = **état complet des champs évolutifs** à la date (pas un diff).
 - `getDataAt(D)` = `toJSON()` recouvert par les `values` de la dernière entrée ≤ D ; **`null` avant la 1ʳᵉ entrée et après `closedAt`** — « inconnu » ≠ « valeur plate ».
-- Profil à la date D = dernier `from ≤ D`.
+- Profil à la date D = dernier `date ≤ D`.
 
-**Migration au chargement** (pas au save) : `version` 1.0 → 1.1 ; seed `taxProfileHistory = [{ from: "1970-01-01", profile: taxProfile }]` ; pas d'historique placement inventé ; `asOf`/`closedAt` absents → lus comme « aujourd'hui »/actif, matérialisés à la prochaine sauvegarde.
+**Migration au chargement** (pas au save) : `version` 1.0 → 1.1 ; seed `taxProfileHistory = [{ date: "1970-01-01", profile: taxProfile }]` ; pas d'historique placement inventé ; `asOf`/`closedAt` absents → lus comme « aujourd'hui »/actif, matérialisés à la prochaine sauvegarde.
 
-**Nouveau `web/src/core/PlacementHistory.ts`** :
+**Nouveau `web/src/core/DatedHistory.ts`** (générique — placements *et* profil fiscal, toute entrée `{ date, … }`) :
 
 ```ts
 export interface HistoryEntry { date: string; values: Record<string, unknown> }
-resolveAt(entries, date): HistoryEntry | null   // dernière entrée ≤ date
-recordAt(entries, date, values): HistoryEntry[] // insère trié / remplace même jour / skip si inchangé
-thin(entries, policy): HistoryEntry[]           // élagage résolution dégradée
+resolveAt<T extends { date }>(entries, date): T | null  // dernière entrée ≤ date
+recordAt<T extends { date }>(entries, entry): T[]       // insère trié / remplace même jour
+thin<T extends { date }>(entries, policy): T[]          // élagage résolution dégradée
+valuesEqual(a, b)                                       // égalité structurelle (skip si inchangé)
 ```
 
 + tests bun.
@@ -91,7 +92,9 @@ thin(entries, policy): HistoryEntry[]           // élagage résolution dégrad�
 
 - `addPlacement`/`updatePlacement` : `recordState(asOf)` (add → seed de la 1ʳᵉ entrée à `asOf` ; update → ancien état → `history` à **son** `asOf` si valeurs évolutives changées).
 - `closePlacement(id, date)` → `closedAt = date` (le bouton « supprimer » devient « clôturer »).
-- `ExportPayload` : `taxProfileAsOf` + `taxProfileHistory?: { from; profile }[]` + `getTaxProfileAt(date)` + `version` → `"1.1"` ; changement de profil → ancien `{ from: taxProfileAsOf, profile }` → historique, nouvel `asOf`.
+- `ExportPayload` : `taxProfileAsOf` + `taxProfileHistory?: { date; profile }[]` + `getTaxProfileAt(date)` + `version` → `"1.1"` ; changement de profil → ancien `{ date: taxProfileAsOf, profile }` → historique, nouvel `asOf`.
+
+**Implémentation (fait)** : `DatedHistory.ts` (`resolveAt`/`recordAt`/`thin`/`valuesEqual`, génériques sur `{ date }` — réutilisés par `AppStore` pour le profil fiscal) ; `BasePlacement` avec `asOf`/`closedAt`/`history`, `getEvolvingValues()` (défaut `{}`), `getHistoryDates()`, `getDataAt(D)` (→ `null` avant la 1ʳᵉ entrée et après `closedAt`, `asOf` de la donnée renvoyée = date de l'état résolu, sans `history`), `recordState(previous, effectiveDate)`, `insertHistoryEntry(date, values)` ; `AppStore` payload `"1.1"` avec `taxProfileAsOf`/`taxProfileHistory` normalisés (sentinel `1970-01-01` au seed), `getTaxProfileAt(D)` (profil courant = entrée implicite à `taxProfileAsOf`), `updateTaxProfile(profile, asOf?)` (push de l'ancien profil ou insertion rétroactive), `updatePlacement` avec chemin rétroactif (valeurs évolutives insérées à la date passée, état courant préservé), `closePlacement(id, date)`, placements clôturés exclus du résumé courant. Tests : `DatedHistory.test.ts`, `BasePlacement.test.ts`, `AppStore.test.ts` — 370 tests au vert. `thin` : **modèle à slots** — chaque fin de période (jours 7/14/21/fin de mois en bande ~6 mois-2 ans ; fins de mois seules au-delà) **revendique l'entrée la plus proche des deux côtés** (égalité → plus récente). Une entrée isolée couvre les mois vides environnants ; les entrées récentes (< ~6 mois) et la toute première sont toujours gardées. Une saisie du 6/1 représentant fin décembre gagne donc le slot 31/12 ; pour ancrer exactement, `asOf` reste la voie propre.
 
 ## Étape 3 — Rollout des modules (opt-in)
 
@@ -134,7 +137,7 @@ thin(entries, policy): HistoryEntry[]           // élagage résolution dégrad�
 ## Fichiers principaux
 
 - `fiscality/rates.ts`, `fiscality/TaxCalculator.ts`, `tests/openfiscaSmoke.test.ts` (étape 1)
-- `core/PlacementHistory.ts` (nouveau), `placements/BasePlacement.ts`, `kit/v1/index.ts`, `core/AppStore.ts`
+- `core/DatedHistory.ts` (nouveau), `placements/BasePlacement.ts`, `kit/v1/index.ts`, `core/AppStore.ts`
 - `ui/HistoryChartView.ts` (nouveau), `ui/DashboardView.ts`, `ui/AssetTableView.ts`, `ui/PlacementModalView.ts`, `i18n/fr.ts`, `inflation/` (nouveau)
 - `placements/modules/*` (un par un)
 
