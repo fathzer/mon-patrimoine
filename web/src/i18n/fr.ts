@@ -5,7 +5,8 @@ export const fr = {
   },
   auth: {
     loginBtn: "Connexion",
-    logoutBtn: "Déconnexion"
+    logoutBtn: "Déconnexion",
+    dataLocation: "Données : {location}"
   },
   summary: {
     totalGross: "Patrimoine Brut",

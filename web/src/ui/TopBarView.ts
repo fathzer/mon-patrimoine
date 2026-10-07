@@ -47,6 +47,7 @@ export class TopBarView {
     `;
 
     this._bindEvents();
+    if (isAuthenticated) this._updateLogoutTooltip();
   }
 
   _getAuthButtons(): string {
@@ -76,6 +77,17 @@ export class TopBarView {
         <span class="logout-icon" aria-hidden="true"></span>
       </button>
     `;
+  }
+
+  _updateLogoutTooltip(): void {
+    this.store.storageManager.getDataLocation()
+      .then(location => {
+        const btn = this._container?.querySelector<HTMLElement>('#btn-logout');
+        if (btn && location) {
+          btn.title = `${I18n.t('auth.logoutBtn')}\n${I18n.t('auth.dataLocation', { location })}`;
+        }
+      })
+      .catch(error => console.error('Failed to get data location:', error));
   }
 
   _getUnauthButtons(): string {

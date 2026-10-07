@@ -14,7 +14,7 @@ interface GisErrorCallbackPayload {
 }
 
 interface GisTokenClient {
-  callback: (resp: GisTokenResponse) => void;
+  callback: (resp: GisTokenResponse) => void | Promise<void>;
   error_callback?: (error: GisErrorCallbackPayload) => void;
   requestAccessToken: (request: { prompt: string; login_hint?: string }) => void;
 }
@@ -50,6 +50,7 @@ export class GoogleDriveProvider extends StorageProvider {
   userEmail: string | null;
   tokenClient: GisTokenClient | null;
   fileId: string | null;
+  _fileNameCache: { fileId: string; name: string } | null;
   _lastError: GisErrorCallbackPayload | null;
 
   constructor(clientId: string) {
@@ -61,6 +62,7 @@ export class GoogleDriveProvider extends StorageProvider {
     this.userEmail = localStorage.getItem('gdrive_user_email') || null;
     this.tokenClient = null;
     this.fileId = null;
+    this._fileNameCache = null;
     this._lastError = null;
   }
 
@@ -111,7 +113,9 @@ export class GoogleDriveProvider extends StorageProvider {
         }
 
         this._saveToken(resp.access_token!);
-        this.fileId = null; // The account may have changed, the cached file id is no longer valid
+        // The account may have changed, the cached file id is no longer valid
+        this.fileId = null;
+        this._fileNameCache = null;
 
         // Fetch user email from userinfo endpoint
         await this._fetchUserEmail();
@@ -145,13 +149,15 @@ export class GoogleDriveProvider extends StorageProvider {
     }
   }
 
-  override async disconnect(): Promise<void> {
+  override disconnect(): Promise<void> {
     this.accessToken = null;
     this.tokenExpiration = null;
     this.userEmail = null;
+    this._fileNameCache = null;
     localStorage.removeItem('gdrive_token');
     localStorage.removeItem('gdrive_token_expiration');
     localStorage.removeItem('gdrive_user_email');
+    return Promise.resolve();
   }
 
   _saveToken(accessToken: string): void {
@@ -494,7 +500,40 @@ export class GoogleDriveProvider extends StorageProvider {
     return res.ok;
   }
 
-  override async getStatus(): Promise<StorageStatus> {
-    return { isConnected: !!this.accessToken, providerName: 'Google Drive' };
+  override getStatus(): Promise<StorageStatus> {
+    return Promise.resolve({ isConnected: !!this.accessToken, providerName: 'Google Drive', userEmail: this.userEmail ?? undefined });
+  }
+
+  override async getDataLocation(): Promise<string | null> {
+    if (!this.accessToken) return null;
+    const location = `Google Drive: /${await this._resolveFileName()}`;
+    return this.userEmail ? `${this.userEmail} — ${location}` : location;
+  }
+
+  /**
+   * Best-effort resolution of the data file's current name (the user may have
+   * renamed it on Drive). Never triggers an authentication flow: any failure
+   * falls back to the default file name.
+   */
+  async _resolveFileName(): Promise<string> {
+    const fileId = this.fileId;
+    if (!fileId) return this.fileName;
+    if (this._fileNameCache?.fileId === fileId) return this._fileNameCache.name;
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name`,
+        { headers: { Authorization: `Bearer ${this.accessToken}` } }
+      );
+      if (res.ok) {
+        const meta = await res.json() as { name?: string };
+        if (meta.name) {
+          this._fileNameCache = { fileId, name: meta.name };
+          return meta.name;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to resolve data file name:', error);
+    }
+    return this.fileName;
   }
 }
