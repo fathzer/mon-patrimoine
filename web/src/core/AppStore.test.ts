@@ -31,19 +31,21 @@ describe("AppStore tax profile history", () => {
     expect(store.getTaxProfileAt("2015-06-01").taxableIncome).toBe(40000);
     const payload = store.getExportPayload();
     expect(payload.version).toBe("1.1");
-    expect(payload.taxProfileHistory).toBeUndefined();
+    expect(payload.taxProfile).toEqual({ profile: profile(40000), asOf: today() });
   });
 
   it("hydrates and normalizes a provided profile history", () => {
     const store = makeStore();
     store._hydrateState({
       version: "1.1",
-      taxProfile: profile(80000, true),
-      taxProfileAsOf: "2024-06-01",
-      taxProfileHistory: [
-        { date: "2020-01-01", profile: profile(50000) },
-        { date: "1970-01-01", profile: profile(30000) }
-      ],
+      taxProfile: {
+        profile: profile(80000, true),
+        asOf: "2024-06-01",
+        history: [
+          { date: "2020-01-01", profile: profile(50000) },
+          { date: "1970-01-01", profile: profile(30000) }
+        ]
+      },
       placements: []
     });
 
@@ -55,12 +57,14 @@ describe("AppStore tax profile history", () => {
     const store = makeStore();
     store._hydrateState({
       version: "1.1",
-      taxProfile: profile(50000),
-      taxProfileAsOf: "2030-01-01",
-      taxProfileHistory: [
-        { date: "1970-01-01", profile: profile(30000) },
-        { date: "2020-01-01", profile: profile(40000) }
-      ],
+      taxProfile: {
+        profile: profile(50000),
+        asOf: "2030-01-01",
+        history: [
+          { date: "1970-01-01", profile: profile(30000) },
+          { date: "2020-01-01", profile: profile(40000) }
+        ]
+      },
       placements: []
     });
 

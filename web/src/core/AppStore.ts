@@ -32,11 +32,23 @@ export interface TaxProfileHistoryEntry {
   profile: FiscalProfile;
 }
 
+/**
+ * The tax profile as a dated entity — the same (state, asOf, history) triplet
+ * as a placement, with the state nested under `profile` so `FiscalProfile`
+ * stays a plain value shared with the tax calculator, forms and tests.
+ */
+export interface TaxProfileEntity {
+  profile: FiscalProfile;
+  /** Effective date (YYYY-MM-DD) of `profile`. */
+  asOf?: string;
+  /** Past profiles, sorted by `date`; omitted while empty. */
+  history?: TaxProfileHistoryEntry[];
+}
+
 export interface ExportPayload {
   version: string;
-  taxProfile: FiscalProfile;
-  taxProfileAsOf?: string;
-  taxProfileHistory?: TaxProfileHistoryEntry[];
+  /** 1.1 payloads nest a TaxProfileEntity; a bare FiscalProfile (1.0) is accepted on load. */
+  taxProfile: FiscalProfile | TaxProfileEntity;
   placements: PlacementData[];
 }
 
@@ -203,13 +215,15 @@ export class AppStore extends EventBus<AppStoreEvents> {
   getExportPayload(): ExportPayload {
     return {
       version: "1.1",
-      taxProfile: this.state.taxProfile,
-      taxProfileAsOf: this.state.taxProfileAsOf,
-      // Omitted when empty, like the placements' `history`: a history with
-      // no recorded change adds nothing to the serialized payload.
-      ...(this.state.taxProfileHistory.length > 0
-        ? { taxProfileHistory: this.state.taxProfileHistory }
-        : {}),
+      taxProfile: {
+        profile: this.state.taxProfile,
+        asOf: this.state.taxProfileAsOf,
+        // Omitted while empty, like the placements' `history`: a history with
+        // no recorded change adds nothing to the serialized payload.
+        ...(this.state.taxProfileHistory.length > 0
+          ? { history: this.state.taxProfileHistory }
+          : {})
+      },
       placements: this.state.placements.map(p => p.toJSON())
     };
   }
@@ -231,13 +245,17 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   _hydrateState(rawData: Partial<ExportPayload>): void {
-    this.state.taxProfile = this._normalizeTaxProfile(rawData.taxProfile);
-    this.state.taxProfileAsOf = rawData.taxProfileAsOf || todayString();
-    // A 1.0 payload has no history: it stays empty until the first profile
+    // 1.1 nests the profile entity ({profile, asOf, history}); a 1.0 payload
+    // stores the bare profile — its history stays empty until the first
     // change, and getTaxProfileAt falls back to the earliest entry (the
     // current profile) for dates preceding every recorded change.
-    this.state.taxProfileHistory = Array.isArray(rawData.taxProfileHistory)
-      ? rawData.taxProfileHistory
+    const entity: TaxProfileEntity = rawData.taxProfile != null && 'profile' in rawData.taxProfile
+      ? rawData.taxProfile
+      : { profile: rawData.taxProfile as FiscalProfile };
+    this.state.taxProfile = this._normalizeTaxProfile(entity.profile);
+    this.state.taxProfileAsOf = entity.asOf || todayString();
+    this.state.taxProfileHistory = Array.isArray(entity.history)
+      ? entity.history
           .map(e => ({ date: String(e.date), profile: this._normalizeTaxProfile(e.profile) }))
           .sort((a, b) => compareDates(a.date, b.date))
       : [];
@@ -307,7 +325,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   /**
    * Returns the tax profile effective at `date`: the last entry with
-   * `from <= date` — history entries plus the current profile, which acts as
+   * `date <= date` — history entries plus the current profile, which acts as
    * an implicit last entry at `taxProfileAsOf`. The earliest entry applies
    * when `date` precedes all of them.
    */
@@ -358,8 +376,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
   _getDefaultData(): ExportPayload {
     return {
       version: "1.1",
-      taxProfile: AppStore.DEFAULT_TAX_PROFILE,
-      taxProfileAsOf: todayString(),
+      taxProfile: { profile: AppStore.DEFAULT_TAX_PROFILE, asOf: todayString() },
       placements: []
     };
   }
