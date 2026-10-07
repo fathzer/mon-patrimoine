@@ -1,0 +1,13 @@
+[
+  { "name": "checking_account" },
+  { "name": "savings_account" },
+  { "name": "home_savings" },
+  { "name": "real_estate" },
+  { "name": "pea" },
+  { "name": "pee" },
+  { "name": "cto" },
+  { "name": "life_insurance" },
+  { "name": "stock_grant" },
+  { "name": "per" },
+  { "name": "custom" }
+]

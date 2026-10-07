@@ -1,0 +1,118 @@
+export const fr = {
+  app: {
+    title: "Mon Patrimoine",
+    loading: "Chargement du patrimoine..."
+  },
+  auth: {
+    loginBtn: "Connexion",
+    logoutBtn: "Déconnexion"
+  },
+  summary: {
+    totalGross: "Patrimoine Brut",
+    totalNet: "Patrimoine Net Estimé",
+    filterTotals: "Uniquement les actifs filtrés",
+    breakdownTitle: "Répartition par classe d'actifs",
+    gross: "Brut",
+    net: "Net"
+  },
+  categories: {
+    bank_accounts: "Comptes courants",
+    investments: "Investissements",
+    saving_accounts: "Livrets",
+    life_insurance: "Assurance-vie",
+    real_estate: "Immobilier",
+    other: "Divers"
+  },
+  filters: {
+    all: "Tous les actifs",
+    categories: "Type d'actif",
+    institutions: "Établissement",
+    withoutInstitution: "Sans établissement",
+    clearAll: "Effacer les filtres"
+  },
+  actions: {
+    addAsset: "+ Ajouter un actif",
+    save: "Enregistrer",
+    cancel: "Annuler",
+    delete: "Supprimer",
+    confirmDelete: "Êtes-vous sûr de vouloir supprimer ce placement ?",
+    "import": "Importer",
+    "export": "Exporter"
+  },
+  sort: {
+    label: "Trier"
+  },
+  table: {
+    assetHeader: "Actif / Établissement",
+    categoryHeader: "Catégorie",
+    grossHeader: "Valeur Brute",
+    socialHeader: "Prélmts Sociaux",
+    taxHeader: "Impôts",
+    netHeader: "Valeur Nette Est."
+  },
+  form: {
+    addTitle: "Ajouter un actif",
+    editTitle: "Éditer l'actif",
+    label: "Nom",
+    institution: "Établissement",
+    typeLabel: "Type de placement",
+    category: "Catégorie",
+    currentValue: "Valeur actuelle (€)",
+    openingDate: "Date d'ouverture",
+    close: "Fermer",
+    errors: {
+      label: "Nom requis",
+      institution: "Établissement requis",
+      currentValue: "Valeur actuelle requise",
+      openingDate: "Date d'ouverture incorrecte",
+      generic: "Champ requis"
+    },
+    acquisitionDate: "Date d'acquisition",
+    acquisitionPrice: "Prix d'acquisition (€)"
+  },
+  alerts: {
+    saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",
+    loadError: "Le chargement de vos données a échoué. Vos données existantes n'ont pas été modifiées.",
+    importError: "Le fichier sélectionné n'est pas valide ou n'a pas pu être lu."
+  },
+  settings: {
+    title: "Réglages - Profil Fiscal",
+    familySection: "Situation Familiale & Foyer Fiscal",
+    maritalStatus: "Statut matrimonial",
+    maritalStatusSingle: "Célibataire / Divorcé(e) / Séparé(e)",
+    maritalStatusMarried: "Marié(e) / PACSÉ(e)",
+    maritalStatusWidowed: "Veuf(ve)",
+    declarantCase: "Case du déclarant",
+    spouseCase: "Case du conjoint",
+    caseNone: "Aucune",
+    caseP: "P — Vous êtes invalide",
+    caseF: "F — Conjoint invalide (ou décédé dans l'année)",
+    caseW: "W — Ancien combattant de plus de 74 ans",
+    caseS: "S — Ancien combattant de plus de 74 ans (couple)",
+    caseG: "G — Pension de veuve de guerre",
+    children: "Enfants",
+    childrenCount: "Enfants en garde exclusive",
+    alternateChildrenCount: "Enfants en garde alternée",
+    disabledChildrenCount: "dont handicapé(s)",
+    singleParent: "Parent isolé",
+    caseL: "Case L",
+    incomeSection: "Revenus",
+    taxableIncome: "Revenu net imposable",
+    fiscalSummarySection: "Résumé fiscal",
+    parts: "Nombre de parts",
+    halfPartReductionCeiling: "Remise max des 1/2 parts supplémentaires",
+    tmi: "TMI",
+    estimatedTax: "Impôt estimé, hors liquidation de vos placements",
+    tmiSection: "Tranche Marginale d'Imposition (TMI)",
+    enterTmi: "Saisir votre TMI",
+    nonTaxable: "Non imposable",
+    pfuSection: "Prélèvement Forfaitaire Unique (PFU)",
+    pfuMode: "Mode d'imposition des plus-values :",
+    pfuEnabled: "PFU (Flat Tax)",
+    pfuDisabled: "Barème progressif de l'IR",
+    taxRules: "Règles fiscales"
+  },
+  taxExplanation: {
+    title: "Explication fiscale"
+  }
+};

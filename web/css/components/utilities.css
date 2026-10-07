@@ -1,4 +1,11 @@
-/* Utility classes reused across components. */
+/*
+ * Utility classes reused across components.
+ *
+ * The classes below are part of the Placement Kit (v1) and are guaranteed
+ * stable for placement modules. See MODULES.md for the full list.
+ *
+ * Kit classes: text-muted
+ */
 
 .text-muted {
   color: var(--text-muted);
