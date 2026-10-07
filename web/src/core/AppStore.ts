@@ -64,9 +64,6 @@ export interface AppState {
   placements: BasePlacement[];
 }
 
-/** Sentinel `from` date for the seed profile entry: "applies since forever". */
-const PROFILE_HISTORY_START = '1970-01-01';
-
 const todayString = (): string => new Date().toISOString().split('T')[0];
 
 export class AppStore extends EventBus<AppStoreEvents> {
@@ -87,7 +84,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
       isLoading: true,
       taxProfile: AppStore.DEFAULT_TAX_PROFILE,
       taxProfileAsOf: todayString(),
-      taxProfileHistory: [{ date: PROFILE_HISTORY_START, profile: AppStore.DEFAULT_TAX_PROFILE }],
+      taxProfileHistory: [],
       placements: []
     };
   }
@@ -208,7 +205,11 @@ export class AppStore extends EventBus<AppStoreEvents> {
       version: "1.1",
       taxProfile: this.state.taxProfile,
       taxProfileAsOf: this.state.taxProfileAsOf,
-      taxProfileHistory: this.state.taxProfileHistory,
+      // Omitted when empty, like the placements' `history`: a history with
+      // no recorded change adds nothing to the serialized payload.
+      ...(this.state.taxProfileHistory.length > 0
+        ? { taxProfileHistory: this.state.taxProfileHistory }
+        : {}),
       placements: this.state.placements.map(p => p.toJSON())
     };
   }
@@ -232,13 +233,14 @@ export class AppStore extends EventBus<AppStoreEvents> {
   _hydrateState(rawData: Partial<ExportPayload>): void {
     this.state.taxProfile = this._normalizeTaxProfile(rawData.taxProfile);
     this.state.taxProfileAsOf = rawData.taxProfileAsOf || todayString();
-    // Migration from 1.0 payloads: seed the history so that the current
-    // profile applies to every date before the first recorded change.
-    this.state.taxProfileHistory = (Array.isArray(rawData.taxProfileHistory) && rawData.taxProfileHistory.length > 0)
+    // A 1.0 payload has no history: it stays empty until the first profile
+    // change, and getTaxProfileAt falls back to the earliest entry (the
+    // current profile) for dates preceding every recorded change.
+    this.state.taxProfileHistory = Array.isArray(rawData.taxProfileHistory)
       ? rawData.taxProfileHistory
           .map(e => ({ date: String(e.date), profile: this._normalizeTaxProfile(e.profile) }))
           .sort((a, b) => compareDates(a.date, b.date))
-      : [{ date: PROFILE_HISTORY_START, profile: this.state.taxProfile }];
+      : [];
     this.state.placements = (Array.isArray(rawData.placements) ? rawData.placements : [])
       .map(pData => PlacementFactory.create(pData));
   }
@@ -358,7 +360,6 @@ export class AppStore extends EventBus<AppStoreEvents> {
       version: "1.1",
       taxProfile: AppStore.DEFAULT_TAX_PROFILE,
       taxProfileAsOf: todayString(),
-      taxProfileHistory: [{ date: PROFILE_HISTORY_START, profile: AppStore.DEFAULT_TAX_PROFILE }],
       placements: []
     };
   }

@@ -20,15 +20,18 @@ const makeStore = (): AppStore => new AppStore(stubStorage);
 const today = (): string => new Date().toISOString().split('T')[0];
 
 describe("AppStore tax profile history", () => {
-  it("migrates a 1.0 payload by seeding the profile history at 1970-01-01", () => {
+  it("keeps an empty profile history for a 1.0 payload (no fabricated states)", () => {
     const store = makeStore();
     store._hydrateState({ version: "1.0", taxProfile: profile(40000), placements: [] });
 
-    expect(store.state.taxProfileHistory).toHaveLength(1);
-    expect(store.state.taxProfileHistory[0].date).toBe("1970-01-01");
-    expect(store.state.taxProfileHistory[0].profile.taxableIncome).toBe(40000);
+    // No history until the first change: the current profile implicitly
+    // applies to every earlier date.
+    expect(store.state.taxProfileHistory).toEqual([]);
     expect(store.state.taxProfileAsOf).toBe(today());
-    expect(store.getExportPayload().version).toBe("1.1");
+    expect(store.getTaxProfileAt("2015-06-01").taxableIncome).toBe(40000);
+    const payload = store.getExportPayload();
+    expect(payload.version).toBe("1.1");
+    expect(payload.taxProfileHistory).toBeUndefined();
   });
 
   it("hydrates and normalizes a provided profile history", () => {
@@ -88,7 +91,8 @@ describe("AppStore tax profile history", () => {
     store.updateTaxProfile(profile(45000), "2000-06-01");
 
     expect(store.state.taxProfile.taxableIncome).toBe(40000);
-    expect(store.getTaxProfileAt("1999-12-31").taxableIncome).toBe(40000);
+    // The earliest recorded profile extends to every earlier date.
+    expect(store.getTaxProfileAt("1999-12-31").taxableIncome).toBe(45000);
     expect(store.getTaxProfileAt("2000-06-01").taxableIncome).toBe(45000);
   });
 });
