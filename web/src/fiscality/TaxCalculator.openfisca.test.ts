@@ -4,7 +4,7 @@ import { Openfisca, type OpenfiscaResult } from "../../tests/Openfisca.js";
 import { TaxCalculator } from "./TaxCalculator.js";
 import { Household } from "./Household.js";
 
-const year = new Date().getFullYear();
+const years = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
 const cases = [
   {
@@ -379,32 +379,38 @@ const cases = [
   }
 ];
 
-let openfiscaResults: OpenfiscaResult[];
+const openfiscaResults: Record<number, OpenfiscaResult[]> = {};
 
 describe("TaxCalculator vs OpenFisca", () => {
   beforeAll(async () => {
-    openfiscaResults = await Openfisca.batch(
-      cases.map(({ household, rni }) => ({ household, rni, year }))
-    );
-  });
+    for (const year of years) {
+      openfiscaResults[year] = await Openfisca.batch(
+        cases.map(({ household, rni }) => ({ household, rni, year }))
+      );
+    }
+  }, 120000);
 
-  for (let i = 0; i < cases.length; i += 1) {
-    const c = cases[i];
-    it(`matches for ${c.name}`, () => {
-      const openfisca = openfiscaResults[i];
-      const tax = TaxCalculator.calculate(c.household, c.rni, year);
-      const metrics = TaxCalculator.computeFiscalMetrics({
-        household: c.household,
-        taxableIncome: c.rni
-      });
+  for (const year of years) {
+    describe(`income year ${year}`, () => {
+      for (let i = 0; i < cases.length; i += 1) {
+        const c = cases[i];
+        it(`matches for ${c.name}`, () => {
+          const openfisca = openfiscaResults[year][i];
+          const tax = TaxCalculator.calculate(c.household, c.rni, year);
+          const metrics = TaxCalculator.computeFiscalMetrics({
+            household: c.household,
+            taxableIncome: c.rni
+          }, year);
 
-      console.log(c.name, { openfisca, tax, parts: metrics.parts });
+          console.log(`[${year}]`, c.name, { openfisca, tax, parts: metrics.parts });
 
-      expect(metrics.parts).toBeCloseTo(openfisca.nbptr, 4);
-      expect(tax.tmi).toBeCloseTo(openfisca.tmi, 4);
-      expect(Math.abs(tax.finalTax - Math.abs(openfisca.impot))).toBeLessThan(100);
-      expect(tax.decote).toBeCloseTo(openfisca.decote, 0);
-      expect(tax.extraPartsBenefit).toBeCloseTo(openfisca.avantageQf, 0);
+          expect(metrics.parts).toBeCloseTo(openfisca.nbptr, 4);
+          expect(tax.tmi).toBeCloseTo(openfisca.tmi, 4);
+          expect(Math.abs(tax.finalTax - Math.abs(openfisca.impot))).toBeLessThan(100);
+          expect(tax.decote).toBeCloseTo(openfisca.decote, 0);
+          expect(tax.extraPartsBenefit).toBeCloseTo(openfisca.avantageQf, 0);
+        });
+      }
     });
   }
 });

@@ -1,4 +1,5 @@
 import { EventBus } from './EventBus.js';
+import { compareDates, recordAt, resolveAt } from './DatedHistory.js';
 import { Household } from '../fiscality/Household.js';
 import type { HouseholdData } from '../fiscality/Household.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
@@ -25,9 +26,29 @@ export interface GlobalSummary {
   evaluations?: EvaluationEntry[];
 }
 
+export interface TaxProfileHistoryEntry {
+  /** Date from which this profile applies (YYYY-MM-DD). */
+  date: string;
+  profile: FiscalProfile;
+}
+
+/**
+ * The tax profile as a dated entity — the same (state, asOf, history) triplet
+ * as a placement, with the state nested under `profile` so `FiscalProfile`
+ * stays a plain value shared with the tax calculator, forms and tests.
+ */
+export interface TaxProfileEntity {
+  profile: FiscalProfile;
+  /** Effective date (YYYY-MM-DD) of `profile`. */
+  asOf?: string;
+  /** Past profiles, sorted by `date`; omitted while empty. */
+  history?: TaxProfileHistoryEntry[];
+}
+
 export interface ExportPayload {
   version: string;
-  taxProfile: FiscalProfile;
+  /** 1.1 payloads nest a TaxProfileEntity; a bare FiscalProfile (1.0) is accepted on load. */
+  taxProfile: FiscalProfile | TaxProfileEntity;
   placements: PlacementData[];
 }
 
@@ -48,8 +69,14 @@ export interface AppState {
   isAuthenticated: boolean;
   isLoading: boolean;
   taxProfile: FiscalProfile;
+  /** Effective date (YYYY-MM-DD) of the current tax profile. */
+  taxProfileAsOf: string;
+  /** Past tax profiles, sorted by date (the profile at date D is the last entry with `date <= D`). */
+  taxProfileHistory: TaxProfileHistoryEntry[];
   placements: BasePlacement[];
 }
+
+const todayString = (): string => new Date().toISOString().split('T')[0];
 
 export class AppStore extends EventBus<AppStoreEvents> {
   static readonly DEFAULT_TAX_PROFILE: FiscalProfile = {
@@ -68,6 +95,8 @@ export class AppStore extends EventBus<AppStoreEvents> {
       isAuthenticated: false,
       isLoading: true,
       taxProfile: AppStore.DEFAULT_TAX_PROFILE,
+      taxProfileAsOf: todayString(),
+      taxProfileHistory: [],
       placements: []
     };
   }
@@ -123,10 +152,57 @@ export class AppStore extends EventBus<AppStoreEvents> {
     this._persistAndEmit();
   }
 
+  /**
+   * Replaces a placement's current state with `placementData`.
+   *
+   * When `placementData.asOf` is in the past relative to the previous state,
+   * the new evolving values become a history entry at that date (a
+   * retroactive correction) and the current evolving values are preserved;
+   * absolute fields still apply globally. Otherwise the previous current
+   * state is pushed into history at its own `asOf` and the new data becomes
+   * the current state.
+   */
   updatePlacement(id: string, placementData: PlacementData): void {
     const index = this.state.placements.findIndex(p => p.id === id);
-    if (index !== -1) {
-      this.state.placements[index] = PlacementFactory.create({ ...placementData, id });
+    if (index === -1) {
+      return;
+    }
+    const previous = this.state.placements[index];
+    const data = { ...placementData, id };
+    const effectiveDate = data.asOf || todayString();
+    const instance = PlacementFactory.create(data);
+
+    if (effectiveDate < previous.asOf) {
+      const evolvingKeys = Object.keys(instance.getEvolvingValues());
+      const previousData = previous.toJSON() as Record<string, unknown>;
+      const merged = {
+        ...data,
+        asOf: previous.asOf,
+        closedAt: data.closedAt ?? previous.closedAt,
+        history: previous.history
+      } as Record<string, unknown>;
+      for (const key of evolvingKeys) {
+        merged[key] = previousData[key];
+      }
+      const corrected = PlacementFactory.create(merged as PlacementData);
+      corrected.insertHistoryEntry(effectiveDate, instance.getEvolvingValues());
+      this.state.placements[index] = corrected;
+    } else {
+      instance.recordState(previous, effectiveDate);
+      this.state.placements[index] = instance;
+    }
+    this._persistAndEmit();
+  }
+
+  /**
+   * Marks a placement as closed at `closedAt` (default: today). The placement
+   * and its history are preserved; it is excluded from the current summary
+   * and resolves to no state after the closure date.
+   */
+  closePlacement(id: string, closedAt: string = todayString()): void {
+    const placement = this.state.placements.find(p => p.id === id);
+    if (placement) {
+      placement.closedAt = closedAt;
       this._persistAndEmit();
     }
   }
@@ -138,8 +214,16 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   getExportPayload(): ExportPayload {
     return {
-      version: "1.0",
-      taxProfile: this.state.taxProfile,
+      version: "1.1",
+      taxProfile: {
+        profile: this.state.taxProfile,
+        asOf: this.state.taxProfileAsOf,
+        // Omitted while empty, like the placements' `history`: a history with
+        // no recorded change adds nothing to the serialized payload.
+        ...(this.state.taxProfileHistory.length > 0
+          ? { history: this.state.taxProfileHistory }
+          : {})
+      },
       placements: this.state.placements.map(p => p.toJSON())
     };
   }
@@ -161,7 +245,20 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   _hydrateState(rawData: Partial<ExportPayload>): void {
-    this.state.taxProfile = this._normalizeTaxProfile(rawData.taxProfile);
+    // 1.1 nests the profile entity ({profile, asOf, history}); a 1.0 payload
+    // stores the bare profile — its history stays empty until the first
+    // change, and getTaxProfileAt falls back to the earliest entry (the
+    // current profile) for dates preceding every recorded change.
+    const entity: TaxProfileEntity = rawData.taxProfile != null && 'profile' in rawData.taxProfile
+      ? rawData.taxProfile
+      : { profile: rawData.taxProfile as FiscalProfile };
+    this.state.taxProfile = this._normalizeTaxProfile(entity.profile);
+    this.state.taxProfileAsOf = entity.asOf || todayString();
+    this.state.taxProfileHistory = Array.isArray(entity.history)
+      ? entity.history
+          .map(e => ({ date: String(e.date), profile: this._normalizeTaxProfile(e.profile) }))
+          .sort((a, b) => compareDates(a.date, b.date))
+      : [];
     this.state.placements = (Array.isArray(rawData.placements) ? rawData.placements : [])
       .map(pData => PlacementFactory.create(pData));
   }
@@ -190,19 +287,21 @@ export class AppStore extends EventBus<AppStoreEvents> {
     const breakdown: Record<string, BreakdownEntry> = {};
     const categoriesSet = new Set<string>();
 
-    const evaluations: EvaluationEntry[] = this.state.placements.map(placement => {
-      const evaluation = placement.getEvaluation(this.state.taxProfile, now);
-      const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
-      totalGross += evaluation.grossValue;
-      totalNet += netValue;
+    const evaluations: EvaluationEntry[] = this.state.placements
+      .filter(p => p.closedAt == null || p.closedAt >= todayString())
+      .map(placement => {
+        const evaluation = placement.getEvaluation(this.state.taxProfile, now);
+        const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
+        totalGross += evaluation.grossValue;
+        totalNet += netValue;
 
-      const cat = placement.getCategory();
-      categoriesSet.add(cat);
-      if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
-      breakdown[cat].gross += evaluation.grossValue;
+        const cat = placement.getCategory();
+        categoriesSet.add(cat);
+        if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
+        breakdown[cat].gross += evaluation.grossValue;
 
-      return { instance: placement, evaluation: { ...evaluation, netValue } };
-    });
+        return { instance: placement, evaluation: { ...evaluation, netValue } };
+      });
 
     Object.keys(breakdown).forEach(cat => {
       breakdown[cat].percentage = totalGross > 0
@@ -224,8 +323,47 @@ export class AppStore extends EventBus<AppStoreEvents> {
     return this.state.taxProfile;
   }
 
-  updateTaxProfile(newTaxProfile: TaxProfileInput): void {
-    this.state.taxProfile = this._normalizeTaxProfile(newTaxProfile);
+  /**
+   * Returns the tax profile effective at `date`: the last entry with
+   * `date <= date` — history entries plus the current profile, which acts as
+   * an implicit last entry at `taxProfileAsOf`. The earliest entry applies
+   * when `date` precedes all of them.
+   */
+  getTaxProfileAt(date: string): FiscalProfile {
+    const entries = [
+      ...this.state.taxProfileHistory,
+      { date: this.state.taxProfileAsOf, profile: this.state.taxProfile }
+    ].sort((a, b) => compareDates(a.date, b.date));
+    return (resolveAt(entries, date) ?? entries[0]).profile;
+  }
+
+  /**
+   * Replaces the current tax profile. `asOf` is the effective date of the new
+   * profile (default: today). When the profile actually changed, the previous
+   * one is pushed into `taxProfileHistory` at its own `asOf`. An `asOf` in the
+   * past records the new profile as a history entry instead (a retroactive
+   * correction), leaving the current profile untouched.
+   */
+  updateTaxProfile(newTaxProfile: TaxProfileInput, asOf?: string): void {
+    const effectiveDate = asOf || todayString();
+    const normalized = this._normalizeTaxProfile(newTaxProfile);
+
+    if (effectiveDate < this.state.taxProfileAsOf) {
+      this.state.taxProfileHistory = recordAt(
+        this.state.taxProfileHistory,
+        { date: effectiveDate, profile: normalized }
+      );
+    } else {
+      if (effectiveDate > this.state.taxProfileAsOf
+        && JSON.stringify(this.state.taxProfile) !== JSON.stringify(normalized)) {
+        this.state.taxProfileHistory = recordAt(
+          this.state.taxProfileHistory,
+          { date: this.state.taxProfileAsOf, profile: this.state.taxProfile }
+        );
+      }
+      this.state.taxProfile = normalized;
+      this.state.taxProfileAsOf = effectiveDate;
+    }
 
     this._persistAndEmit();
   }
@@ -237,8 +375,8 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   _getDefaultData(): ExportPayload {
     return {
-      version: "1.0",
-      taxProfile: AppStore.DEFAULT_TAX_PROFILE,
+      version: "1.1",
+      taxProfile: { profile: AppStore.DEFAULT_TAX_PROFILE, asOf: todayString() },
       placements: []
     };
   }

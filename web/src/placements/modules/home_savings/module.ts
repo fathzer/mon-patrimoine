@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
 import { HomeSavingsEditor } from './Editor.js';
 import { getHomeSavingsTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -82,14 +82,14 @@ export class HomeSavingsModule extends BasePlacement {
 
   getSocialChargesRate(now: Date = new Date()): number {
     if (this.homeSavingsType === 'cel') {
-      return this.isOpenedBefore2018() ? SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS : SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+      return this.isOpenedBefore2018() ? SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS : getSocialContributionRate(now);
     }
 
     if (this.isOpenedBefore2018()) {
-      return this.isOlderThanTwelveYears(now) ? SOCIAL_CONTRIBUTION_RATES.CSG_CRDS : SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
+      return this.isOlderThanTwelveYears(now) ? getSocialContributionRate(now) : SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS;
     }
 
-    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+    return getSocialContributionRate(now);
   }
 
   isPfuEligible(now: Date = new Date()): boolean {

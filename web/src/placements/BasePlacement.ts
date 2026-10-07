@@ -1,6 +1,8 @@
 import { Category, CategoryValues } from '../core/Categories.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
+import { compareDates, recordAt, resolveAt, valuesEqual } from '../core/DatedHistory.js';
+import type { HistoryEntry } from '../core/DatedHistory.js';
 import { BasePlacementEditor } from '../ui/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
 
@@ -18,6 +20,12 @@ export interface PlacementData {
   type?: string;
   label?: string;
   institution?: string;
+  /** Effective date (YYYY-MM-DD) of the current evolving values. Defaults to today. */
+  asOf?: string;
+  /** Closure date: the placement does not exist after it, but keeps its history. */
+  closedAt?: string | null;
+  /** Past states of the module's evolving fields, sorted by date. */
+  history?: HistoryEntry[];
 }
 
 /**
@@ -95,6 +103,12 @@ export abstract class BasePlacement {
   label: string;
   /** Financial institution holding this placement. */
   institution: string;
+  /** Effective date of the current evolving values (YYYY-MM-DD). */
+  asOf: string;
+  /** Closure date (YYYY-MM-DD), or null while the placement is active. */
+  closedAt: string | null;
+  /** Past states of the module's evolving fields, sorted by date. */
+  history: HistoryEntry[];
 
   constructor(data: PlacementData) {
     const category = (this.constructor as unknown as PlacementModuleStatic).getCategory();
@@ -108,6 +122,11 @@ export abstract class BasePlacement {
     this.type = data.type;
     this.label = data.label || '';
     this.institution = data.institution || '';
+    this.asOf = data.asOf || new Date().toISOString().split('T')[0];
+    this.closedAt = data.closedAt ?? null;
+    this.history = (Array.isArray(data.history) ? data.history : [])
+      .map(e => ({ date: String(e.date), values: e.values ?? {} }))
+      .sort((a, b) => compareDates(a.date, b.date));
   }
 
   /**
@@ -143,7 +162,77 @@ export abstract class BasePlacement {
    * Subclasses call this from `getEvaluation()`; they do not override it.
    */
   protected getImposition(fiscalProfile: FiscalProfile, now: Date = new Date()): number {
-    return TaxCalculator.calculatePlacementTax(fiscalProfile, this.getTaxableIncomes(fiscalProfile, now));
+    return TaxCalculator.calculatePlacementTax(fiscalProfile, this.getTaxableIncomes(fiscalProfile, now), now.getFullYear());
+  }
+
+  /**
+   * Returns the placement's evolving (history-tracked) values, i.e. the
+   * serialized fields that may change over time. The default empty object
+   * makes the module history-inert; modules opt in by overriding this
+   * accessor. How nested histories are represented (e.g. stock grants) is
+   * left to each module.
+   */
+  getEvolvingValues(): Record<string, unknown> {
+    return {};
+  }
+
+  /**
+   * Returns every date at which a placement state is known: the past history
+   * entries plus the current state's effective date.
+   */
+  getHistoryDates(): string[] {
+    return [...new Set([...this.history.map(e => e.date), this.asOf])].sort(compareDates);
+  }
+
+  /**
+   * Reconstructs the serialized placement state effective at `date`, as a
+   * PlacementData usable with PlacementFactory.create(). Returns null when
+   * the placement was not tracked yet at that date (before its first known
+   * state) or was already closed. The returned data carries no `history`
+   * and its `asOf` is the resolved state date.
+   */
+  getDataAt(date: string): PlacementData | null {
+    if (this.closedAt != null && date > this.closedAt) {
+      return null;
+    }
+    const resolved = resolveAt(
+      [...this.history, { date: this.asOf, values: this.getEvolvingValues() }],
+      date
+    );
+    if (resolved == null) {
+      return null;
+    }
+    const data = this.toJSON();
+    delete data.history;
+    return { ...data, ...resolved.values, asOf: resolved.date };
+  }
+
+  /**
+   * Records a state transition when this (new) instance replaces `previous`.
+   * If the evolving values changed, the previous current state is pushed
+   * into `history` at its own effective date, and `effectiveDate` becomes
+   * the new `asOf`. Only call when `effectiveDate >= previous.asOf` —
+   * retroactive inserts go through insertHistoryEntry() instead.
+   */
+  recordState(previous: BasePlacement | null, effectiveDate: string): void {
+    this.asOf = effectiveDate;
+    if (previous == null) {
+      return;
+    }
+    this.closedAt ??= previous.closedAt;
+    if (previous.asOf < effectiveDate && !valuesEqual(previous.getEvolvingValues(), this.getEvolvingValues())) {
+      this.history = recordAt(previous.history, { date: previous.asOf, values: previous.getEvolvingValues() });
+    } else {
+      this.history = previous.history;
+    }
+  }
+
+  /**
+   * Inserts or replaces a past evolving state (a retroactive correction).
+   * The current state is left untouched; use for dates strictly before `asOf`.
+   */
+  insertHistoryEntry(date: string, values: Record<string, unknown>): void {
+    this.history = recordAt(this.history, { date, values });
   }
 
   /**
@@ -156,7 +245,10 @@ export abstract class BasePlacement {
       id: this.id,
       type: this.type,
       label: this.label,
-      institution: this.institution
+      institution: this.institution,
+      asOf: this.asOf,
+      ...(this.closedAt != null ? { closedAt: this.closedAt } : {}),
+      ...(this.history.length > 0 ? { history: this.history } : {})
     };
   }
 }

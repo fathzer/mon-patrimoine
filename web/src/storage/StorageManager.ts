@@ -17,4 +17,5 @@ export class StorageManager {
   async authenticate(): Promise<boolean> { return await this.currentProvider.authenticate(); }
   async disconnect(): Promise<void> { await this.currentProvider.disconnect(); }
   async getStatus(): Promise<StorageStatus> { return await this.currentProvider.getStatus(); }
+  async getDataLocation(): Promise<string | null> { return await this.currentProvider.getDataLocation(); }
 }

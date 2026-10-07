@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
 import { PeeEditor } from './Editor.js';
 import { getPeeTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -40,24 +40,24 @@ export class PeeModule extends BasePlacement {
     this.knowsNetValue = data.knowsNetValue === true;
   }
 
-  getLatentGain(): number {
+  getLatentGain(now: Date = new Date()): number {
     if (this.knowsNetValue) {
       // Derive latent gain from the known social charges and the current rate.
       // This is an approximation since the actual rate may differ (historical rates).
-      return this.getSocialCharges() / this.getSocialChargesRate();
+      return this.getSocialCharges(now) / this.getSocialChargesRate(now);
     }
     return Math.max(0, this.currentValue - this.totalDeposits);
   }
 
-  getSocialChargesRate(): number {
-    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+  getSocialChargesRate(now: Date = new Date()): number {
+    return getSocialContributionRate(now);
   }
 
-  getSocialCharges(): number {
+  getSocialCharges(now: Date = new Date()): number {
     if (this.knowsNetValue) {
       return Math.max(0, this.currentValue - this.netValue);
     }
-    return this.getLatentGain() * this.getSocialChargesRate();
+    return this.getLatentGain(now) * this.getSocialChargesRate(now);
   }
 
   override getTaxableIncomes(_fiscalProfile: FiscalProfile, _now: Date = new Date()): PlacementIncome[] {
@@ -66,13 +66,13 @@ export class PeeModule extends BasePlacement {
   }
 
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
-    const socialCharges = this.getSocialCharges();
+    const socialCharges = this.getSocialCharges(now);
 
     return {
       grossValue: this.currentValue,
       netValueBeforeIR: this.currentValue - socialCharges,
       socialCharges,
-      latentGain: this.getLatentGain(),
+      latentGain: this.getLatentGain(now),
       imposition: this.getImposition(fiscalProfile, now)
     };
   }

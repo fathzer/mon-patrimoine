@@ -9,9 +9,9 @@ export class LocalStorageProvider extends StorageProvider {
     this.storageKey = storageKey;
   }
 
-  override async init(): Promise<boolean> { return true; }
-  override async authenticate(): Promise<boolean> { return true; }
-  override async disconnect(): Promise<void> {}
+  override init(): Promise<boolean> { return Promise.resolve(true); }
+  override authenticate(): Promise<boolean> { return Promise.resolve(true); }
+  override disconnect(): Promise<void> { return Promise.resolve(); }
 
   override async loadData(): Promise<unknown> {
     const rawData = localStorage.getItem(this.storageKey);
@@ -27,7 +27,11 @@ export class LocalStorageProvider extends StorageProvider {
     }
   }
 
-  override async getStatus(): Promise<StorageStatus> {
-    return { isConnected: false, userEmail: '', providerName: 'Stockage Local' };
+  override getStatus(): Promise<StorageStatus> {
+    return Promise.resolve({ isConnected: false, userEmail: '', providerName: 'Stockage Local' });
+  }
+
+  override getDataLocation(): Promise<string | null> {
+    return Promise.resolve(`localStorage: ${this.storageKey}`);
   }
 }

@@ -15,27 +15,28 @@ export class PCloudProvider extends StorageProvider {
     this.apiLocation = 'api.pcloud.com';
   }
 
-  override async init(): Promise<boolean> {
+  override init(): Promise<boolean> {
     const hash = window.location.hash;
     if (hash?.includes('access_token')) {
       const params = new URLSearchParams(hash.substring(1));
       this.accessToken = params.get('access_token');
       localStorage.setItem('pcloud_token', this.accessToken as string);
       history.replaceState(null, '', window.location.pathname);
-      return true;
+      return Promise.resolve(true);
     }
-    return !!this.accessToken;
+    return Promise.resolve(!!this.accessToken);
   }
 
-  override async authenticate(): Promise<boolean> {
+  override authenticate(): Promise<boolean> {
     const redirectUrl = encodeURIComponent(window.location.origin + window.location.pathname);
     window.location.href = `https://${this.apiLocation}/oauth2/authorize?client_id=${this.clientId}&response_type=token&redirect_uri=${redirectUrl}`;
-    return false;
+    return Promise.resolve(false);
   }
 
-  override async disconnect(): Promise<void> {
+  override disconnect(): Promise<void> {
     this.accessToken = null;
     localStorage.removeItem('pcloud_token');
+    return Promise.resolve();
   }
 
   override async loadData(): Promise<unknown> {
@@ -58,7 +59,11 @@ export class PCloudProvider extends StorageProvider {
     return res.ok;
   }
 
-  override async getStatus(): Promise<StorageStatus> {
-    return { isConnected: !!this.accessToken, userEmail: '', providerName: 'pCloud' };
+  override getStatus(): Promise<StorageStatus> {
+    return Promise.resolve({ isConnected: !!this.accessToken, userEmail: '', providerName: 'pCloud' });
+  }
+
+  override getDataLocation(): Promise<string | null> {
+    return Promise.resolve(this.accessToken ? `pCloud: /${this.fileName}` : null);
   }
 }

@@ -1,4 +1,4 @@
-import { BasePlacement, Category, SOCIAL_CONTRIBUTION_RATES } from '../../kit/v1/index.js';
+import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
 import { PeaEditor } from './Editor.js';
 import { getPeaTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -65,12 +65,12 @@ export class PeaModule extends BasePlacement {
     return Math.max(0, this.currentValue - this.totalDeposits);
   }
 
-  getSocialChargesRate(): number {
-    return SOCIAL_CONTRIBUTION_RATES.CSG_CRDS;
+  getSocialChargesRate(now: Date = new Date()): number {
+    return getSocialContributionRate(now);
   }
 
-  getSocialCharges(): number {
-    return this.getLatentGain() * this.getSocialChargesRate();
+  getSocialCharges(now: Date = new Date()): number {
+    return this.getLatentGain() * this.getSocialChargesRate(now);
   }
 
   override getTaxableIncomes(fiscalProfile: FiscalProfile, now: Date = new Date()): PlacementIncome[] {
@@ -82,7 +82,7 @@ export class PeaModule extends BasePlacement {
   }
 
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
-    const socialCharges = this.getSocialCharges();
+    const socialCharges = this.getSocialCharges(now);
 
     return {
       grossValue: this.currentValue,
