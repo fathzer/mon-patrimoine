@@ -161,7 +161,7 @@ export class DashboardView {
 
     this._pageContent!.querySelector('#btn-login')?.addEventListener('click', () => this.store.login());
     this._pageContent!.querySelector('#btn-auth-help')?.addEventListener('click', () => {
-      const helpModal = new HelpModalView(this._pageContent!.querySelector('#auth-modal-root') as HTMLElement);
+      const helpModal = new HelpModalView(this._pageContent!.querySelector('#auth-modal-root') as HTMLElement, this.store.storageManager);
       helpModal.show();
     });
   }

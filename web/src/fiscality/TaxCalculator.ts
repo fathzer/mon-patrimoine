@@ -102,8 +102,6 @@ export class TaxCalculator {
    * PFU-eligible incomes are taxed at the flat rate when the profile opts for the PFU.
    * Other incomes are aggregated into a modified taxable income, and the progressive
    * tax difference between this new base and the original RNI is added to the flat tax.
-   */
-  /**
    * `incomeYear` is the income year the revenues are attached to and selects
    * the applicable tax schedule; unknown years fall back to the latest known
    * schedule (the former fixed-rates behavior).
