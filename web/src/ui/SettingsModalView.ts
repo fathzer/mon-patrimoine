@@ -5,7 +5,8 @@ import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
-import type { HouseholdData, MaritalStatus } from '../fiscality/Household.js';
+import { MaritalStatus } from '../fiscality/Household.js';
+import type { HouseholdData } from '../fiscality/Household.js';
 
 type CaseLetter = 'P' | 'F' | 'W' | 'S' | 'G';
 
@@ -15,15 +16,15 @@ type CaseLetter = 'P' | 'F' | 'W' | 'S' | 'G';
 // and G (war-widow pension) when widowed. The spouse ticks F (invalidity,
 // including a spouse who died during the income year for a widowed person).
 const DECLARANT_CASE_OPTIONS: Record<MaritalStatus, CaseLetter[]> = {
-  single: ['P', 'W'],
-  married: ['P', 'S'],
-  widowed: ['P', 'W', 'G']
+  [MaritalStatus.SINGLE]: ['P', 'W'],
+  [MaritalStatus.MARRIED]: ['P', 'S'],
+  [MaritalStatus.WIDOWED]: ['P', 'W', 'G']
 };
 
 const SPOUSE_CASE_OPTIONS: Record<MaritalStatus, CaseLetter[]> = {
-  single: [],
-  married: ['F'],
-  widowed: ['F']
+  [MaritalStatus.SINGLE]: [],
+  [MaritalStatus.MARRIED]: ['F'],
+  [MaritalStatus.WIDOWED]: ['F']
 };
 
 function caseLabel(letter: string): string {
@@ -57,9 +58,9 @@ export class SettingsModalView {
   show(): void {
     const profile = this.store.getTaxProfile();
     const totalChildren = profile.household.childrenCount + profile.household.alternateChildrenCount;
-    const singleParentDisabled = profile.household.maritalStatus !== 'single' || totalChildren === 0;
+    const singleParentDisabled = profile.household.maritalStatus !== MaritalStatus.SINGLE || totalChildren === 0;
     const singleParentChecked = singleParentDisabled ? false : (profile.household.isSingleParent ?? false);
-    const caseLDisabled = profile.household.maritalStatus === 'married' || totalChildren > 0;
+    const caseLDisabled = MaritalStatus.isCouple(profile.household.maritalStatus) || totalChildren > 0;
     const caseLChecked = caseLDisabled ? false : (profile.household.caseL ?? false);
     const declarantCase = householdCase(profile.household, DECLARANT_CASE_OPTIONS[profile.household.maritalStatus]);
     const spouseCase = householdCase(profile.household, SPOUSE_CASE_OPTIONS[profile.household.maritalStatus]);
@@ -84,7 +85,7 @@ export class SettingsModalView {
       </ul>`;
 
     const fiscalSummary = TaxCalculator.computeFiscalMetrics(profile);
-    const parentsParts = profile.household.maritalStatus === 'married' ? 2 : 1;
+    const parentsParts = MaritalStatus.isCouple(profile.household.maritalStatus) ? 2 : 1;
     const extraParts = fiscalSummary.parts - parentsParts;
     const taxResult = TaxCalculator.computeFinalTax(profile.taxableIncome, profile.household.maritalStatus, extraParts, fiscalSummary.halfPartReductionCeiling);
 
@@ -110,9 +111,9 @@ export class SettingsModalView {
                     ${I18n.t('settings.maritalStatus')}
                   </label>
                   <select id="status-select" name="maritalStatus" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
-                    <option value="single" ${profile.household.maritalStatus === 'single' ? 'selected' : ''}>${I18n.t('settings.maritalStatusSingle')}</option>
-                    <option value="married" ${profile.household.maritalStatus === 'married' ? 'selected' : ''}>${I18n.t('settings.maritalStatusMarried')}</option>
-                    <option value="widowed" ${profile.household.maritalStatus === 'widowed' ? 'selected' : ''}>${I18n.t('settings.maritalStatusWidowed')}</option>
+                    <option value="${MaritalStatus.SINGLE}" ${profile.household.maritalStatus === MaritalStatus.SINGLE ? 'selected' : ''}>${I18n.t('settings.maritalStatusSingle')}</option>
+                    <option value="${MaritalStatus.MARRIED}" ${profile.household.maritalStatus === MaritalStatus.MARRIED ? 'selected' : ''}>${I18n.t('settings.maritalStatusMarried')}</option>
+                    <option value="${MaritalStatus.WIDOWED}" ${profile.household.maritalStatus === MaritalStatus.WIDOWED ? 'selected' : ''}>${I18n.t('settings.maritalStatusWidowed')}</option>
                   </select>
 
                   <div style="display: flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem;">
@@ -128,7 +129,7 @@ export class SettingsModalView {
                   <label id="spouse-case-label" for="spouse-case-input" style="display: block; font-weight: bold; margin: 0.6rem 0 0.3rem;">
                     ${I18n.t('settings.spouseCase')}
                   </label>
-                  <select id="spouse-case-input" name="spouseCase" class="form-control" ${profile.household.maritalStatus === 'single' ? 'disabled' : ''} style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
+                  <select id="spouse-case-input" name="spouseCase" class="form-control" ${profile.household.maritalStatus === MaritalStatus.SINGLE ? 'disabled' : ''} style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
                     ${caseOptionsHtml(SPOUSE_CASE_OPTIONS[profile.household.maritalStatus], spouseCase)}
                   </select>
                 </div>
@@ -286,7 +287,7 @@ export class SettingsModalView {
     const finalTaxDisplay = form.querySelector('#final-tax-display');
 
     const updateSingleParent = (): void => {
-      const isSingle = statusSelect.value === 'single';
+      const isSingle = statusSelect.value === MaritalStatus.SINGLE;
       const children = Number.parseInt(childrenInput.value || '0', 10);
       const alternateChildren = Number.parseInt(alternateChildrenInput.value || '0', 10);
       const isActive = isSingle && (children + alternateChildren) > 0;
@@ -294,7 +295,7 @@ export class SettingsModalView {
       if (!isActive) {
         singleParentInput.checked = false;
       }
-      const isCaseLActive = statusSelect.value !== 'married' && (children + alternateChildren) === 0;
+      const isCaseLActive = !MaritalStatus.isCouple(statusSelect.value) && (children + alternateChildren) === 0;
       ToggleSwitch.setEnabled(caseLInput, isCaseLActive);
       if (!isCaseLActive) {
         caseLInput.checked = false;
@@ -367,7 +368,7 @@ export class SettingsModalView {
         taxableIncome
       });
 
-      const parentsParts = statusSelect.value === 'married' ? 2 : 1;
+      const parentsParts = MaritalStatus.isCouple(statusSelect.value) ? 2 : 1;
       const extraParts = summary.parts - parentsParts;
       const taxResult = TaxCalculator.computeFinalTax(taxableIncome, statusSelect.value as MaritalStatus, extraParts, summary.halfPartReductionCeiling);
 
@@ -431,8 +432,8 @@ export class SettingsModalView {
       const disabledChildrenCount = Number.parseInt(formData.get('disabledChildrenCount') as string || '0', 10);
       const disabledAlternateChildrenCount = Number.parseInt(formData.get('disabledAlternateChildrenCount') as string || '0', 10);
       const totalChildren = childrenCount + alternateChildrenCount;
-      const isSingleParent = maritalStatus === 'single' && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
-      const caseL = maritalStatus !== 'married' && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
+      const isSingleParent = maritalStatus === MaritalStatus.SINGLE && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
+      const caseL = !MaritalStatus.isCouple(maritalStatus) && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
       const declarantCaseValues: string[] = DECLARANT_CASE_OPTIONS[maritalStatus];
       const spouseCaseValues: string[] = SPOUSE_CASE_OPTIONS[maritalStatus];
       const declarantCaseValue = formData.get('declarantCase') as string;

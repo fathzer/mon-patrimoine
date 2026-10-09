@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n, ToggleSwitch } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, ToggleSwitch, MaritalStatus } from '../../kit/v1/index.js';
 import { checkPerPlanCap, checkCombinedCap } from './Caps.js';
 import type { BasePlacement, AppStore } from '../../kit/v1/index.js';
 import type { PeaModule, PeaType } from './module.js';
@@ -9,8 +9,6 @@ const labels = {
   pea: 'PEA',
   peaPme: 'PEA-PME'
 };
-
-const COUPLE_STATUSES = new Set(['married', 'pacsed']);
 
 export class PeaEditor extends BasePlacementEditor {
   private readonly store: AppStore | undefined;
@@ -85,7 +83,7 @@ export class PeaEditor extends BasePlacementEditor {
     if (!warning) return;
 
     const selectedType = this.getSelectedPeaType();
-    const isCouple = COUPLE_STATUSES.has(this.store?.getTaxProfile()?.household?.maritalStatus ?? '');
+    const isCouple = MaritalStatus.isCouple(this.store?.getTaxProfile()?.household?.maritalStatus);
     const maxCount = isCouple ? 2 : 1;
     const planLabel = selectedType === 'pea_pme' ? labels.peaPme : labels.pea;
     const statusLabel = isCouple ? 'Un couple' : 'Un célibataire';
@@ -121,7 +119,7 @@ export class PeaEditor extends BasePlacementEditor {
 
     const selectedType = this.getSelectedPeaType();
     const currentDeposits = Number(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value) || 0;
-    const isCouple = COUPLE_STATUSES.has(this.store?.getTaxProfile()?.household?.maritalStatus ?? '');
+    const isCouple = MaritalStatus.isCouple(this.store?.getTaxProfile()?.household?.maritalStatus);
 
     const { peaDeposits, peaPmeDeposits } = this.collectAllDeposits(selectedType, currentDeposits);
 

@@ -1,4 +1,5 @@
 import { FISCAL_RATES } from '../fiscality/rates.js';
+import { MaritalStatus } from '../fiscality/Household.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { formatCurrency } from './commonTaxExplanations.js';
@@ -29,7 +30,7 @@ function getTaxExplanation(): string {
   const plafWithExtra = TaxCalculator.computeRawTax(plafIncome, 1 + plafExtraParts);
   const plafCapped = Math.max(0, plafWithoutExtra.rawTax - plafCeiling);
   const plafRetained = Math.max(plafWithExtra.rawTax, plafCapped);
-  const plafFinal = TaxCalculator.computeFinalTax(plafIncome, 'single', plafExtraParts, plafCeiling);
+  const plafFinal = TaxCalculator.computeFinalTax(plafIncome, MaritalStatus.SINGLE, plafExtraParts, plafCeiling);
 
   return `
 <section class="help-section">

@@ -29,6 +29,8 @@ export type { AppStore } from '../../../core/AppStore.js';
 
 // --- Fiscal types ---
 export type { FiscalProfile, PlacementIncome } from '../../../fiscality/TaxCalculator.js';
+export { MaritalStatus } from '../../../fiscality/Household.js';
+export type { Household, HouseholdLike } from '../../../fiscality/Household.js';
 
 // --- Tax calculator ---
 export { TaxCalculator } from '../../../fiscality/TaxCalculator.js';
