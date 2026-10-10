@@ -35,6 +35,20 @@ cd web
 bun test
 ```
 
+### Indice des prix à la consommation (INSEE)
+
+Le script `scripts/fetch_insee_cpi.py` interroge l'API BDM de l'INSEE et publie l'indice mensuel des prix à la consommation (hors tabac) au format JSON sur un Gist GitHub public :
+
+https://gist.githubusercontent.com/fathzer/5646b5558f759655717914400cc50a03/raw/insee-011814056.json
+
+Le workflow GitHub `fetch-insee-cpi.yml` l'exécute chaque jour (l'INSEE publie l'indice vers le 15 du mois) et met à jour le Gist uniquement si les données ont changé. Il nécessite un secret de dépôt `GIST_TOKEN` contenant un Personal Access Token (classique) avec le scope `gist`.
+
+Exécution locale — affiche le JSON sans mettre à jour le Gist si `GIST_TOKEN` n'est pas défini :
+
+```bash
+python3 scripts/fetch_insee_cpi.py
+```
+
 ### Google Drive
 
 Pour permettre à l'application d'accéder à Google Drive depuis une URL donnée, vous devez déclarer cette URL comme origine JavaScript autorisée dans la Google Cloud Console :

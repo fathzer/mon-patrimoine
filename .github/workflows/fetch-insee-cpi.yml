@@ -1,0 +1,22 @@
+name: Update INSEE CPI Gist
+
+on:
+  schedule:
+    # INSEE publishes the monthly CPI around the 15th; a daily run picks it up quickly
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-gist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch CPI and update Gist if changed
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python3 scripts/fetch_insee_cpi.py
