@@ -40,6 +40,15 @@ export class PeeModule extends BasePlacement {
     this.knowsNetValue = data.knowsNetValue === true;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      totalDeposits: this.totalDeposits,
+      currentValue: this.currentValue,
+      netValue: this.netValue,
+      knowsNetValue: this.knowsNetValue
+    };
+  }
+
   getLatentGain(now: Date = new Date()): number {
     if (this.knowsNetValue) {
       // Derive latent gain from the known social charges and the current rate.

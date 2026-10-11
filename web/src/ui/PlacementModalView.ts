@@ -23,6 +23,9 @@ export class PlacementModalView {
 
   show(placement: BasePlacement | null = null): void {
     const isEdit = !!placement;
+    const closeLabel = placement?.closedAt != null
+      ? I18n.t('actions.reopenPlacement')
+      : I18n.t('actions.closePlacement');
     const typeOptions: TypeOption[] = PlacementFactory.getDefinitions()
       .map(def => ({ key: def.name, label: PlacementFactory.getLabel(def.name) }))
       .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
@@ -47,7 +50,11 @@ export class PlacementModalView {
             <div id="submit-errors" style="color: var(--danger); font-size: 0.8rem; min-height: 1.2rem; margin-bottom: 0.5rem;"></div>
 
             <div class="modal-actions">
-              ${isEdit ? `<button type="button" id="btn-delete" class="btn-danger">${I18n.t('actions.delete')}</button>` : '<div></div>'}
+              ${isEdit ? `
+              <div class="modal-actions-left">
+                <button type="button" id="btn-close" class="btn-warning">${closeLabel}</button>
+                <button type="button" id="btn-delete" class="btn-danger">${I18n.t('actions.delete')}</button>
+              </div>` : '<div></div>'}
               <div class="modal-actions-right">
                 <button type="button" id="btn-cancel" class="btn-secondary">${I18n.t('actions.cancel')}</button>
                 <button type="submit" class="btn-primary" id="btn-save" disabled>${I18n.t('actions.save')}</button>
@@ -124,8 +131,25 @@ export class PlacementModalView {
     this.container.querySelector('#btn-cancel')?.addEventListener('click', () => this.container.innerHTML = '');
 
     if (isEdit) {
+      this.container.querySelector('#btn-close')?.addEventListener('click', async () => {
+        // Reopening a mistakenly closed placement needs no confirmation.
+        if (placement!.closedAt != null) {
+          this.store.closePlacement(placement!.id, null);
+          this.container.innerHTML = '';
+          return;
+        }
+        const date = await ConfirmDialog.askWithDate(I18n.t('actions.confirmClose'), I18n.t('actions.closePlacement'), this.container);
+        if (date != null) {
+          this.store.closePlacement(placement!.id, date);
+          this.container.innerHTML = '';
+        }
+      });
       this.container.querySelector('#btn-delete')?.addEventListener('click', async () => {
-        if (await ConfirmDialog.ask(I18n.t('actions.confirmDelete'), this.container)) {
+        const historyCount = placement!.history.length;
+        const message = historyCount > 0
+          ? I18n.t('actions.confirmDeleteWithHistory', { count: historyCount })
+          : I18n.t('actions.confirmDelete');
+        if (await ConfirmDialog.ask(message, this.container)) {
           this.store.deletePlacement(placement!.id);
           this.container.innerHTML = '';
         }

@@ -40,6 +40,14 @@ export class SavingsAccountModule extends BasePlacement {
     this.promotionalInterest = this.taxExempt ? 0 : (Number(data.promotionalInterest) || 0);
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      currentValue: this.currentValue,
+      interestAmount: this.interestAmount,
+      promotionalInterest: this.promotionalInterest
+    };
+  }
+
   getTotalInterest(): number {
     return this.interestAmount + this.promotionalInterest;
   }

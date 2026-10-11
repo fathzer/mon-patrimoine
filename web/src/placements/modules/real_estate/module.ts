@@ -64,6 +64,10 @@ export class RealEstateModule extends BasePlacement {
     this.works = Number(data.works ?? data.worksAmount) || 0;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return { currentValue: this.currentValue, works: this.works };
+  }
+
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
     if (this.primaryResidence) {
       return {

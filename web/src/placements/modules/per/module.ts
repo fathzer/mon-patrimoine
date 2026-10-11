@@ -79,6 +79,17 @@ export class PerModule extends BasePlacement {
     };
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      grossValue: this.grossValue,
+      netValue: this.netValue,
+      knowsNetValue: this.knowsNetValue,
+      deducted: this.deducted,
+      nonDeducted: this.nonDeducted,
+      employeeSavings: this.employeeSavings
+    };
+  }
+
   private getCompartmentData(key: PerCompartmentKey): PerCompartmentData {
     switch (key) {
       case 'deducted': return this.deducted;

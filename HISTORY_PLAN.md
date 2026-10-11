@@ -99,16 +99,16 @@ valuesEqual(a, b)                                       // égalité structurell
 
 ## Étape 3 — Rollout des modules (opt-in)
 
-| Ordre | Module | Champs évolutifs | Remarques |
+| Ordre | Module | Champs évolutifs | Statut |
 |---|---|---|---|
-| 1 | `savings_account` | `currentValue`, `interestAmount`, `promotionalInterest` | cas d'école + test |
-| 2 | `cto` | `currentValue`, `acquisitionValue`, `cashBalance` | test |
-| 3 | `checking_account` | `currentValue` | trivial |
-| 4 | `pea`, `pee` | `currentValue`, `totalDeposits` | `openingDate` absolu |
-| 5 | `life_insurance`, `per`, `home_savings` | audit champs | |
-| 6 | `real_estate` | `currentValue`, `works` | `acquisition*`/`primaryResidence` absolus (correction globale) |
-| 7 | `custom` | audit | |
-| 8 | `stock_grant` | `currentPrice` (`priceHistory`) + `numberOfShares` par ligne (`attributions[].sharesHistory`) | `getDataAt` overridé (ligne visible si `acquisitionDate ≤ D` — hypothèse à affiner) ; `recordState` overridé ; **ligne jamais supprimée** : cession = `sharesHistory` → 0 à la date |
+| 1 | `savings_account` | `currentValue`, `interestAmount`, `promotionalInterest` | fait + test |
+| 2 | `cto` | `currentValue`, `acquisitionValue`, `cashBalance` | fait + test |
+| 3 | `checking_account` | `currentValue`, `cardBalance` | fait |
+| 4 | `pea`, `pee` | `currentValue`, `totalDeposits` (+ `netValue`, `knowsNetValue` pour `pee`) | fait — `openingDate`/`peaType` absolus |
+| 5 | `life_insurance`, `per`, `home_savings` | `life_insurance` : `totalPremiums`, `pre2017Premiums`, `currentValue`, `euroFundsValue` (`openingDate` absolu) ; `per` : `grossValue`, `netValue`, `knowsNetValue`, `deducted`, `nonDeducted`, `employeeSavings` ; `home_savings` : `currentValue`, `interestAmount` (`promotionalInterest` forcé à 0 → non historisé) | fait |
+| 6 | `real_estate` | `currentValue`, `works` | fait — `acquisition*`/`primaryResidence` absolus (correction globale) |
+| 7 | `custom` | `grossValue`, `socialCharges`, `incomeTax` (`category` absolu) | fait |
+| 8 | `stock_grant` | `currentPrice` (`priceHistory` + `priceAsOf`) + `numberOfShares` par ligne (`attributions[].sharesHistory` + `sharesAsOf`) | fait + test — `getDataAt`/`recordState`/`insertHistoryEntry`/`getHistoryDates` overridés ; ligne visible si `acquisitionDate ≤ D` ; appariement par `attributionDate+acquisitionDate` ; **ligne jamais supprimée** : cession = `sharesHistory` → 0 à la date |
 
 ## Étape 4 — Vue graphe (brut + net)
 
@@ -126,6 +126,7 @@ valuesEqual(a, b)                                       // égalité structurell
 ## Étape 6 — Édition de l'historique (en dernier)
 
 - `PlacementModalView` : section « Historique » listant `getHistoryDates()` ; actions éditer / supprimer / ajouter un point passé ; édition de `asOf` et `closedAt`.
+- **Visibilité des placements clôturés** : prévoir un toggle masquer/afficher dans la liste (masqués par défaut — déjà exclus des totaux courants ; affichés grisés et restant éditables — nécessaire pour la réouverture, sinon ils sont inaccessibles dans l'UI). Dans une vue à une date passée où ils étaient ouverts, ils apparaissent et comptent normalement. (À avancer si besoin : sans ce point, un placement clôturé devient invisible dès sa clôture.)
 - Édition : `editor.render(placement, { asOfDate })` pré-rempli via `getDataAt(date)` ; écriture dans l'entrée (sans `recordState`) ; champs absolus édités globalement via le formulaire principal.
 - « Supprimer un placement » → `closedAt` (date d'effet), avec option de suppression physique documentée comme destructive de l'historique.
 - `AppStore` : `updateHistoryEntry` / `deleteHistoryEntry` / `closePlacement` + persistance.

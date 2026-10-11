@@ -42,6 +42,10 @@ export class PeaModule extends BasePlacement {
     this.peaType = data.peaType || 'pea';
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return { totalDeposits: this.totalDeposits, currentValue: this.currentValue };
+  }
+
   getHoldingYears(now: Date = new Date()): number {
     const opening = new Date(this.openingDate);
     let years = now.getFullYear() - opening.getFullYear();

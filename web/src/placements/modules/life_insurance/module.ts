@@ -82,6 +82,15 @@ export class LifeInsuranceModule extends BasePlacement {
     this.euroFundsValue = Number(data.euroFundsValue) || 0;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      totalPremiums: this.totalPremiums,
+      pre2017Premiums: this.pre2017Premiums,
+      currentValue: this.currentValue,
+      euroFundsValue: this.euroFundsValue
+    };
+  }
+
   isPre2017Contract(): boolean {
     return this._isPre2017Contract(this.openingDate);
   }
@@ -135,9 +144,10 @@ export class LifeInsuranceModule extends BasePlacement {
     const years = this.getContractYears(now);
     const allowance = years >= 8 ? this._getAllowance(fiscalProfile) : 0;
     const taxableGain = Math.max(0, latentGain - allowance);
-    const tranches = fiscalProfile?.usePfu && taxableGain > 0
-      ? (years >= 8 ? this._getPfuTranchesAfter8Years(taxableGain) : [{ scope: 'all' as const, base: taxableGain, rate: PFU_BEFORE_8Y }])
-      : [];
+    const pfuTranches = years >= 8
+      ? this._getPfuTranchesAfter8Years(taxableGain)
+      : [{ scope: 'all' as const, base: taxableGain, rate: PFU_BEFORE_8Y }];
+    const tranches = fiscalProfile?.usePfu && taxableGain > 0 ? pfuTranches : [];
     return { latentGain, allowance, taxableGain, tranches };
   }
 

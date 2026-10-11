@@ -35,7 +35,11 @@ export const fr = {
     save: "Enregistrer",
     cancel: "Annuler",
     delete: "Supprimer",
-    confirmDelete: "Êtes-vous sûr de vouloir supprimer ce placement ?",
+    closePlacement: "Clôturer",
+    reopenPlacement: "Rouvrir",
+    confirmDelete: "Supprimer définitivement ce placement ?",
+    confirmDeleteWithHistory: "Supprimer définitivement ce placement ? Son historique ({count} états) sera perdu.",
+    confirmClose: "Clôturer ce placement ? Il restera enregistré avec son historique, mais ne comptera plus dans la synthèse courante.",
     "import": "Importer",
     "export": "Exporter"
   },

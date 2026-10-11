@@ -37,6 +37,14 @@ export class CtoModule extends BasePlacement {
     this.currentValue = Number(data.currentValue) || 0;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      acquisitionValue: this.acquisitionValue,
+      cashBalance: this.cashBalance,
+      currentValue: this.currentValue
+    };
+  }
+
   getLatentGain(): number {
     return Math.max(0, this.currentValue - this.acquisitionValue - this.cashBalance);
   }

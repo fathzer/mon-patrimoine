@@ -50,6 +50,12 @@ export class HomeSavingsModule extends BasePlacement {
     this.promotionalInterest = 0;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    // promotionalInterest is always 0 for this module (constructor-forced),
+    // so only the two real user-entered values are tracked.
+    return { currentValue: this.currentValue, interestAmount: this.interestAmount };
+  }
+
   getTotalInterest(): number {
     return this.interestAmount + this.promotionalInterest;
   }
