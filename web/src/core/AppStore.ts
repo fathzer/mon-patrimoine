@@ -198,8 +198,9 @@ export class AppStore extends EventBus<AppStoreEvents> {
    * Marks a placement as closed at `closedAt` (default: today). The placement
    * and its history are preserved; it is excluded from the current summary
    * and resolves to no state after the closure date.
+   * Pass null to reopen a placement that was closed by mistake.
    */
-  closePlacement(id: string, closedAt: string = todayString()): void {
+  closePlacement(id: string, closedAt: string | null = todayString()): void {
     const placement = this.state.placements.find(p => p.id === id);
     if (placement) {
       placement.closedAt = closedAt;

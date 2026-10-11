@@ -2,12 +2,46 @@
 import { describe, it, expect } from "bun:test";
 import { AppStore } from "./AppStore.js";
 import { Household } from "../fiscality/Household.js";
+import { BasePlacement } from "../placements/BasePlacement.js";
+import { Category } from "./Categories.js";
+import type { PlacementData, Evaluation } from "../placements/BasePlacement.js";
 import type { StorageManager } from "../storage/StorageManager.js";
-import type { FiscalProfile } from "../fiscality/TaxCalculator.js";
+import type { FiscalProfile, PlacementIncome } from "../fiscality/TaxCalculator.js";
 
 const stubStorage = {
   save: async () => true
 } as unknown as StorageManager;
+
+interface TestData extends PlacementData {
+  currentValue?: number;
+}
+
+class TestPlacement extends BasePlacement {
+  static getCategory() {
+    return Category.INVESTMENTS;
+  }
+
+  currentValue: number;
+
+  constructor(data: TestData) {
+    super({ ...data, type: 'test' });
+    this.currentValue = Number(data.currentValue) || 0;
+  }
+
+  getEvaluation(_fiscalProfile: FiscalProfile, _now?: Date): Evaluation {
+    return {
+      grossValue: this.currentValue,
+      netValueBeforeIR: this.currentValue,
+      socialCharges: 0,
+      latentGain: 0,
+      imposition: 0
+    };
+  }
+
+  protected getTaxableIncomes(): PlacementIncome[] {
+    return [];
+  }
+}
 
 const profile = (taxableIncome: number, married = false): FiscalProfile => ({
   household: new Household({ maritalStatus: married ? 'married' : 'single' }),
@@ -98,5 +132,22 @@ describe("AppStore tax profile history", () => {
     // The earliest recorded profile extends to every earlier date.
     expect(store.getTaxProfileAt("1999-12-31").taxableIncome).toBe(45000);
     expect(store.getTaxProfileAt("2000-06-01").taxableIncome).toBe(45000);
+  });
+});
+
+describe("AppStore placement lifecycle", () => {
+  it("closes and reopens a placement without losing its history", () => {
+    const store = makeStore();
+    const placement = new TestPlacement({ id: "p1", currentValue: 100 });
+    store.state.placements.push(placement);
+
+    store.closePlacement("p1", "2026-10-01");
+    expect(placement.closedAt).toBe("2026-10-01");
+    // Closure keeps the placement in the file — only deletion removes it.
+    expect(store.state.placements).toContain(placement);
+
+    // closePlacement(id, null) reopens a placement closed by mistake.
+    store.closePlacement("p1", null);
+    expect(placement.closedAt).toBeNull();
   });
 });
