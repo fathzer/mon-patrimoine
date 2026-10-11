@@ -37,9 +37,13 @@ bun test
 
 ### Indice des prix à la consommation (INSEE)
 
-Le script `scripts/fetch_insee_cpi.py` interroge l'API BDM de l'INSEE et publie l'indice mensuel des prix à la consommation (hors tabac) au format JSON sur un Gist GitHub public :
+Le script `scripts/fetch_insee_cpi.py` interroge l'API BDM de l'INSEE et publie les indices mensuels des prix à la consommation au format JSON sur un Gist GitHub public — un fichier par série, nommé `insee-<idbank>.json` :
 
-https://gist.githubusercontent.com/fathzer/5646b5558f759655717914400cc50a03/raw/insee-011814056.json
+- https://gist.githubusercontent.com/fathzer/5646b5558f759655717914400cc50a03/raw/insee-011814056.json (ensemble hors tabac)
+- https://gist.githubusercontent.com/fathzer/5646b5558f759655717914400cc50a03/raw/insee-011814630.json (ensemble y compris tabac, France)
+- https://gist.githubusercontent.com/fathzer/5646b5558f759655717914400cc50a03/raw/insee-011814080.json (ensemble hors tabac et alcool)
+
+Les séries extraites sont listées dans `IDBANKS` en tête du script.
 
 Le workflow GitHub `fetch-insee-cpi.yml` l'exécute chaque jour (l'INSEE publie l'indice vers le 15 du mois) et met à jour le Gist uniquement si les données ont changé. Il nécessite un secret de dépôt `GIST_TOKEN` contenant un Personal Access Token (classique) avec le scope `gist`.
 

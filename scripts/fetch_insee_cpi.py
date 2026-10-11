@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Fetch the French Consumer Price Index (CPI) time series from the INSEE BDM API
-and publish it as JSON to a GitHub Gist.
+"""Fetch French Consumer Price Index (CPI) time series from the INSEE BDM API
+and publish them as JSON files to a GitHub Gist (one file per series, named
+insee-<idbank>.json).
 
-The JSON is printed to stdout. When the GIST_TOKEN environment variable is set
-(a PAT with the "gist" scope), the Gist is updated only if its content changed."""
+When the GIST_TOKEN environment variable is set (a PAT with the "gist" scope),
+only the files whose content changed are updated."""
 
 import json
 import os
@@ -11,9 +12,13 @@ import sys
 import urllib.request
 import xml.etree.ElementTree as ET
 
-INSEE_URL = "https://api.insee.fr/series/BDM/V1/data/SERIES_BDM/011814056"
+IDBANKS = ["011814056", "011814630", "011814080"]
+INSEE_URL_TEMPLATE = "https://api.insee.fr/series/BDM/V1/data/SERIES_BDM/{}"
 GIST_API_URL = "https://api.github.com/gists/5646b5558f759655717914400cc50a03"
-GIST_FILENAME = "insee-011814056.json"
+GIST_FILE_PREFIX = "insee-"
+GIST_DESCRIPTION = (
+    "Indices mensuels des prix à la consommation (INSEE, base 2025)"
+)
 # This is an XML namespace URI, i.e. a literal identifier that must match the
 # document exactly - not a fetched resource. The "use HTTPS" SONAR warning is a false positive.
 COMMON_NS = "http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common"
@@ -23,8 +28,9 @@ def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
-def fetch_cpi_json() -> str:
-    request = urllib.request.Request(INSEE_URL, headers={"Accept": "application/xml"})
+def fetch_series(idbank: str) -> dict:
+    url = INSEE_URL_TEMPLATE.format(idbank)
+    request = urllib.request.Request(url, headers={"Accept": "application/xml"})
     with urllib.request.urlopen(request, timeout=30) as response:
         root = ET.fromstring(response.read())
 
@@ -32,7 +38,7 @@ def fetch_cpi_json() -> str:
 
     series = next((el for el in root.iter() if local_name(el.tag) == "Series"), None)
     if series is None:
-        raise RuntimeError("No Series element found in the INSEE response.")
+        raise RuntimeError(f"No Series element found in the INSEE response for {idbank}.")
 
     index = {}
     for obs in series:
@@ -43,20 +49,19 @@ def fetch_cpi_json() -> str:
         if period and value:
             index[period] = value
     if not index:
-        raise RuntimeError("No observations found in the INSEE response.")
+        raise RuntimeError(f"No observations found in the INSEE response for {idbank}.")
 
-    data = {
+    return {
         "source": {
             "origin": sender_name
             or "Institut national de la statistique et des études économiques",
-            "url": INSEE_URL,
+            "url": url,
             "id": series.get("IDBANK"),
             "title": series.get("TITLE_FR"),
             "lastUpdate": series.get("LAST_UPDATE"),
         },
         "index": index,
     }
-    return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
 
 
 def gist_request(token: str, payload: dict = None) -> dict:
@@ -76,31 +81,53 @@ def gist_request(token: str, payload: dict = None) -> dict:
         return json.loads(response.read())
 
 
-def update_gist(content: str, token: str) -> str:
+def update_gist(contents: dict, token: str) -> dict:
     gist = gist_request(token)
     files = gist.get("files", {})
-    if GIST_FILENAME in files:
-        target = GIST_FILENAME
-    elif len(files) == 1:
-        target = next(iter(files))  # single file with another name: rename it
-    else:
-        target = GIST_FILENAME  # empty or multi-file gist: create the file
-    if files.get(target, {}).get("content") == content:
-        return "unchanged"
-    gist_request(
-        token, {"files": {target: {"filename": GIST_FILENAME, "content": content}}}
+    # One-off migration: a lone file not matching our naming scheme
+    # (e.g. the initial "gistfile1.txt") is renamed to the first target file.
+    legacy = (
+        next(iter(files))
+        if len(files) == 1 and not next(iter(files)).startswith(GIST_FILE_PREFIX)
+        else None
     )
-    return "updated"
+
+    patch, results = {}, {}
+    first = next(iter(contents))
+    for name, content in contents.items():
+        if files.get(name, {}).get("content") == content:
+            results[name] = "unchanged"
+        elif name == first and legacy:
+            patch[legacy] = {"filename": name, "content": content}
+            results[name] = "updated"
+        else:
+            patch[name] = {"content": content}
+            results[name] = "updated" if name in files else "created"
+
+    payload = {"files": patch} if patch else {}
+    if gist.get("description") != GIST_DESCRIPTION:
+        payload["description"] = GIST_DESCRIPTION
+        results["(description)"] = "updated"
+    if payload:
+        gist_request(token, payload)
+    return results
 
 
 def main() -> int:
     try:
-        content = fetch_cpi_json()
+        contents = {}
+        for idbank in IDBANKS:
+            data = fetch_series(idbank)
+            contents[f"{GIST_FILE_PREFIX}{idbank}.json"] = (
+                json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+            )
+            print(
+                f"{idbank}: {len(data['index'])} observations"
+                f" (last update {data['source']['lastUpdate']})"
+            )
     except Exception as exc:
         print(f"Failed to fetch INSEE data: {exc}", file=sys.stderr)
         return 1
-
-    print(content)
 
     token = os.environ.get("GIST_TOKEN")
     if not token:
@@ -108,15 +135,19 @@ def main() -> int:
             print("GIST_TOKEN environment variable is not set.", file=sys.stderr)
             return 1
         print("GIST_TOKEN not set: skipping Gist update.", file=sys.stderr)
+        for name, content in contents.items():
+            print(f"--- {name} ---")
+            print(content)
         return 0
 
     try:
-        result = update_gist(content, token)
+        results = update_gist(contents, token)
     except Exception as exc:
         print(f"Failed to update Gist: {exc}", file=sys.stderr)
         return 1
 
-    print(f"Gist {result}.")
+    for name, result in results.items():
+        print(f"{name}: {result}")
     return 0
 
 
