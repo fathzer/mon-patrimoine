@@ -1,4 +1,6 @@
 import { I18n } from '../core/I18n.js';
+import { todayString } from '../core/DatedHistory.js';
+import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
 
 interface HistoryPanelOptions {
@@ -33,8 +35,20 @@ export class HistoryPanelView {
     this.container = container;
   }
 
+  /** Sets the selected date and reflects it in the input when rendered. */
+  setDate(date: string | null): void {
+    this._date = date;
+    const input = this.container?.querySelector('#history-date') as HTMLInputElement | null;
+    if (input) input.value = date ?? '';
+  }
+
+  /** Resets the controls to their defaults: no date selected, closed hidden. */
+  reset(): void {
+    this._date = null;
+    this._showClosed = false;
+  }
+
   render(): void {
-    const today = new Date().toISOString().split('T')[0];
     this.container!.className = 'history-panel';
     this.container!.innerHTML = `
       <div class="history-panel-header">
@@ -43,7 +57,7 @@ export class HistoryPanelView {
       </div>
       <div class="history-panel-controls">
         <label for="history-date">${I18n.t('history.viewAtDate')}</label>
-        <input type="date" id="history-date" class="form-control" value="${this._date ?? ''}" max="${today}" />
+        <input type="date" id="history-date" class="form-control" value="${this._date ?? ''}" />
         ${ToggleSwitch.create({
           name: 'history-show-closed',
           id: 'history-show-closed',
@@ -64,6 +78,10 @@ export class HistoryPanelView {
 
     const dateInput = this.container!.querySelector('#history-date') as HTMLInputElement | null;
     dateInput?.addEventListener('change', () => {
+      // No min/max attributes: they clamp mid-typing in segmented inputs,
+      // which makes the year untypable. Bounds are enforced on commit.
+      if (dateInput!.value && dateInput!.value < EARLIEST_FISCAL_DATE) dateInput!.value = EARLIEST_FISCAL_DATE;
+      if (dateInput!.value && dateInput!.value > todayString()) dateInput!.value = todayString();
       this._date = dateInput!.value || null;
       this._onDateChange(this._date);
     });

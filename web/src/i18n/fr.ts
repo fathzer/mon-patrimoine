@@ -33,6 +33,7 @@ export const fr = {
   actions: {
     addAsset: "+ Ajouter un actif",
     save: "Enregistrer",
+    saveStay: "Enregistrer sans fermer",
     cancel: "Annuler",
     delete: "Supprimer",
     closePlacement: "Clôturer",
@@ -117,11 +118,23 @@ export const fr = {
     taxRules: "Règles fiscales"
   },
   taxExplanation: {
-    title: "Explication fiscale"
+    title: "Explication fiscale",
+    titleAt: "Explication fiscale au {date}"
   },
   history: {
     title: "Historique",
     viewAtDate: "État au",
-    showClosed: "Afficher les placements clôturés"
+    showClosed: "Afficher les placements clôturés",
+    stateAt: "État au {date}",
+    closedBadge: "Clôturé",
+    notTracked: "Non suivi à cette date",
+    existingPoint: "Point existant",
+    newPoint: "Nouveau point",
+    editAction: "Modifier les valeurs à cette date",
+    prevPoint: "Point précédent",
+    nextPoint: "Point suivant",
+    deletePoint: "Supprimer ce point",
+    confirmDeletePoint: "Supprimer l'état enregistré au {date} ? À cette date, le placement reprendra l'état connu précédent.",
+    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (type, nom, établissement, dates de contrat…) se modifient via l'édition courante."
   }
 };

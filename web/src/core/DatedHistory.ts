@@ -17,6 +17,11 @@ export interface HistoryEntry {
   values: Record<string, unknown>;
 }
 
+/** Today's date in ISO form (YYYY-MM-DD). */
+export function todayString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 /**
  * Compares two ISO dates (YYYY-MM-DD) for ascending sort.
  * Exported so every history-related sort uses the same ordering.
@@ -64,6 +69,16 @@ export function recordAt<T extends { date: string }>(
   const rest = entries.filter(e => e.date !== entry.date);
   rest.push(entry);
   return rest.sort((a, b) => compareDates(a.date, b.date));
+}
+
+/**
+ * Returns a new history without the entry recorded at `date` (dates are
+ * unique per recordAt, so at most one entry matches).
+ * @param entries history sorted by date (ascending); not mutated.
+ * @param date effective date to delete (YYYY-MM-DD).
+ */
+export function deleteAt<T extends { date: string }>(entries: readonly T[], date: string): T[] {
+  return entries.filter(e => e.date !== date);
 }
 
 /**

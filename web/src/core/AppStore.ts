@@ -1,5 +1,5 @@
 import { EventBus } from './EventBus.js';
-import { compareDates, recordAt, resolveAt } from './DatedHistory.js';
+import { compareDates, recordAt, resolveAt, todayString } from './DatedHistory.js';
 import { Household } from '../fiscality/Household.js';
 import type { HouseholdData } from '../fiscality/Household.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
@@ -19,6 +19,8 @@ export interface BreakdownEntry {
 
 export interface GlobalSummary {
   isAuthenticated: boolean;
+  /** View date (YYYY-MM-DD) when this summary is a historical reconstruction. */
+  asOfDate?: string;
   totalGross?: number;
   finalNetValue?: number;
   categories?: string[];
@@ -75,8 +77,6 @@ export interface AppState {
   taxProfileHistory: TaxProfileHistoryEntry[];
   placements: BasePlacement[];
 }
-
-const todayString = (): string => new Date().toISOString().split('T')[0];
 
 export class AppStore extends EventBus<AppStoreEvents> {
   static readonly DEFAULT_TAX_PROFILE: FiscalProfile = {
@@ -175,7 +175,12 @@ export class AppStore extends EventBus<AppStoreEvents> {
     if (effectiveDate < previous.asOf) {
       const evolvingKeys = Object.keys(instance.getEvolvingValues());
       const previousData = previous.toJSON() as Record<string, unknown>;
+      // previousData first: serialized fields absent from the form payload
+      // (nested histories — priceHistory, sharesHistory...) must survive a
+      // retroactive save. Evolving keys are then restored to the previous
+      // current values — the retro save only writes a history entry.
       const merged = {
+        ...previousData,
         ...data,
         asOf: previous.asOf,
         closedAt: data.closedAt ?? previous.closedAt,
@@ -211,6 +216,18 @@ export class AppStore extends EventBus<AppStoreEvents> {
   deletePlacement(id: string): void {
     this.state.placements = this.state.placements.filter(p => p.id !== id);
     this._persistAndEmit();
+  }
+
+  /**
+   * Deletes the history entry recorded at `date` on a placement — the undo
+   * path for a wrong retroactive entry. The current state is untouched.
+   */
+  deleteHistoryEntry(id: string, date: string): void {
+    const placement = this.state.placements.find(p => p.id === id);
+    if (placement) {
+      placement.deleteHistoryEntry(date);
+      this._persistAndEmit();
+    }
   }
 
   getExportPayload(): ExportPayload {
@@ -278,31 +295,50 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   getGlobalSummary(): GlobalSummary {
+    return this._buildSummary(null);
+  }
+
+  /**
+   * Builds the summary at a view date. `viewDate === null` means the current
+   * view (live instances, current tax profile); otherwise every placement is
+   * reconstructed via `getDataAt(viewDate)` and evaluated with the tax
+   * profile effective at that date. Placements without a state at the view
+   * date (closed, or not yet tracked) are absent from `evaluations` — the UI
+   * derives them as `state.placements` minus the evaluated ids.
+   */
+  getSummaryAt(viewDate: string | null): GlobalSummary {
+    return this._buildSummary(viewDate);
+  }
+
+  _buildSummary(viewDate: string | null): GlobalSummary {
     if (!this.state.isAuthenticated) {
       return { isAuthenticated: false };
     }
 
-    const now = new Date();
+    const effectiveDate = viewDate ?? todayString();
+    const now = viewDate == null ? new Date() : new Date(`${viewDate}T12:00:00`);
+    const profile = viewDate == null ? this.state.taxProfile : this.getTaxProfileAt(viewDate);
     let totalGross = 0;
     let totalNet = 0;
     const breakdown: Record<string, BreakdownEntry> = {};
     const categoriesSet = new Set<string>();
+    const evaluations: EvaluationEntry[] = [];
 
-    const evaluations: EvaluationEntry[] = this.state.placements
-      .filter(p => p.closedAt == null || p.closedAt >= todayString())
-      .map(placement => {
-        const evaluation = placement.getEvaluation(this.state.taxProfile, now);
-        const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
-        totalGross += evaluation.grossValue;
-        totalNet += netValue;
+    for (const placement of this.state.placements) {
+      const instance = this._resolveInstanceAt(placement, viewDate, effectiveDate);
+      if (instance == null) continue;
+      const evaluation = instance.getEvaluation(profile, now);
+      const netValue = (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
+      totalGross += evaluation.grossValue;
+      totalNet += netValue;
 
-        const cat = placement.getCategory();
-        categoriesSet.add(cat);
-        if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
-        breakdown[cat].gross += evaluation.grossValue;
+      const cat = instance.getCategory();
+      categoriesSet.add(cat);
+      if (!breakdown[cat]) breakdown[cat] = { gross: 0, percentage: 0 };
+      breakdown[cat].gross += evaluation.grossValue;
 
-        return { instance: placement, evaluation: { ...evaluation, netValue } };
-      });
+      evaluations.push({ instance, evaluation: { ...evaluation, netValue } });
+    }
 
     Object.keys(breakdown).forEach(cat => {
       breakdown[cat].percentage = totalGross > 0
@@ -312,12 +348,27 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
     return {
       isAuthenticated: true,
+      ...(viewDate != null ? { asOfDate: viewDate } : {}),
       totalGross,
       finalNetValue: totalNet,
       categories: Array.from(categoriesSet),
       breakdown,
       evaluations
     };
+  }
+
+  /**
+   * The instance contributing to a summary: the live placement in the current
+   * view (same exclusion rule as before — closed only after `effectiveDate`),
+   * or a reconstruction of the state at `viewDate` in history mode. Null when
+   * the placement has no state at that date.
+   */
+  _resolveInstanceAt(placement: BasePlacement, viewDate: string | null, effectiveDate: string): BasePlacement | null {
+    if (viewDate == null) {
+      return placement.closedAt == null || placement.closedAt >= effectiveDate ? placement : null;
+    }
+    const data = placement.getDataAt(effectiveDate);
+    return data == null ? null : PlacementFactory.create(data);
   }
 
   getTaxProfile(): FiscalProfile {

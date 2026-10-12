@@ -295,6 +295,20 @@ describe("StockGrantModule history", () => {
     expect(p.attributions[0].sharesHistory).toEqual([]);
   });
 
+  it("deletes a point from every dimension's history (price + per-line shares)", () => {
+    const p = makeModule();
+    p.insertHistoryEntry("2025-03-01", {
+      currentPrice: 70,
+      attributions: [{ attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 80 }]
+    });
+
+    expect(p.hasHistoryEntry("2025-03-01")).toBe(true);
+    p.deleteHistoryEntry("2025-03-01");
+    expect(p.hasHistoryEntry("2025-03-01")).toBe(false);
+    expect(p.priceHistory).toEqual([]);
+    expect(p.attributions[0].sharesHistory).toEqual([]);
+  });
+
   it("round-trips the nested histories through toJSON", () => {
     const p = makeModule({
       priceAsOf: "2026-10-01",

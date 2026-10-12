@@ -40,7 +40,7 @@ export { SOCIAL_CONTRIBUTION_RATES, FISCAL_RATES, FISCAL_RATES_BY_YEAR, getFisca
 export type { TaxBracket, YearlyFiscalRates } from '../../../fiscality/rates.js';
 
 // --- Dated history ---
-export { compareDates, resolveAt, recordAt, thin, valuesEqual } from '../../../core/DatedHistory.js';
+export { compareDates, resolveAt, recordAt, deleteAt, thin, valuesEqual } from '../../../core/DatedHistory.js';
 export type { HistoryEntry, ThinPolicy } from '../../../core/DatedHistory.js';
 
 // --- Help popover ---

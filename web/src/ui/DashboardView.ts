@@ -1,5 +1,6 @@
 import { I18n } from '../core/I18n.js';
 import { UiState } from '../core/UiState.js';
+import { todayString } from '../core/DatedHistory.js';
 import { getWelcomeHtml } from '../i18n/welcome.js';
 import { TopBarView } from './TopBarView.js';
 import { SettingsModalView } from './SettingsModalView.js';
@@ -106,18 +107,25 @@ export class DashboardView {
 
     this._renderSummary();
 
-    const modalRoot = this._modalRoot!;
     this._assetTableView.setContainer(this._pageContent!.querySelector('#assets-container') as HTMLElement);
-    this._assetTableView.render(summary, modalRoot);
+    this._renderAssetTable();
 
     this._bindAuthenticatedEvents();
   }
 
+  _renderAssetTable(): void {
+    this._assetTableView.render(this._viewSummary(), this._modalRoot!, this._showClosedPlacements);
+  }
+
   _renderSummary(): void {
+    this._renderTotals();
+    this._renderBreakdown();
+    this._renderHistoryPanel();
+  }
+
+  _renderTotals(): void {
     const totals = this._pageContent!.querySelector('#summary-totals') as HTMLElement | null;
-    const breakdown = this._pageContent!.querySelector('#summary-breakdown') as HTMLElement | null;
-    const history = this._pageContent!.querySelector('#summary-history') as HTMLElement | null;
-    if (!totals || !breakdown || !history) return;
+    if (!totals) return;
 
     const displayed = this._getDisplayedTotals();
 
@@ -145,18 +153,28 @@ export class DashboardView {
     toggle?.addEventListener('change', () => {
       this._filterTotals = toggle!.checked;
       UiState.save({ filterTotals: this._filterTotals });
-      this._renderSummary();
+      this._renderTotals();
     });
+  }
+
+  _renderBreakdown(): void {
+    const breakdown = this._pageContent!.querySelector('#summary-breakdown') as HTMLElement | null;
+    if (!breakdown) return;
 
     if (this._breakdownVisible) {
       breakdown.style.display = 'block';
       breakdown.innerHTML = '<div id="breakdown-container"></div>';
       this._breakdownView.setContainer(breakdown.querySelector('#breakdown-container') as HTMLElement);
-      this._breakdownView.render(this._summary!);
+      this._breakdownView.render(this._viewSummary());
     } else {
       breakdown.style.display = 'none';
       breakdown.innerHTML = '';
     }
+  }
+
+  _renderHistoryPanel(): void {
+    const history = this._pageContent!.querySelector('#summary-history') as HTMLElement | null;
+    if (!history) return;
 
     if (this._historyVisible) {
       history.style.display = 'block';
@@ -185,9 +203,15 @@ export class DashboardView {
 
   _hideHistory(): void {
     this._historyVisible = false;
-    UiState.save({ historyVisible: false });
+    // Closing the panel also returns to the current view and hides closed
+    // placements: with the controls gone, those settings would be invisible.
+    this._historyPanelView.reset();
+    this._historyDate = null;
+    this._showClosedPlacements = false;
+    UiState.save({ historyVisible: false, showClosedPlacements: false });
     this._renderSummary();
     this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
+    this._renderAssetTable();
   }
 
   _showHistory(): void {
@@ -197,16 +221,30 @@ export class DashboardView {
     this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
   }
 
+  /**
+   * The summary actually displayed: reconstructed at `_historyDate` when the
+   * user picked one; the emitted current summary otherwise. The closed
+   * toggle only controls the asset table's grayed rows, not the summary.
+   */
+  _viewSummary(): GlobalSummary {
+    return this._historyDate == null ? this._summary! : this.store.getSummaryAt(this._historyDate);
+  }
+
   _onHistoryDateChange(date: string | null): void {
-    this._historyDate = date;
-    // Extension point: rebuild the list, totals and tax explanations at `date`
-    // via getDataAt / getTaxProfileAt when the "view as of" mode is wired.
+    if (!this._summary) return;
+    // Picking today means the current view — keep no history date at all.
+    this._historyDate = date === todayString() ? null : date;
+    // No history-panel re-render: the date input keeps the focus.
+    this._renderTotals();
+    this._renderBreakdown();
+    this._renderAssetTable();
   }
 
   _onShowClosedChange(showClosed: boolean): void {
     this._showClosedPlacements = showClosed;
     UiState.save({ showClosedPlacements: showClosed });
-    // Extension point: include closed placements (grayed out) in the table.
+    if (!this._summary) return;
+    this._renderAssetTable();
   }
 
   _renderAuthScreen(): void {
@@ -265,10 +303,11 @@ export class DashboardView {
   }
 
   _getDisplayedTotals(): { gross: number; net: number } {
-    if (!this._filterTotals || !this._summary) {
-      return { gross: this._summary?.totalGross || 0, net: this._summary?.finalNetValue || 0 };
+    const view = this._viewSummary();
+    if (!this._filterTotals) {
+      return { gross: view.totalGross || 0, net: view.finalNetValue || 0 };
     }
-    const filtered = this._assetTableView.getFilteredEvaluations(this._summary.evaluations);
+    const filtered = this._assetTableView.getFilteredEvaluations(view.evaluations);
     let totalGross = 0;
     let totalNet = 0;
     for (const { evaluation } of filtered) {

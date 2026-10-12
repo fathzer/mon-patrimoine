@@ -1,4 +1,4 @@
-import { BasePlacement, Category, compareDates, getSocialContributionRate, recordAt, resolveAt } from '../../kit/v1/index.js';
+import { BasePlacement, Category, compareDates, deleteAt, getSocialContributionRate, recordAt, resolveAt } from '../../kit/v1/index.js';
 import { StockGrantEditor } from './Editor.js';
 import { StockGrantTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -430,6 +430,25 @@ export class StockGrantModule extends BasePlacement {
       if (grant && Number.isFinite(shares) && shares !== grant.getSharesAt(date)) {
         grant.sharesHistory = recordAt(grant.sharesHistory, { date, shares });
       }
+    }
+  }
+
+  /** A point at `date` is deletable when any dimension recorded an entry there. */
+  override hasHistoryEntry(date: string): boolean {
+    return super.hasHistoryEntry(date)
+      || this.priceHistory.some(e => e.date === date)
+      || this.attributions.some(a => a.sharesHistory.some(e => e.date === date));
+  }
+
+  /**
+   * Deletes the state recorded at `date` in every dimension's history —
+   * price and per-line shares included.
+   */
+  override deleteHistoryEntry(date: string): void {
+    super.deleteHistoryEntry(date);
+    this.priceHistory = deleteAt(this.priceHistory, date);
+    for (const grant of this.attributions) {
+      grant.sharesHistory = deleteAt(grant.sharesHistory, date);
     }
   }
 

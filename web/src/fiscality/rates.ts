@@ -281,6 +281,12 @@ const KNOWN_YEARS = Object.keys(FISCAL_RATES_BY_YEAR)
   .map(Number)
   .sort((a, b) => a - b);
 
+/** Earliest income year covered by the fiscal table — lower bound for dated views. */
+export const EARLIEST_FISCAL_YEAR = KNOWN_YEARS[0];
+
+/** `EARLIEST_FISCAL_YEAR` as an ISO date (YYYY-MM-DD), for date inputs' `min`. */
+export const EARLIEST_FISCAL_DATE = `${EARLIEST_FISCAL_YEAR}-01-01`;
+
 /**
  * Returns the income-tax parameters for the given income year.
  * Falls back to the latest known year <= incomeYear, or to the earliest

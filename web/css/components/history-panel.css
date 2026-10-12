@@ -43,3 +43,51 @@
 #history-chart {
   margin-top: var(--space-md);
 }
+
+/* History mode inside the placement modal: date navigation bar, point badge
+   and the "locked global fields" note. */
+
+.history-date-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.history-date-bar input[type="date"] {
+  width: auto;
+}
+
+.history-date-bar button {
+  padding: 0.4rem 0.7rem;
+  line-height: 1;
+}
+
+/* The badge + delete button swap in place on date navigation — no layout slot. */
+#hist-point-meta {
+  display: contents;
+}
+
+.history-point-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+.history-point-badge.existing {
+  background: var(--card-border);
+  color: var(--text-main);
+}
+
+.history-point-badge.new {
+  border: 1px dashed var(--color-warning, #f59e0b);
+  color: var(--color-warning, #f59e0b);
+}
+
+.history-locked-note {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-md);
+}

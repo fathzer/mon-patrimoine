@@ -30,6 +30,13 @@
   font-size: var(--font-size-base);
 }
 
+.form-control:disabled {
+  background: var(--color-surface);
+  color: var(--text-muted);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
 select.form-control {
   background-color: var(--bg-main, #1e293b);
   color: var(--text-main, #f8fafc);

@@ -3,6 +3,7 @@ import { describe, it, expect } from "bun:test";
 import { AppStore } from "./AppStore.js";
 import { Household } from "../fiscality/Household.js";
 import { BasePlacement } from "../placements/BasePlacement.js";
+import { PlacementFactory } from "../placements/PlacementFactory.js";
 import { Category } from "./Categories.js";
 import type { PlacementData, Evaluation } from "../placements/BasePlacement.js";
 import type { StorageManager } from "../storage/StorageManager.js";
@@ -14,6 +15,8 @@ const stubStorage = {
 
 interface TestData extends PlacementData {
   currentValue?: number;
+  /** Stand-in for module-serialized fields absent from form payloads. */
+  extra?: unknown;
 }
 
 class TestPlacement extends BasePlacement {
@@ -22,10 +25,20 @@ class TestPlacement extends BasePlacement {
   }
 
   currentValue: number;
+  extra?: unknown;
 
   constructor(data: TestData) {
     super({ ...data, type: 'test' });
     this.currentValue = Number(data.currentValue) || 0;
+    this.extra = data.extra;
+  }
+
+  override toJSON(): TestData {
+    return {
+      ...super.toJSON(),
+      currentValue: this.currentValue,
+      ...(this.extra !== undefined ? { extra: this.extra } : {})
+    };
   }
 
   getEvaluation(_fiscalProfile: FiscalProfile, _now?: Date): Evaluation {
@@ -38,10 +51,20 @@ class TestPlacement extends BasePlacement {
     };
   }
 
+  getEvolvingValues(): Record<string, unknown> {
+    return { currentValue: this.currentValue };
+  }
+
   protected getTaxableIncomes(): PlacementIncome[] {
     return [];
   }
 }
+
+// Registers the test module in PlacementFactory's private registry so that
+// getSummaryAt's PlacementFactory.create() works without loading real modules.
+(PlacementFactory as unknown as { _registry: Map<string, unknown> })
+  ._registry.set('test', { definition: { name: 'test' }, ModuleClass: TestPlacement });
+(PlacementFactory as unknown as { _loaded: boolean })._loaded = true;
 
 const profile = (taxableIncome: number, married = false): FiscalProfile => ({
   household: new Household({ maritalStatus: married ? 'married' : 'single' }),
@@ -149,5 +172,93 @@ describe("AppStore placement lifecycle", () => {
     // closePlacement(id, null) reopens a placement closed by mistake.
     store.closePlacement("p1", null);
     expect(placement.closedAt).toBeNull();
+  });
+
+  it("preserves serialized fields absent from the update payload on retro saves", () => {
+    const store = makeStore();
+    // `extra` stands in for module-serialized fields the form never emits
+    // (e.g. stock_grant's nested priceHistory/sharesHistory).
+    const p = new TestPlacement({
+      id: "p1",
+      currentValue: 100,
+      asOf: "2025-06-01",
+      extra: { nestedHistory: [{ date: "2024-01-01", price: 80 }] }
+    });
+    store.state.placements.push(p);
+
+    store.updatePlacement("p1", { id: "p1", type: "test", currentValue: 50, asOf: "2024-06-01" });
+
+    const saved = store.state.placements[0] as TestPlacement;
+    expect(saved.extra).toEqual({ nestedHistory: [{ date: "2024-01-01", price: 80 }] });
+    // The retro save still wrote its own history entry.
+    expect(saved.hasHistoryEntry("2024-06-01")).toBe(true);
+    expect(saved.currentValue).toBe(100);
+  });
+});
+
+describe("AppStore getSummaryAt", () => {
+  const makeAuthedStore = (): AppStore => {
+    const store = makeStore();
+    store.state.isAuthenticated = true;
+    return store;
+  };
+
+  it("evaluates reconstructed states at the view date", () => {
+    const store = makeAuthedStore();
+    const p = new TestPlacement({ id: "p1", currentValue: 100, asOf: "2025-06-01" });
+    p.insertHistoryEntry("2024-01-01", { currentValue: 50 });
+    store.state.placements.push(p);
+
+    const past = store.getSummaryAt("2024-06-01");
+    expect(past.asOfDate).toBe("2024-06-01");
+    expect(past.evaluations!.map(e => e.instance.id)).toEqual(["p1"]);
+    expect(past.evaluations![0].evaluation.grossValue).toBe(50);
+    expect(past.totalGross).toBe(50);
+
+    const later = store.getSummaryAt("2025-12-01");
+    expect(later.evaluations![0].evaluation.grossValue).toBe(100);
+  });
+
+  it("excludes placements without a state at the view date", () => {
+    const store = makeAuthedStore();
+    store.state.placements.push(
+      new TestPlacement({ id: "closed", currentValue: 10, asOf: "2020-01-01", closedAt: "2023-01-01" }),
+      new TestPlacement({ id: "future", currentValue: 20, asOf: "2025-01-01" }),
+      new TestPlacement({ id: "tracked", currentValue: 30, asOf: "2020-01-01" })
+    );
+
+    const s = store.getSummaryAt("2024-01-01");
+    expect(s.evaluations!.map(e => e.instance.id)).toEqual(["tracked"]);
+
+    // Same derivation as the UI's grayed rows: state.placements minus evaluated ids.
+    const evaluated = new Set(s.evaluations!.map(e => e.instance.id));
+    const inactive = store.state.placements.filter(p => !evaluated.has(p.id));
+    expect(inactive.map(p => p.id)).toEqual(["closed", "future"]);
+    expect(inactive.map(p => p.isClosedAt("2024-01-01"))).toEqual([true, false]);
+  });
+
+  it("keeps closed placements out of the current summary", () => {
+    const store = makeAuthedStore();
+    store.state.placements.push(
+      new TestPlacement({ id: "closed", currentValue: 10, closedAt: "2020-01-01" }),
+      new TestPlacement({ id: "open", currentValue: 20 })
+    );
+
+    const current = store.getSummaryAt(null);
+    expect(current.evaluations!.map(e => e.instance.id)).toEqual(["open"]);
+    expect(current.asOfDate).toBeUndefined();
+    expect(store.state.placements.find(p => p.id === "closed")!.isClosedAt()).toBe(true);
+  });
+
+  it("deletes a retroactive history entry through the store", () => {
+    const store = makeAuthedStore();
+    const p = new TestPlacement({ id: "p1", currentValue: 100, asOf: "2025-06-01" });
+    p.insertHistoryEntry("2024-01-01", { currentValue: 50 });
+    store.state.placements.push(p);
+
+    store.deleteHistoryEntry("p1", "2024-01-01");
+    expect(p.hasHistoryEntry("2024-01-01")).toBe(false);
+    // With the only past entry gone, dates before asOf resolve to no state.
+    expect(p.getDataAt("2024-06-01")).toBeNull();
   });
 });

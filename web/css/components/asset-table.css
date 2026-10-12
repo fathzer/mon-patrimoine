@@ -68,6 +68,22 @@
   background: var(--card-border);
 }
 
+/* Rows for placements with no state at the view date (closed or untracked). */
+.asset-row-inactive {
+  opacity: 0.45;
+}
+
+.tag-inactive {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+  border: 1px dashed var(--text-muted);
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
 .tax-help-btn {
   display: inline-flex;
   align-items: center;

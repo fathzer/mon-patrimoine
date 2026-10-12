@@ -1,7 +1,7 @@
 import { Category, CategoryValues } from '../core/Categories.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
-import { compareDates, recordAt, resolveAt, valuesEqual } from '../core/DatedHistory.js';
+import { compareDates, deleteAt, recordAt, resolveAt, todayString, valuesEqual } from '../core/DatedHistory.js';
 import type { HistoryEntry } from '../core/DatedHistory.js';
 import { BasePlacementEditor } from '../ui/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
@@ -185,6 +185,14 @@ export abstract class BasePlacement {
   }
 
   /**
+   * Whether the placement was already closed at `date` (default: today).
+   * The placement still exists on its closure date itself.
+   */
+  isClosedAt(date: string = todayString()): boolean {
+    return this.closedAt != null && date > this.closedAt;
+  }
+
+  /**
    * Reconstructs the serialized placement state effective at `date`, as a
    * PlacementData usable with PlacementFactory.create(). Returns null when
    * the placement was not tracked yet at that date (before its first known
@@ -192,7 +200,7 @@ export abstract class BasePlacement {
    * and its `asOf` is the resolved state date.
    */
   getDataAt(date: string): PlacementData | null {
-    if (this.closedAt != null && date > this.closedAt) {
+    if (this.isClosedAt(date)) {
       return null;
     }
     const resolved = resolveAt(
@@ -233,6 +241,23 @@ export abstract class BasePlacement {
    */
   insertHistoryEntry(date: string, values: Record<string, unknown>): void {
     this.history = recordAt(this.history, { date, values });
+  }
+
+  /**
+   * Whether a recorded history entry exists at `date` — the marker for a
+   * deletable point. The current state (asOf) is never a deletable entry.
+   */
+  hasHistoryEntry(date: string): boolean {
+    return this.history.some(e => e.date === date);
+  }
+
+  /**
+   * Deletes the state recorded at `date` — the undo path for a wrong
+   * retroactive entry. The current state is untouched; modules with nested
+   * histories override to clean every dimension's history.
+   */
+  deleteHistoryEntry(date: string): void {
+    this.history = deleteAt(this.history, date);
   }
 
   /**
