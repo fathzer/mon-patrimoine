@@ -17,8 +17,7 @@ export interface PlacementModalOptions {
   /** History-view date (YYYY-MM-DD): the modal shows the state at that date
    *  read-only, with a pencil button switching to dated-field editing. */
   viewDate?: string | null;
-  /** Start directly in history edit mode (default: only when the view date
-   *  has no resolvable state — a "new point"). */
+  /** Start directly in history edit mode (default: read-only view). */
   editing?: boolean;
 }
 
@@ -120,7 +119,7 @@ export class PlacementModalView {
       ?? placement.toJSON();
     return {
       display: PlacementFactory.create({ ...prefill, asOf: viewDate }),
-      editing: editing ?? resolved == null,
+      editing: editing ?? false,
       isExistingPoint: dates.includes(viewDate),
       deletable: placement.hasHistoryEntry(viewDate),
       prevDate,
