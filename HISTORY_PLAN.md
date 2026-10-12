@@ -35,7 +35,7 @@ Tâches :
 **Implémentation (fait)** : `FISCAL_RATES_BY_YEAR` 2019→2025 sourcé directement depuis les paramètres OpenFisca (barème, plafonds QF, décote — y compris le changement de formule décote 2019→2020) ; `getFiscalRates(incomeYear)` avec repli dernier ≤ ; `getSocialContributionRate(date)` avec 15,5 % (2013) → 17,2 % (2018) → 18,6 % (2026-01-01, LFSS 2026 art. 12) ; `incomeYear` propagé dans `TaxCalculator` (défaut = année courante) ; `now` propagé dans les `getSocialCharges*` des modules. Challenge OpenFisca étendu : 36 cas × 7 années (252 comparaisons) au vert.
 **Point ouvert** : `OLD_CSG_CRDS` (17,2 %) conservé pour l'immobilier et les gains UC assurance-vie — impact éventuel de la LFSS 2026 sur ces régimes à vérifier.
 
-## Étape 2 — Socle historique (kit + store)
+## Étape 2 — Socle historique (kit + store) ✅
 
 **Format cible `version: "1.1"`** :
 
@@ -97,7 +97,7 @@ valuesEqual(a, b)                                       // égalité structurell
 
 **Implémentation (fait)** : `DatedHistory.ts` (`resolveAt`/`recordAt`/`thin`/`valuesEqual`, génériques sur `{ date }` — réutilisés par `AppStore` pour le profil fiscal) ; `BasePlacement` avec `asOf`/`closedAt`/`history`, `getEvolvingValues()` (défaut `{}`), `getHistoryDates()`, `getDataAt(D)` (→ `null` avant la 1ʳᵉ entrée et après `closedAt`, `asOf` de la donnée renvoyée = date de l'état résolu, sans `history`), `recordState(previous, effectiveDate)`, `insertHistoryEntry(date, values)` ; `AppStore` payload `"1.1"` avec `taxProfile` entité `{ profile, asOf, history }` (historique omis du payload tant qu'il est vide ; pas de seed — `getTaxProfileAt` retombe sur la première entrée connue pour les dates antérieures à tout changement), `getTaxProfileAt(D)` (profil courant = entrée implicite à `asOf`), `updateTaxProfile(profile, asOf?)` (push de l'ancien profil ou insertion rétroactive), `updatePlacement` avec chemin rétroactif (valeurs évolutives insérées à la date passée, état courant préservé), `closePlacement(id, date | null)` (`null` = réouverture), placements clôturés exclus du résumé courant. Tests : `DatedHistory.test.ts`, `BasePlacement.test.ts`, `AppStore.test.ts` — 370 tests au vert. `thin` : **modèle à slots** — chaque fin de période (jours 7/14/21/fin de mois en bande ~6 mois-2 ans ; fins de mois seules au-delà) **revendique l'entrée la plus proche des deux côtés** (égalité → plus récente). Une entrée isolée couvre les mois vides environnants ; les entrées récentes (< ~6 mois) et la toute première sont toujours gardées. Une saisie du 6/1 représentant fin décembre gagne donc le slot 31/12 ; pour ancrer exactement, `asOf` reste la voie propre.
 
-## Étape 3 — Rollout des modules (opt-in)
+## Étape 3 — Rollout des modules (opt-in) ✅
 
 | Ordre | Module | Champs évolutifs | Statut |
 |---|---|---|---|
@@ -110,26 +110,27 @@ valuesEqual(a, b)                                       // égalité structurell
 | 7 | `custom` | `grossValue`, `socialCharges`, `incomeTax` (`category` absolu) | fait |
 | 8 | `stock_grant` | `currentPrice` (`priceHistory` + `priceAsOf`) + `numberOfShares` par ligne (`attributions[].sharesHistory` + `sharesAsOf`) | fait + test — `getDataAt`/`recordState`/`insertHistoryEntry`/`getHistoryDates` overridés ; ligne visible si `acquisitionDate ≤ D` ; appariement par `attributionDate+acquisitionDate` ; **ligne jamais supprimée** : cession = `sharesHistory` → 0 à la date |
 
-## Étape 4 — Vue graphe (brut + net)
+## Étape 4 — Vue « à la date » + édition de l'historique (avancée — indépendante du graphe et de l'inflation)
 
-- **`web/src/ui/HistoryChartView.ts`** : SVG maison — axes, courbe agrégée, tooltip ; sélecteur 1M/6M/YTD/1A/5A/10A/Max ; toggles **brut/net** (actif dès le départ grâce à l'étape 1) et nominal/euros constants (actif après l'étape 5).
+- **Principe** : la correction d'historique est rare → ne pas polluer le modal courant. Un **sélecteur de date** (champ date au-dessus du dashboard ; le graphe de l'étape 5 offrira ensuite des points cliquables) bascule en mode « état au D » : liste, totaux et explications fiscales reconstruits via `getDataAt(D)` / `getTaxProfileAt(D)` / `getEvaluation(fp, D)`.
+- **Liste à la date D** : les placements existants à D s'affichent normalement ; ceux non suivis à D apparaissent grisés (« non suivi à cette date ») — leur clic permet d'ajouter un état à D.
+- **Édition historique** : clic sur une ligne → même éditeur pré-rempli via `getDataAt(D)`, avec date affichée et **champs absolus désactivés** (`disabled` + message : les champs globaux se modifient via l'état courant — les clés évolutives viennent de `Object.keys(getEvolvingValues())` ; cas particulier `stock_grant` : `currentPrice` et `numberOfShares` par ligne restent éditables). Sauvegarde → `updatePlacement(id, {…data, asOf: D})` : le chemin rétroactif existant (`insertHistoryEntry`) fait le travail — `updateHistoryEntry`/`deleteHistoryEntry` ne servent qu'à déplacer/supprimer une entrée.
+- **Explications fiscales datées** : étendre `getTaxExplanation(placement, fp, now)` pour propager la date (signature actuelle calculée à aujourd'hui).
+- **Placements clôturés** : à une date où ils étaient ouverts, ils apparaissent et comptent normalement (accès à leur historique). Le toggle « afficher les clôturés » en vue courante reste nécessaire pour la réouverture (`closePlacement(id, null)`).
+- **Fait** : boutons « Clôturer » (date d'effet via `ConfirmDialog.askWithDate`) / « Rouvrir » / « Supprimer » (avertissement gradué selon l'historique — suppression physique seule destructive).
+
+## Étape 5 — Vue graphe (brut + net)
+
+- **`web/src/ui/HistoryChartView.ts`** : SVG maison — axes, courbe agrégée, tooltip ; sélecteur 1M/6M/YTD/1A/5A/10A/Max ; toggles **brut/net** (actif dès le départ grâce à l'étape 1) et nominal/euros constants (actif après l'étape 6).
 - **Filtres** : extraire le prédicat de `AssetTableView._getFilteredEvaluations` (catégories + institutions, persisté dans `UiState`) vers un helper partagé — la sélection du graphe = filtres actuels.
 - Séries : union des dates d'historique des placements filtrés dans la fenêtre + bornes + aujourd'hui ; pour chaque D : `PlacementFactory.create(p.getDataAt(D))?.getEvaluation(store.getTaxProfileAt(D), D)` → somme brut / net (`grossValue` vs `netValueBeforeIR − imposition` à taux de l'année D).
 - `DashboardView` : nouvelle section + clés i18n (`fr.ts`).
 
-## Étape 5 — Inflation
+## Étape 6 — Inflation
 
 - `web/src/inflation/` : table IPC mensuelle INSEE (base 2015, France, ensemble) embarquée en TS (~350 valeurs depuis 1996) + `deflate(amount, from, to) = amount × IPC(to)/IPC(from)`.
 - Toggle « euros constants » dans `HistoryChartView` (post-agrégation).
 - Optionnel : script de régénération via API INSEE/BCE.
-
-## Étape 6 — Édition de l'historique (en dernier)
-
-- `PlacementModalView` : section « Historique » listant `getHistoryDates()` ; actions éditer / supprimer / ajouter un point passé ; édition de `asOf` et `closedAt`.
-- **Visibilité des placements clôturés** : prévoir un toggle masquer/afficher dans la liste (masqués par défaut — déjà exclus des totaux courants ; affichés grisés et restant éditables — nécessaire pour la réouverture, sinon ils sont inaccessibles dans l'UI). Dans une vue à une date passée où ils étaient ouverts, ils apparaissent et comptent normalement. (À avancer si besoin : sans ce point, un placement clôturé devient invisible dès sa clôture.)
-- Édition : `editor.render(placement, { asOfDate })` pré-rempli via `getDataAt(date)` ; écriture dans l'entrée (sans `recordState`) ; champs absolus édités globalement via le formulaire principal.
-- « Supprimer un placement » → `closedAt` (date d'effet), avec option de suppression physique documentée comme destructive de l'historique.
-- `AppStore` : `updateHistoryEntry` / `deleteHistoryEntry` / `closePlacement` + persistance.
 
 ## Étape 7 — Finitions
 

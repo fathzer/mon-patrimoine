@@ -6,6 +6,7 @@ import { SettingsModalView } from './SettingsModalView.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
 import { AssetBreakdownView } from './AssetBreakdownView.js';
 import { AssetTableView } from './AssetTableView.js';
+import { HistoryPanelView } from './HistoryPanelView.js';
 import { HelpModalView } from './HelpModalView.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
 
@@ -14,9 +15,13 @@ export class DashboardView {
   store: AppStore;
   _assetTableView: AssetTableView;
   _breakdownView: AssetBreakdownView;
+  _historyPanelView: HistoryPanelView;
   _summary: GlobalSummary | null;
   _filterTotals: boolean;
   _breakdownVisible: boolean;
+  _historyVisible: boolean;
+  _showClosedPlacements: boolean;
+  _historyDate: string | null;
   _layoutInitialized: boolean;
   _topBarContainer: HTMLElement | null;
   _pageContent: HTMLElement | null;
@@ -32,12 +37,22 @@ export class DashboardView {
     const ui = UiState.load();
     this._filterTotals = ui.filterTotals;
     this._breakdownVisible = ui.breakdownVisible;
+    this._historyVisible = ui.historyVisible;
+    this._showClosedPlacements = ui.showClosedPlacements;
+    this._historyDate = null;
+    this._historyPanelView = new HistoryPanelView(null, {
+      initialShowClosed: this._showClosedPlacements,
+      onClose: () => this._hideHistory(),
+      onDateChange: (date) => this._onHistoryDateChange(date),
+      onShowClosedChange: (showClosed) => this._onShowClosedChange(showClosed)
+    });
     this._layoutInitialized = false;
     this._topBarContainer = null;
     this._pageContent = null;
     this._modalRoot = null;
     this._topBarView = new TopBarView(store, {
       onShowBreakdown: () => this._showBreakdown(),
+      onShowHistory: () => this._showHistory(),
       onExport: () => this._exportData(),
       onImportClick: () => this._triggerImport(),
       onSettings: () => this._openSettings()
@@ -72,7 +87,7 @@ export class DashboardView {
     if (!summary) return;
     if (!this._layoutInitialized) this._initLayout();
 
-    this._topBarView.render(summary.isAuthenticated, this._breakdownVisible);
+    this._topBarView.render(summary.isAuthenticated, this._breakdownVisible, this._historyVisible);
 
     if (!summary.isAuthenticated) {
       this._renderAuthScreen();
@@ -85,6 +100,7 @@ export class DashboardView {
 
       <section id="summary-totals" class="summary-totals"></section>
       <section id="summary-breakdown" class="summary-breakdown"></section>
+      <section id="summary-history" class="summary-history"></section>
       <div id="assets-container"></div>
     `;
 
@@ -100,7 +116,8 @@ export class DashboardView {
   _renderSummary(): void {
     const totals = this._pageContent!.querySelector('#summary-totals') as HTMLElement | null;
     const breakdown = this._pageContent!.querySelector('#summary-breakdown') as HTMLElement | null;
-    if (!totals || !breakdown) return;
+    const history = this._pageContent!.querySelector('#summary-history') as HTMLElement | null;
+    if (!totals || !breakdown || !history) return;
 
     const displayed = this._getDisplayedTotals();
 
@@ -140,20 +157,56 @@ export class DashboardView {
       breakdown.style.display = 'none';
       breakdown.innerHTML = '';
     }
+
+    if (this._historyVisible) {
+      history.style.display = 'block';
+      history.innerHTML = '<div id="history-container"></div>';
+      this._historyPanelView.setContainer(history.querySelector('#history-container') as HTMLElement);
+      this._historyPanelView.render();
+    } else {
+      history.style.display = 'none';
+      history.innerHTML = '';
+    }
   }
 
   _hideBreakdown(): void {
     this._breakdownVisible = false;
     UiState.save({ breakdownVisible: false });
     this._renderSummary();
-    this._topBarView.render(true, this._breakdownVisible);
+    this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
   }
 
   _showBreakdown(): void {
     this._breakdownVisible = true;
     UiState.save({ breakdownVisible: true });
     this._renderSummary();
-    this._topBarView.render(true, this._breakdownVisible);
+    this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
+  }
+
+  _hideHistory(): void {
+    this._historyVisible = false;
+    UiState.save({ historyVisible: false });
+    this._renderSummary();
+    this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
+  }
+
+  _showHistory(): void {
+    this._historyVisible = true;
+    UiState.save({ historyVisible: true });
+    this._renderSummary();
+    this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
+  }
+
+  _onHistoryDateChange(date: string | null): void {
+    this._historyDate = date;
+    // Extension point: rebuild the list, totals and tax explanations at `date`
+    // via getDataAt / getTaxProfileAt when the "view as of" mode is wired.
+  }
+
+  _onShowClosedChange(showClosed: boolean): void {
+    this._showClosedPlacements = showClosed;
+    UiState.save({ showClosedPlacements: showClosed });
+    // Extension point: include closed placements (grayed out) in the table.
   }
 
   _renderAuthScreen(): void {

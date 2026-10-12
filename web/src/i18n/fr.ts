@@ -118,5 +118,10 @@ export const fr = {
   },
   taxExplanation: {
     title: "Explication fiscale"
+  },
+  history: {
+    title: "Historique",
+    viewAtDate: "État au",
+    showClosed: "Afficher les placements clôturés"
   }
 };

@@ -1,0 +1,45 @@
+/* History panel: "view as of" date selector, closed-placements toggle and future chart. */
+
+.history-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  gap: var(--space-md);
+}
+
+.history-panel-header h3 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.history-panel-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.history-panel-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.history-panel-controls label {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.history-panel-controls input[type="date"] {
+  width: auto;
+}
+
+#history-chart {
+  margin-top: var(--space-md);
+}

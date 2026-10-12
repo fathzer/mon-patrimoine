@@ -4,6 +4,8 @@ export interface UiStateData {
   sortLevels: SortLevel[];
   breakdownVisible: boolean;
   filterTotals: boolean;
+  historyVisible: boolean;
+  showClosedPlacements: boolean;
 }
 
 export type SortField = 'name' | 'institution' | 'category' | 'grossValue' | 'netValue';
@@ -26,7 +28,9 @@ export class UiState {
         selectedInstitutions: Array.isArray(parsed.selectedInstitutions) ? parsed.selectedInstitutions : [],
         sortLevels: Array.isArray(parsed.sortLevels) ? parsed.sortLevels as SortLevel[] : [],
         breakdownVisible: typeof parsed.breakdownVisible === 'boolean' ? parsed.breakdownVisible : true,
-        filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false
+        filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false,
+        historyVisible: typeof parsed.historyVisible === 'boolean' ? parsed.historyVisible : false,
+        showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false
       };
     } catch {
       return this._default();
@@ -48,7 +52,9 @@ export class UiState {
       selectedInstitutions: [],
       sortLevels: [],
       breakdownVisible: true,
-      filterTotals: false
+      filterTotals: false,
+      historyVisible: false,
+      showClosedPlacements: false
     };
   }
 }
