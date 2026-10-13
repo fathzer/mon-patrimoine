@@ -141,6 +141,35 @@ describe("BasePlacement history", () => {
     expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-03-01"]);
   });
 
+  it("rolls back to the previous recorded state when the current point is deleted", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 120,
+      asOf: "2025-03-01",
+      history: [
+        { date: "2025-01-10", values: { currentValue: 80 } },
+        { date: "2025-02-01", values: { currentValue: 100 } }
+      ]
+    });
+
+    expect(p.canDeleteCurrentState()).toBe(true);
+    expect(p.deleteCurrentState()).toBe(true);
+
+    expect(p.currentValue).toBe(100);
+    expect(p.asOf).toBe("2025-02-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-02-01"]);
+    // The rolled-back state resolves as the new current point.
+    expect(dataAt(p, "2025-02-15")!.currentValue).toBe(100);
+  });
+
+  it("refuses to delete the current state of a single-point placement", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
+    expect(p.canDeleteCurrentState()).toBe(false);
+    expect(p.deleteCurrentState()).toBe(false);
+    expect(p.asOf).toBe("2025-01-10");
+    expect(p.currentValue).toBe(100);
+  });
+
   it("exposes every known date including the current asOf", () => {
     const p = new TestPlacement({
       id: "1",

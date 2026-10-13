@@ -22,3 +22,18 @@ export const HELP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" hei
   <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
   <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="var(--accent)" font-size="13" font-family="Inter, sans-serif">?</text>
 </svg>`;
+
+/** Closed padlock — shown on read-only historical points. */
+export const LOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="4" y="11" width="16" height="10" rx="2"/>
+  <path d="M8 11 V7 a4 4 0 0 1 8 0 v4"/>
+</svg>`;
+
+/** Open padlock — shown when a historical point is unlocked for editing. */
+export const UNLOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="4" y="11" width="16" height="10" rx="2"/>
+  <path d="M8 11 V7 a4 4 0 0 1 7.8 -1.3"/>
+</svg>`;
+
+/** Trash can — point/entry deletion in the date and year bars. */
+export const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;

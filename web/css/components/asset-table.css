@@ -106,6 +106,21 @@
   color: var(--accent-blue);
 }
 
+/* The closed-placements toggle uses a shorter label on narrow screens. */
+.show-closed-label-short {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .show-closed-label-long {
+    display: none;
+  }
+
+  .show-closed-label-short {
+    display: inline;
+  }
+}
+
 /* Responsive cards for narrow screens */
 @media (max-width: 768px) {
   .asset-table thead {
@@ -218,18 +233,10 @@
   }
 }
 
+/* The add button lives at the bottom of the list; the toolbar keeps the
+   filters and the closed-placements toggle. */
 .asset-table-fab {
-  display: none;
-}
-
-@media (max-width: 520px) {
-  .toolbar-actions .btn-add-asset {
-    display: none;
-  }
-
-  .asset-table-fab {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--space-md) 0;
-  }
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-md) 0;
 }

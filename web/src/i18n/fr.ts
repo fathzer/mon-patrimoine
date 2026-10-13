@@ -36,11 +36,8 @@ export const fr = {
     saveStay: "Enregistrer sans fermer",
     cancel: "Annuler",
     delete: "Supprimer",
-    closePlacement: "Clôturer",
-    reopenPlacement: "Rouvrir",
     confirmDelete: "Supprimer définitivement ce placement ?",
     confirmDeleteWithHistory: "Supprimer définitivement ce placement ? Son historique ({count} états) sera perdu.",
-    confirmClose: "Clôturer ce placement ? Il restera enregistré avec son historique, mais ne comptera plus dans la synthèse courante.",
     "import": "Importer",
     "export": "Exporter"
   },
@@ -64,9 +61,13 @@ export const fr = {
     category: "Catégorie",
     currentValue: "Valeur actuelle (€)",
     openingDate: "Date d'ouverture",
+    closed: "Placement clôturé",
+    closedAt: "Date de clôture",
     close: "Fermer",
     errors: {
       label: "Nom requis",
+      closedAt: "Date de clôture requise",
+      afterClosure: "La date éditée ne peut être postérieure à la clôture",
       institution: "Établissement requis",
       currentValue: "Valeur actuelle requise",
       openingDate: "Date d'ouverture incorrecte",
@@ -130,16 +131,19 @@ export const fr = {
     title: "Historique",
     viewAtDate: "État au",
     showClosed: "Afficher les placements clôturés",
+    showClosedShort: "Placements clôturés",
     stateAt: "État au {date}",
-    closedBadge: "Clôturé",
+    closedBadgeDate: "Clôturé le {date}",
     notTracked: "Non suivi à cette date",
+    currentPoint: "État actuel",
     existingPoint: "Point existant",
     newPoint: "Nouveau point",
-    editAction: "Modifier les valeurs à cette date",
+    unlockPoint: "Déverrouiller la modification de ce point",
+    lockPoint: "Verrouiller la modification de ce point",
     prevPoint: "Point précédent",
     nextPoint: "Point suivant",
     deletePoint: "Supprimer ce point",
     confirmDeletePoint: "Supprimer l'état enregistré au {date} ? À cette date, le placement reprendra l'état connu précédent.",
-    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (type, nom, établissement, dates de contrat…) se modifient via l'édition courante."
+    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (type, nom, établissement, dates de contrat…) se modifient à l'état actuel."
   }
 };

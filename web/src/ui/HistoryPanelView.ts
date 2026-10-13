@@ -1,34 +1,28 @@
 import { I18n } from '../core/I18n.js';
 import { todayString } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
-import { ToggleSwitch } from './ToggleSwitch.js';
 
 interface HistoryPanelOptions {
   onClose?: () => void;
   onDateChange?: (date: string | null) => void;
-  onShowClosedChange?: (showClosed: boolean) => void;
-  initialShowClosed?: boolean;
 }
 
 /**
- * History panel: date selector ("view as of") and closed-placements toggle.
- * The chart area (`#history-chart`) is a placeholder for the step-5 graph.
+ * History panel: "view as of" date selector. The closed-placements toggle
+ * lives in the asset table toolbar. The chart area (`#history-chart`) is a
+ * placeholder for the step-5 graph.
  */
 export class HistoryPanelView {
   container: HTMLElement | null;
   _date: string | null;
-  _showClosed: boolean;
   _onClose: () => void;
   _onDateChange: (date: string | null) => void;
-  _onShowClosedChange: (showClosed: boolean) => void;
 
   constructor(container: HTMLElement | null, options: HistoryPanelOptions = {}) {
     this.container = container;
     this._date = null;
-    this._showClosed = options.initialShowClosed ?? false;
     this._onClose = options.onClose || (() => {});
     this._onDateChange = options.onDateChange || (() => {});
-    this._onShowClosedChange = options.onShowClosedChange || (() => {});
   }
 
   setContainer(container: HTMLElement): void {
@@ -42,10 +36,9 @@ export class HistoryPanelView {
     if (input) input.value = date ?? '';
   }
 
-  /** Resets the controls to their defaults: no date selected, closed hidden. */
+  /** Resets the controls to the default: no date selected. */
   reset(): void {
     this._date = null;
-    this._showClosed = false;
   }
 
   render(): void {
@@ -58,12 +51,6 @@ export class HistoryPanelView {
       <div class="history-panel-controls">
         <label for="history-date">${I18n.t('history.viewAtDate')}</label>
         <input type="date" id="history-date" class="form-control" value="${this._date ?? ''}" />
-        ${ToggleSwitch.create({
-          name: 'history-show-closed',
-          id: 'history-show-closed',
-          label: I18n.t('history.showClosed'),
-          checked: this._showClosed
-        })}
       </div>
       <div id="history-chart"></div>
     `;
@@ -84,12 +71,6 @@ export class HistoryPanelView {
       if (dateInput!.value && dateInput!.value > todayString()) dateInput!.value = todayString();
       this._date = dateInput!.value || null;
       this._onDateChange(this._date);
-    });
-
-    const closedToggle = this.container!.querySelector('input[name="history-show-closed"]') as HTMLInputElement | null;
-    closedToggle?.addEventListener('change', () => {
-      this._showClosed = closedToggle!.checked;
-      this._onShowClosedChange(this._showClosed);
     });
   }
 }

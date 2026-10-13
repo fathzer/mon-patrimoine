@@ -217,6 +217,11 @@ export class AppStore extends EventBus<AppStoreEvents> {
       corrected.insertHistoryEntry(effectiveDate, instance.getEvolvingValues());
       this.state.placements[index] = corrected;
     } else {
+      // closedAt is a global field: a payload that omits it keeps the
+      // previous value, while an explicit null reopens the placement.
+      if (data.closedAt === undefined) {
+        instance.closedAt = previous.closedAt;
+      }
       instance.recordState(previous, effectiveDate);
       this.state.placements[index] = instance;
     }
@@ -243,15 +248,21 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   /**
-   * Deletes the history entry recorded at `date` on a placement — the undo
-   * path for a wrong retroactive entry. The current state is untouched.
+   * Deletes the state recorded at `date` on a placement — the undo path
+   * for a wrong entry. Deleting the current point (asOf) rolls the
+   * placement back to its previous recorded state.
    */
-  deleteHistoryEntry(id: string, date: string): void {
+  deleteStateAt(id: string, date: string): void {
     const placement = this.state.placements.find(p => p.id === id);
-    if (placement) {
-      placement.deleteHistoryEntry(date);
-      this._persistAndEmit();
+    if (!placement) {
+      return;
     }
+    if (date === placement.asOf) {
+      placement.deleteCurrentState();
+    } else {
+      placement.deleteHistoryEntry(date);
+    }
+    this._persistAndEmit();
   }
 
   getExportPayload(): ExportPayload {

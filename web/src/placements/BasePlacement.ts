@@ -227,7 +227,6 @@ export abstract class BasePlacement {
     if (previous == null) {
       return;
     }
-    this.closedAt ??= previous.closedAt;
     if (previous.asOf < effectiveDate && !valuesEqual(previous.getEvolvingValues(), this.getEvolvingValues())) {
       this.history = recordAt(previous.history, { date: previous.asOf, values: previous.getEvolvingValues() });
     } else {
@@ -245,7 +244,8 @@ export abstract class BasePlacement {
 
   /**
    * Whether a recorded history entry exists at `date` — the marker for a
-   * deletable point. The current state (asOf) is never a deletable entry.
+   * deletable point. The current state (asOf) is never a history entry:
+   * deleting it is a rollback handled by deleteCurrentState().
    */
   hasHistoryEntry(date: string): boolean {
     return this.history.some(e => e.date === date);
@@ -258,6 +258,33 @@ export abstract class BasePlacement {
    */
   deleteHistoryEntry(date: string): void {
     this.history = deleteAt(this.history, date);
+  }
+
+  /**
+   * Whether the current point (asOf) can be deleted — i.e. rolled back to
+   * a previous recorded state.
+   */
+  canDeleteCurrentState(): boolean {
+    return this.history.length > 0;
+  }
+
+  /**
+   * Deletes the current point (asOf): the placement rolls back to the
+   * previous recorded state, which becomes the new current state. The
+   * default implementation restores the latest flat history entry — the
+   * evolving values stored there are serialized field values, assigned
+   * back verbatim. Modules with nested histories override. Returns false
+   * when there is no previous state to roll back to.
+   */
+  deleteCurrentState(): boolean {
+    const prev = this.history[this.history.length - 1];
+    if (!prev) {
+      return false;
+    }
+    this.history = this.history.slice(0, -1);
+    Object.assign(this, prev.values);
+    this.asOf = prev.date;
+    return true;
   }
 
   /**

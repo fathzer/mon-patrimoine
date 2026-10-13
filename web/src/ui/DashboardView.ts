@@ -42,10 +42,8 @@ export class DashboardView {
     this._showClosedPlacements = ui.showClosedPlacements;
     this._historyDate = null;
     this._historyPanelView = new HistoryPanelView(null, {
-      initialShowClosed: this._showClosedPlacements,
       onClose: () => this._hideHistory(),
-      onDateChange: (date) => this._onHistoryDateChange(date),
-      onShowClosedChange: (showClosed) => this._onShowClosedChange(showClosed)
+      onDateChange: (date) => this._onHistoryDateChange(date)
     });
     this._layoutInitialized = false;
     this._topBarContainer = null;
@@ -114,7 +112,12 @@ export class DashboardView {
   }
 
   _renderAssetTable(): void {
-    this._assetTableView.render(this._viewSummary(), this._modalRoot!, this._showClosedPlacements);
+    this._assetTableView.render(
+      this._viewSummary(),
+      this._modalRoot!,
+      this._showClosedPlacements,
+      (showClosed) => this._onShowClosedChange(showClosed)
+    );
   }
 
   _renderSummary(): void {
@@ -203,12 +206,11 @@ export class DashboardView {
 
   _hideHistory(): void {
     this._historyVisible = false;
-    // Closing the panel also returns to the current view and hides closed
-    // placements: with the controls gone, those settings would be invisible.
+    // Closing the panel returns to the current view. The closed-placements
+    // toggle lives in the asset table and stays untouched.
     this._historyPanelView.reset();
     this._historyDate = null;
-    this._showClosedPlacements = false;
-    UiState.save({ historyVisible: false, showClosedPlacements: false });
+    UiState.save({ historyVisible: false });
     this._renderSummary();
     this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
     this._renderAssetTable();

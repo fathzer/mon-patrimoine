@@ -335,9 +335,25 @@ describe("AppStore getSummaryAt", () => {
     p.insertHistoryEntry("2024-01-01", { currentValue: 50 });
     store.state.placements.push(p);
 
-    store.deleteHistoryEntry("p1", "2024-01-01");
+    store.deleteStateAt("p1", "2024-01-01");
     expect(p.hasHistoryEntry("2024-01-01")).toBe(false);
     // With the only past entry gone, dates before asOf resolve to no state.
     expect(p.getDataAt("2024-06-01")).toBeNull();
+  });
+
+  it("deletes the current point by rolling back to the previous state", () => {
+    const store = makeAuthedStore();
+    const p = new TestPlacement({
+      id: "p1",
+      currentValue: 120,
+      asOf: "2025-06-01",
+      history: [{ date: "2024-01-01", values: { currentValue: 50 } }]
+    });
+    store.state.placements.push(p);
+
+    store.deleteStateAt("p1", "2025-06-01");
+    expect(p.currentValue).toBe(50);
+    expect(p.asOf).toBe("2024-01-01");
+    expect(p.history).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@ import { UiState } from '../core/UiState.js';
 import type { SortLevel, SortField } from '../core/UiState.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
+import { ToggleSwitch } from './ToggleSwitch.js';
 import type { AppStore, EvaluationEntry, GlobalSummary } from '../core/AppStore.js';
 import type { BasePlacement, Evaluation } from '../placements/BasePlacement.js';
 
@@ -37,6 +38,7 @@ export class AssetTableView {
   summary: GlobalSummary | null;
   modalRoot: HTMLElement | null;
   _showInactive: boolean;
+  _onToggleInactive: ((show: boolean) => void) | null;
 
   constructor(store: AppStore, options: AssetTableOptions = {}) {
     this.store = store;
@@ -52,22 +54,30 @@ export class AssetTableView {
     this.summary = null;
     this.modalRoot = null;
     this._showInactive = false;
+    this._onToggleInactive = null;
   }
 
   setContainer(container: HTMLElement): void {
     this.container = container;
   }
 
-  render(summary: GlobalSummary, modalRoot: HTMLElement, showInactive = false): void {
+  render(summary: GlobalSummary, modalRoot: HTMLElement, showInactive = false, onToggleInactive: ((show: boolean) => void) | null = null): void {
     this._closePopup();
     this.summary = summary;
     this.modalRoot = modalRoot;
     this._showInactive = showInactive;
+    this._onToggleInactive = onToggleInactive;
     this.container!.innerHTML = `
       <div class="toolbar">
         ${this._renderFilterBar(summary)}
         <div class="toolbar-actions">
-          <button class="btn-primary btn-add-asset" type="button">${I18n.t('actions.addAsset')}</button>
+          ${ToggleSwitch.create({
+            name: 'show-inactive',
+            id: 'show-inactive-toggle',
+            // Narrow screens swap in the short label via CSS.
+            label: `<span class="show-closed-label-long">${I18n.t('history.showClosed')}</span><span class="show-closed-label-short">${I18n.t('history.showClosedShort')}</span>`,
+            checked: showInactive
+          })}
         </div>
       </div>
 
@@ -198,7 +208,7 @@ export class AssetTableView {
         ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
         : '';
       const badge = instance.isClosedAt(this.summary?.asOfDate)
-        ? I18n.t('history.closedBadge')
+        ? I18n.t('history.closedBadgeDate', { date: I18n.formatDate(instance.closedAt!) })
         : I18n.t('history.notTracked');
       return `
       <tr class="asset-row asset-row-inactive" data-id="${instance.id}">
@@ -225,6 +235,10 @@ export class AssetTableView {
         const placementModal = new PlacementModalView(this.modalRoot!, this.store);
         placementModal.show();
       });
+    });
+
+    this.container!.querySelector('#show-inactive-toggle')?.addEventListener('change', (e) => {
+      this._onToggleInactive?.((e.target as HTMLInputElement).checked);
     });
 
     this.container!.querySelector('#btn-filter-categories')?.addEventListener('click', (e) => {

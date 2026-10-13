@@ -309,6 +309,44 @@ describe("StockGrantModule history", () => {
     expect(p.attributions[0].sharesHistory).toEqual([]);
   });
 
+  it("rolls back per-dimension current values when the current point is deleted", () => {
+    const p = makeModule({
+      priceHistory: [{ date: "2025-06-01", price: 80 }],
+      priceAsOf: "2026-10-01",
+      attributions: [
+        {
+          attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 50,
+          sharesAsOf: "2026-10-01", sharesHistory: [{ date: "2024-03-01", shares: 100 }]
+        },
+        { attributionDate: "2026-01-01", acquisitionDate: "2026-05-01", numberOfShares: 30 }
+      ]
+    });
+
+    expect(p.canDeleteCurrentState()).toBe(true);
+    expect(p.deleteCurrentState()).toBe(true);
+
+    // Both dimensions stamped at asOf revert to their latest entries.
+    expect(p.currentPrice).toBe(80);
+    expect(p.priceAsOf).toBe("2025-06-01");
+    expect(p.priceHistory).toEqual([]);
+    expect(p.attributions[0].numberOfShares).toBe(100);
+    expect(p.attributions[0].sharesAsOf).toBe("2024-03-01");
+    // The line never stamped at asOf is untouched.
+    expect(p.attributions[1].numberOfShares).toBe(30);
+    // asOf falls back to the latest remaining known date.
+    expect(p.asOf).toBe("2026-05-01");
+  });
+
+  it("keeps the current point when no dimension was recorded at asOf", () => {
+    const p = makeModule({
+      priceAsOf: "2026-06-01",
+      priceHistory: [{ date: "2025-01-01", price: 80 }]
+    });
+    expect(p.canDeleteCurrentState()).toBe(false);
+    expect(p.deleteCurrentState()).toBe(false);
+    expect(p.currentPrice).toBe(95);
+  });
+
   it("round-trips the nested histories through toJSON", () => {
     const p = makeModule({
       priceAsOf: "2026-10-01",

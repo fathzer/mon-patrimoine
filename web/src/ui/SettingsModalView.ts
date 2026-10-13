@@ -6,7 +6,7 @@ import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
-import { TAX_ICON } from './icons.js';
+import { TAX_ICON, LOCK_ICON, UNLOCK_ICON, TRASH_ICON } from './icons.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 import { MaritalStatus } from '../fiscality/Household.js';
@@ -59,6 +59,11 @@ interface ProfileYearContext {
   recordedYear: number;
   /** `viewYear` is the latest recorded point — the live "current" profile. */
   isCurrent: boolean;
+  /** A profile point is recorded after `viewYear`: saving there is a retro
+   *  write, gated behind the lock. */
+  isRetro: boolean;
+  /** The past-year lock released by the user (retro years open locked). */
+  unlocked: boolean;
   /** An explicit profile point is recorded at `viewYear`. */
   isRecordedPoint: boolean;
   /** Recorded years immediately before/after `viewYear` (◀/▶ navigation). */
@@ -119,14 +124,22 @@ export class SettingsModalView {
       profile: resolved.profile,
       recordedYear: resolved.recordedYear,
       isCurrent: year === latestYear,
+      isRetro: year < latestYear,
+      unlocked: false,
       isRecordedPoint: year === latestYear || this.store.hasTaxProfileHistoryEntry(year),
       prevYear: [...years].reverse().find(y => y < year) ?? null,
       nextYear: years.find(y => y > year) ?? null
     };
   }
 
-  /** Badge + delete button for the viewed year — swapped in place on navigation. */
+  /** Lock icon, badge + delete button for the viewed year — swapped in place
+   *  on navigation. Past years open locked: the explicit unlock gesture
+   *  prevents accidental retroactive writes. */
   _renderYearMeta(ctx: ProfileYearContext): string {
+    const lockButton = ctx.isRetro ? `
+        <button type="button" id="hist-lock" class="btn-secondary" title="${I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint')}">
+          ${ctx.unlocked ? UNLOCK_ICON : LOCK_ICON}
+        </button>` : '';
     let badge: string;
     if (ctx.isCurrent) {
       badge = `<span class="history-point-badge current">${I18n.t('settings.currentProfile')}</span>`;
@@ -136,12 +149,12 @@ export class SettingsModalView {
       badge = `<span class="history-point-badge new">${I18n.t('settings.carriedOver', { year: String(ctx.recordedYear) })}</span>`;
     }
     // The latest point is the live current profile — only past recorded
-    // years can be deleted.
-    const deleteButton = ctx.isRecordedPoint && !ctx.isCurrent ? `
+    // years can be deleted, once unlocked.
+    const deleteButton = ctx.isRecordedPoint && ctx.isRetro && ctx.unlocked ? `
         <button type="button" id="hist-delete" class="btn-danger" title="${I18n.t('history.deletePoint')}">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          ${TRASH_ICON}
         </button>` : '';
-    return badge + deleteButton;
+    return lockButton + badge + deleteButton;
   }
 
   /**
@@ -197,12 +210,28 @@ export class SettingsModalView {
     const parentsParts = MaritalStatus.isCouple(profile.household.maritalStatus) ? 2 : 1;
     const extraParts = fiscalSummary.parts - parentsParts;
     const taxResult = TaxCalculator.computeFinalTax(profile.taxableIncome, profile.household.maritalStatus, extraParts, fiscalSummary.halfPartReductionCeiling, ctx.viewYear);
+    const locked = ctx.isRetro && !ctx.unlocked;
     // Chained entry: saving without closing is offered only while a later
     // year remains to fill in.
     const saveStayButton = ctx.viewYear < new Date().getFullYear() ? `
               <button type="button" id="btn-save-stay" class="btn-secondary">
                 ${I18n.t('actions.saveStay')}
               </button>` : '';
+    const actionsHtml = locked ? `
+            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
+              <button type="button" id="btn-cancel-settings" class="btn-secondary">
+                ${I18n.t('form.close')}
+              </button>
+            </div>` : `
+            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
+              <button type="button" id="btn-cancel-settings" class="btn-secondary">
+                ${I18n.t('actions.cancel')}
+              </button>
+              ${saveStayButton}
+              <button type="submit" class="btn-primary">
+                ${I18n.t('actions.save')}
+              </button>
+            </div>`;
 
     return `
             <!-- SECTION 1 : Situation Familiale & Parts -->
@@ -343,16 +372,21 @@ export class SettingsModalView {
               ${getTaxRulesHelpPopover(I18n.t('settings.taxRules'), ctx.viewYear)}
             </div>
 
-            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
-              <button type="button" id="btn-cancel-settings" class="btn-secondary">
-                ${I18n.t('actions.cancel')}
-              </button>
-              ${saveStayButton}
-              <button type="submit" class="btn-primary">
-                ${I18n.t('actions.save')}
-              </button>
-            </div>
+            ${actionsHtml}
     `;
+  }
+
+  /** Locks every form control — retro years are read-only until unlocked. */
+  _applyLockedState(form: HTMLFormElement): void {
+    form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      'input, select, textarea'
+    ).forEach(el => {
+      if (el instanceof HTMLInputElement && el.closest('.toggle-switch')) {
+        ToggleSwitch.setEnabled(el, false);
+      } else {
+        el.disabled = true;
+      }
+    });
   }
 
   /** Shell-level bindings: overlay close and the year bar (delegated — the meta is rebuilt on navigation). */
@@ -370,6 +404,10 @@ export class SettingsModalView {
         this._navigate(ctx.prevYear);
       } else if (target.closest('#hist-next') && ctx.nextYear != null) {
         this._navigate(ctx.nextYear);
+      } else if (target.closest('#hist-lock')) {
+        ctx.unlocked = !ctx.unlocked;
+        (bar.querySelector('#hist-point-meta') as HTMLElement).innerHTML = this._renderYearMeta(ctx);
+        this._renderForm(ctx);
       } else if (target.closest('#hist-delete')) {
         const message = I18n.t('settings.confirmDeleteYear', { year: String(ctx.viewYear) });
         if (await ConfirmDialog.ask(message, this.container)) {
@@ -559,6 +597,9 @@ export class SettingsModalView {
     // Apply the initial disabled look for the spouse case select
     updateDisabilityCases();
     updateDisabledChildrenFields();
+    if (ctx.isRetro && !ctx.unlocked) {
+      this._applyLockedState(form);
+    }
 
     // The <form> element outlives its content (only its innerHTML is rebuilt
     // on year navigation): assigning onsubmit replaces the previous handler —
@@ -566,6 +607,8 @@ export class SettingsModalView {
     // at its own captured year.
     form.onsubmit = (e) => {
       e.preventDefault();
+      // A locked retro year must never write to the store.
+      if (ctx.isRetro && !ctx.unlocked) return;
       this._save(ctx, true);
     };
     form.querySelector('#btn-save-stay')?.addEventListener('click', () => {

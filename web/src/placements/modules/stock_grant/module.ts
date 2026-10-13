@@ -452,6 +452,58 @@ export class StockGrantModule extends BasePlacement {
     }
   }
 
+  /**
+   * The nested model rolls back per dimension: the current point is
+   * deletable when some dimension stamped its current value at asOf and
+   * has a previous entry to revert to.
+   */
+  override canDeleteCurrentState(): boolean {
+    if (super.canDeleteCurrentState()) {
+      return true;
+    }
+    const priceReverts = (this.priceAsOf || this.asOf) === this.asOf && this.priceHistory.length > 0;
+    const sharesRevert = this.attributions.some(
+      a => a.sharesAsOf === this.asOf && a.sharesHistory.length > 0
+    );
+    return priceReverts || sharesRevert;
+  }
+
+  /**
+   * Reverts each dimension whose current value was recorded at asOf to
+   * its latest history entry — matching the state that resolves at the
+   * previous known date. asOf then falls back to that date.
+   */
+  override deleteCurrentState(): boolean {
+    let reverted = false;
+    // The flat history is unused by this module but stays consistent.
+    if (this.history.length > 0) {
+      this.history = this.history.slice(0, -1);
+      reverted = true;
+    }
+    if ((this.priceAsOf || this.asOf) === this.asOf && this.priceHistory.length > 0) {
+      const last = this.priceHistory[this.priceHistory.length - 1];
+      this.currentPrice = last.price;
+      this.priceAsOf = last.date;
+      this.priceHistory = this.priceHistory.slice(0, -1);
+      reverted = true;
+    }
+    for (const grant of this.attributions) {
+      if (grant.sharesAsOf === this.asOf && grant.sharesHistory.length > 0) {
+        const last = grant.sharesHistory[grant.sharesHistory.length - 1];
+        grant.numberOfShares = last.shares;
+        grant.sharesAsOf = last.date;
+        grant.sharesHistory = grant.sharesHistory.slice(0, -1);
+        reverted = true;
+      }
+    }
+    if (!reverted) {
+      return false;
+    }
+    const remaining = this.getHistoryDates().filter(d => d !== this.asOf);
+    this.asOf = remaining[remaining.length - 1] ?? this.asOf;
+    return true;
+  }
+
   _getTotalShares(): number {
     return this.attributions.reduce((sum, a) => sum + a.numberOfShares, 0);
   }
