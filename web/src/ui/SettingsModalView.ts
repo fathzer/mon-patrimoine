@@ -314,6 +314,7 @@ export class SettingsModalView {
                 <span style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-top: 0.3rem;">
                   ${I18n.t('settings.tmi')} : <span id="tmi-summary-display">${Math.round(fiscalSummary.tmi * 100)} %</span>
                   · ${I18n.t('settings.estimatedTax')} : <span id="final-tax-display">${taxResult.finalTax.toLocaleString('fr-FR')} €</span>
+                  ${HelpPopover.getHtml({ title: I18n.t('settings.estimatedTax'), content: I18n.t('settings.estimatedTaxHelp'), label: '?', icon: true })}
                 </span>
               </div>
             </section>
