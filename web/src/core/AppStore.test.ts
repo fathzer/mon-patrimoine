@@ -74,7 +74,7 @@ const profile = (taxableIncome: number, married = false): FiscalProfile => ({
 
 const makeStore = (): AppStore => new AppStore(stubStorage);
 
-const today = (): string => new Date().toISOString().split('T')[0];
+const currentYear = new Date().getFullYear();
 
 describe("AppStore tax profile history", () => {
   it("keeps an empty profile history for a 1.0 payload (no fabricated states)", () => {
@@ -82,16 +82,16 @@ describe("AppStore tax profile history", () => {
     store._hydrateState({ version: "1.0", taxProfile: profile(40000), placements: [] });
 
     // No history until the first change: the current profile implicitly
-    // applies to every earlier date.
+    // applies to every earlier year.
     expect(store.state.taxProfileHistory).toEqual([]);
-    expect(store.state.taxProfileAsOf).toBe(today());
-    expect(store.getTaxProfileAt("2015-06-01").taxableIncome).toBe(40000);
+    expect(store.state.taxProfileYear).toBe(currentYear);
+    expect(store.getTaxProfileForYear(2015).taxableIncome).toBe(40000);
     const payload = store.getExportPayload();
-    expect(payload.version).toBe("1.1");
-    expect(payload.taxProfile).toEqual({ profile: profile(40000), asOf: today() });
+    expect(payload.version).toBe("1.2");
+    expect(payload.taxProfile).toEqual({ profile: profile(40000), year: currentYear });
   });
 
-  it("hydrates and normalizes a provided profile history", () => {
+  it("hydrates a 1.1 dated history by folding dates into income years", () => {
     const store = makeStore();
     store._hydrateState({
       version: "1.1",
@@ -100,61 +100,140 @@ describe("AppStore tax profile history", () => {
         asOf: "2024-06-01",
         history: [
           { date: "2020-01-01", profile: profile(50000) },
-          { date: "1970-01-01", profile: profile(30000) }
+          { date: "2020-06-01", profile: profile(55000) },
+          { date: "1970-01-01", profile: profile(30000) },
+          { date: "2024-01-15", profile: profile(60000) }
         ]
       },
       placements: []
     });
 
-    expect(store.state.taxProfileHistory.map(e => e.date)).toEqual(["1970-01-01", "2020-01-01"]);
+    // Same-year entries keep the latest record; the entry folded into the
+    // current year drops (the current point owns its year).
+    expect(store.state.taxProfileHistory.map(e => e.year)).toEqual([1970, 2020]);
+    expect(store.state.taxProfileHistory.find(e => e.year === 2020)!.profile.taxableIncome).toBe(55000);
     expect(store.state.taxProfileHistory[0].profile.household).toBeInstanceOf(Household);
+    expect(store.state.taxProfileYear).toBe(2024);
   });
 
-  it("resolves the profile effective at a date, current profile included", () => {
+  it("resolves the profile for an income year, current profile included", () => {
     const store = makeStore();
     store._hydrateState({
-      version: "1.1",
+      version: "1.2",
       taxProfile: {
         profile: profile(50000),
-        asOf: "2030-01-01",
+        year: 2024,
         history: [
-          { date: "1970-01-01", profile: profile(30000) },
-          { date: "2020-01-01", profile: profile(40000) }
+          { year: 1970, profile: profile(30000) },
+          { year: 2020, profile: profile(40000) }
         ]
       },
       placements: []
     });
 
-    expect(store.getTaxProfileAt("1960-01-01").taxableIncome).toBe(30000);
-    expect(store.getTaxProfileAt("2019-12-31").taxableIncome).toBe(30000);
-    expect(store.getTaxProfileAt("2020-01-01").taxableIncome).toBe(40000);
-    expect(store.getTaxProfileAt("2029-12-31").taxableIncome).toBe(40000);
-    expect(store.getTaxProfileAt("2030-01-01").taxableIncome).toBe(50000);
-    expect(store.getTaxProfileAt("2040-01-01").taxableIncome).toBe(50000);
+    expect(store.getTaxProfileForYear(1960).taxableIncome).toBe(30000);
+    expect(store.getTaxProfileForYear(2019).taxableIncome).toBe(30000);
+    expect(store.getTaxProfileForYear(2020).taxableIncome).toBe(40000);
+    expect(store.getTaxProfileForYear(2023).taxableIncome).toBe(40000);
+    expect(store.getTaxProfileForYear(2024).taxableIncome).toBe(50000);
+    expect(store.getTaxProfileForYear(2040).taxableIncome).toBe(50000);
+    // getTaxProfileAt resolves the profile of the date's income year.
+    expect(store.getTaxProfileAt("2021-06-15").taxableIncome).toBe(40000);
+    // The resolved profile reports the year it was actually recorded for.
+    expect(store.resolveTaxProfileForYear(2023).recordedYear).toBe(2020);
+    expect(store.resolveTaxProfileForYear(1960).recordedYear).toBe(1970);
   });
 
-  it("pushes the previous profile into history when it changes", () => {
+  it("pushes the previous profile into history when recording a later year", () => {
     const store = makeStore();
-    store._hydrateState({ version: "1.0", taxProfile: profile(40000), placements: [] });
+    store._hydrateState({ version: "1.2", taxProfile: { profile: profile(40000), year: 2020 }, placements: [] });
 
-    store.updateTaxProfile(profile(50000, true), "2030-01-01");
+    store.updateTaxProfile(profile(50000, true));
 
     expect(store.state.taxProfile.taxableIncome).toBe(50000);
-    expect(store.state.taxProfileAsOf).toBe("2030-01-01");
-    expect(store.getTaxProfileAt("2029-12-31").taxableIncome).toBe(40000);
-    expect(store.getTaxProfileAt("2030-01-01").taxableIncome).toBe(50000);
+    expect(store.state.taxProfileYear).toBe(currentYear);
+    expect(store.getTaxProfileForYear(2020).taxableIncome).toBe(40000);
+    expect(store.getTaxProfileForYear(currentYear - 1).taxableIncome).toBe(40000);
+    expect(store.getTaxProfileForYear(currentYear).taxableIncome).toBe(50000);
   });
 
-  it("records a retroactive profile change as a history entry without touching the current profile", () => {
+  it("updates the current profile in place when recording its own year", () => {
+    const store = makeStore();
+    store._hydrateState({ version: "1.2", taxProfile: { profile: profile(40000), year: 2020 }, placements: [] });
+
+    store.updateTaxProfile(profile(45000), 2020);
+
+    expect(store.state.taxProfile.taxableIncome).toBe(45000);
+    expect(store.state.taxProfileYear).toBe(2020);
+    expect(store.state.taxProfileHistory).toEqual([]);
+  });
+
+  it("records a retroactive year as a history entry without touching the current profile", () => {
     const store = makeStore();
     store._hydrateState({ version: "1.0", taxProfile: profile(40000), placements: [] });
 
-    store.updateTaxProfile(profile(45000), "2000-06-01");
+    store.updateTaxProfile(profile(45000), 2000);
 
     expect(store.state.taxProfile.taxableIncome).toBe(40000);
-    // The earliest recorded profile extends to every earlier date.
-    expect(store.getTaxProfileAt("1999-12-31").taxableIncome).toBe(45000);
-    expect(store.getTaxProfileAt("2000-06-01").taxableIncome).toBe(45000);
+    expect(store.hasTaxProfileHistoryEntry(2000)).toBe(true);
+    // The earliest recorded profile extends to every earlier year.
+    expect(store.getTaxProfileForYear(1999).taxableIncome).toBe(45000);
+    expect(store.getTaxProfileForYear(2000).taxableIncome).toBe(45000);
+    expect(store.getTaxProfileForYear(currentYear).taxableIncome).toBe(40000);
+  });
+
+  it("clamps a future year to the current year", () => {
+    const store = makeStore();
+    store._hydrateState({ version: "1.0", taxProfile: profile(40000), placements: [] });
+
+    store.updateTaxProfile(profile(50000), currentYear + 5);
+
+    expect(store.state.taxProfile.taxableIncome).toBe(50000);
+    expect(store.state.taxProfileYear).toBe(currentYear);
+    expect(store.state.taxProfileHistory).toEqual([]);
+  });
+
+  it("deletes a recorded year entry; the current profile is untouchable", () => {
+    const store = makeStore();
+    store._hydrateState({
+      version: "1.2",
+      taxProfile: {
+        profile: profile(50000),
+        year: 2024,
+        history: [{ year: 2020, profile: profile(40000) }]
+      },
+      placements: []
+    });
+
+    store.deleteTaxProfileHistoryEntry(2020);
+    expect(store.state.taxProfileHistory).toEqual([]);
+    // 2020 now resolves to the earliest known point (the current profile).
+    expect(store.getTaxProfileForYear(2020).taxableIncome).toBe(50000);
+
+    // The current profile is not part of the history and stays put.
+    store.deleteTaxProfileHistoryEntry(store.state.taxProfileYear);
+    expect(store.state.taxProfile.taxableIncome).toBe(50000);
+    expect(store.state.taxProfileYear).toBe(2024);
+  });
+
+  it("lists recorded years for point navigation", () => {
+    const store = makeStore();
+    store._hydrateState({
+      version: "1.2",
+      taxProfile: {
+        profile: profile(50000),
+        year: 2024,
+        history: [
+          { year: 2021, profile: profile(40000) },
+          { year: 2019, profile: profile(30000) }
+        ]
+      },
+      placements: []
+    });
+
+    expect(store.getTaxProfileYears()).toEqual([2019, 2021, 2024]);
+    expect(store.hasTaxProfileHistoryEntry(2021)).toBe(true);
+    expect(store.hasTaxProfileHistoryEntry(2022)).toBe(false);
   });
 });
 

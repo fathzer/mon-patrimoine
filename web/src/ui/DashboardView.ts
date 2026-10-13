@@ -267,7 +267,8 @@ export class DashboardView {
 
   _openSettings(): void {
     const settingsModal = new SettingsModalView(this._modalRoot!, this.store);
-    settingsModal.show();
+    // In history mode the settings open on the viewed income year.
+    settingsModal.show(this._historyDate ? Number.parseInt(this._historyDate.slice(0, 4), 10) : undefined);
   }
 
   _triggerImport(): void {

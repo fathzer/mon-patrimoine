@@ -59,6 +59,11 @@
   width: auto;
 }
 
+.history-date-bar input[type="number"] {
+  width: 5.5rem;
+  text-align: center;
+}
+
 .history-date-bar button {
   padding: 0.4rem 0.7rem;
   line-height: 1;
@@ -84,6 +89,11 @@
 .history-point-badge.new {
   border: 1px dashed var(--color-warning, #f59e0b);
   color: var(--color-warning, #f59e0b);
+}
+
+.history-point-badge.current {
+  border: 1px solid var(--accent);
+  color: var(--accent);
 }
 
 .history-locked-note {

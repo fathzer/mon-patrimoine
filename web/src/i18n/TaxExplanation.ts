@@ -1,4 +1,4 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { getFiscalRates } from '../fiscality/rates.js';
 import { MaritalStatus } from '../fiscality/Household.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
@@ -12,25 +12,29 @@ function formatPercentage(value: number): string {
   return (value * 100).toLocaleString('fr-FR') + ' %';
 }
 
-function getTaxExplanation(): string {
-  const childPart = FISCAL_RATES.EXTRA_PARTS.CHILD;
-  const childCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.CHILD;
-  const singleParentCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.SINGLE_PARENT;
-  const caseLCeiling = FISCAL_RATES.EXTRA_PARTS.CEILING.CASE_L;
+function getTaxExplanation(args: unknown): string {
+  // The rules shown are those of the income year currently viewed — the
+  // settings modal passes it via contentArgs; absent, the current year.
+  const incomeYear = (args as { year?: number } | undefined)?.year ?? new Date().getFullYear();
+  const rates = getFiscalRates(incomeYear);
+  const childPart = rates.EXTRA_PARTS.CHILD;
+  const childCeiling = rates.EXTRA_PARTS.CEILING.CHILD;
+  const singleParentCeiling = rates.EXTRA_PARTS.CEILING.SINGLE_PARENT;
+  const caseLCeiling = rates.EXTRA_PARTS.CEILING.CASE_L;
 
   const exampleIncome = 30000;
   const exampleParts = 1.5;
-  const exampleRawTax = TaxCalculator.computeRawTax(exampleIncome, exampleParts);
+  const exampleRawTax = TaxCalculator.computeRawTax(exampleIncome, exampleParts, incomeYear);
   const exampleIncomePerPart = exampleIncome / exampleParts;
 
   const plafIncome = 30000;
   const plafExtraParts = 0.5;
   const plafCeiling = childCeiling;
-  const plafWithoutExtra = TaxCalculator.computeRawTax(plafIncome, 1);
-  const plafWithExtra = TaxCalculator.computeRawTax(plafIncome, 1 + plafExtraParts);
+  const plafWithoutExtra = TaxCalculator.computeRawTax(plafIncome, 1, incomeYear);
+  const plafWithExtra = TaxCalculator.computeRawTax(plafIncome, 1 + plafExtraParts, incomeYear);
   const plafCapped = Math.max(0, plafWithoutExtra.rawTax - plafCeiling);
   const plafRetained = Math.max(plafWithExtra.rawTax, plafCapped);
-  const plafFinal = TaxCalculator.computeFinalTax(plafIncome, MaritalStatus.SINGLE, plafExtraParts, plafCeiling);
+  const plafFinal = TaxCalculator.computeFinalTax(plafIncome, MaritalStatus.SINGLE, plafExtraParts, plafCeiling, incomeYear);
 
   return `
 <section class="help-section">
@@ -58,9 +62,9 @@ function getTaxExplanation(): string {
     <li>Demi-part enfant : plafond de ${formatNumber(childCeiling)} €.</li>
     <li>Parent isolé : plafond de ${formatNumber(singleParentCeiling)} € pour les deux premières demi-parts supplémentaires (premier enfant + parent isolé), soit ${formatNumber(singleParentCeiling * childPart)} € si un seul enfant en garde alternée ; les demi-parts suivantes restent au taux général.</li>
     <li>Case L : plafond de ${formatNumber(caseLCeiling)} €, qui remplace entièrement le plafond général.</li>
-    <li>Veuf avec enfant à charge en résidence habituelle : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.WIDOW_POST_CAP_REDUCTION)} € (réduction complémentaire post-plafonnement).</li>
-    <li>Cases P/F/W/S/G : plafond majoré de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € dès qu'une case est cochée, même si elle n'accorde pas de part (×2 pour un couple marié ou pacsé avec les cases P et F).</li>
-    <li>Enfants handicapés : même majoration de ${formatNumber(FISCAL_RATES.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € par enfant en garde exclusive (moitié en garde alternée), cumulable avec les cases P/F/W/S/G.</li>
+    <li>Veuf avec enfant à charge en résidence habituelle : plafond majoré de ${formatNumber(rates.EXTRA_PARTS.CEILING.WIDOW_POST_CAP_REDUCTION)} € (réduction complémentaire post-plafonnement).</li>
+    <li>Cases P/F/W/S/G : plafond majoré de ${formatNumber(rates.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € dès qu'une case est cochée, même si elle n'accorde pas de part (×2 pour un couple marié ou pacsé avec les cases P et F).</li>
+    <li>Enfants handicapés : même majoration de ${formatNumber(rates.EXTRA_PARTS.CEILING.DISABILITY_POST_CAP_REDUCTION)} € par enfant en garde exclusive (moitié en garde alternée), cumulable avec les cases P/F/W/S/G.</li>
   </ul>
   <p>Ces plafonds se cumulent.</p>
 
@@ -76,7 +80,7 @@ function getTaxExplanation(): string {
   <h4>2. Calcul de l'imposition en fonction du revenu par part</h4>
   <p>le revenu par part est calculé à partir des tranches du barème progressif.</p>
   <ul>
-    ${FISCAL_RATES.INCOME_TAX_BRACKETS.map(bracket => `<li>${bracket.limit === Infinity ? 'Au-delà de ' + formatNumber(FISCAL_RATES.INCOME_TAX_BRACKETS.at(-2)!.limit) + ' €' : 'Jusqu\'à ' + formatNumber(bracket.limit) + ' €'} : ${(bracket.rate * 100).toLocaleString('fr-FR')} %</li>`).join('')}
+    ${rates.INCOME_TAX_BRACKETS.map(bracket => `<li>${bracket.limit === Infinity ? 'Au-delà de ' + formatNumber(rates.INCOME_TAX_BRACKETS.at(-2)!.limit) + ' €' : 'Jusqu\'à ' + formatNumber(bracket.limit) + ' €'} : ${(bracket.rate * 100).toLocaleString('fr-FR')} %</li>`).join('')}
   </ul>
 
   <p>On multiplie le résultat par le nombre de parts.</p>
@@ -99,7 +103,7 @@ function getTaxExplanation(): string {
     L'impôt brut retenu est de ${formatCurrency(plafRetained)}. L'avantage des demi-parts supplémentaires est de ${formatCurrency(plafFinal.extraPartsBenefit)}.</i></p>
 
   <h4>4. Décote</h4>
-  <p>L'impôt brut est diminué de la décote, plafonnée à ${formatNumber(FISCAL_RATES.DECOTE.limit_single)} € pour une personne seule et à ${formatNumber(FISCAL_RATES.DECOTE.limit_couple)} € pour un couple. Son taux est de ${(FISCAL_RATES.DECOTE.rate * 100).toLocaleString('fr-FR')} %.</p>
+  <p>L'impôt brut est diminué de la décote, plafonnée à ${formatNumber(rates.DECOTE.limit_single)} € pour une personne seule et à ${formatNumber(rates.DECOTE.limit_couple)} € pour un couple. Son taux est de ${(rates.DECOTE.rate * 100).toLocaleString('fr-FR')} %.</p>
   <p>
     Décote = max(0, plafond − (taux × impôt brut))
   </p>
@@ -113,6 +117,11 @@ function getTaxExplanation(): string {
 
 HelpPopover.register('help-tax-rules', getTaxExplanation);
 
-export function getTaxRulesHelpPopover(label: string = 'Règles fiscales'): string {
-  return HelpPopover.getHtml({ contentKey: 'help-tax-rules', label });
+export function getTaxRulesHelpPopover(label: string = 'Règles fiscales', incomeYear?: number): string {
+  return HelpPopover.getHtml({
+    contentKey: 'help-tax-rules',
+    contentArgs: { year: incomeYear },
+    label,
+    title: incomeYear != null ? `${label} — revenus ${incomeYear}` : label
+  });
 }

@@ -1,5 +1,5 @@
 import { EventBus } from './EventBus.js';
-import { compareDates, recordAt, resolveAt, todayString } from './DatedHistory.js';
+import { compareDates, todayString } from './DatedHistory.js';
 import { Household } from '../fiscality/Household.js';
 import type { HouseholdData } from '../fiscality/Household.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
@@ -29,28 +29,37 @@ export interface GlobalSummary {
 }
 
 export interface TaxProfileHistoryEntry {
-  /** Date from which this profile applies (YYYY-MM-DD). */
-  date: string;
+  /** Income year this profile applies to (and later years until the next entry). */
+  year: number;
   profile: FiscalProfile;
 }
 
 /**
  * The tax profile as a dated entity — the same (state, asOf, history) triplet
- * as a placement, with the state nested under `profile` so `FiscalProfile`
- * stays a plain value shared with the tax calculator, forms and tests.
+ * as a placement, but keyed by income year: a tax profile describes a whole
+ * income year (one declaration per year), so no finer granularity applies.
+ * The state stays nested under `profile` so `FiscalProfile` remains a plain
+ * value shared with the tax calculator, forms and tests.
  */
 export interface TaxProfileEntity {
   profile: FiscalProfile;
-  /** Effective date (YYYY-MM-DD) of `profile`. */
-  asOf?: string;
-  /** Past profiles, sorted by `date`; omitted while empty. */
+  /** Income year `profile` was recorded for. */
+  year?: number;
+  /** Past profiles, sorted by `year`; omitted while empty. */
   history?: TaxProfileHistoryEntry[];
+}
+
+/** Format-1.1 profile entity — entry dates fold into income years on load. */
+interface LegacyTaxProfileEntity {
+  profile: FiscalProfile;
+  asOf?: string;
+  history?: { date: string; profile: FiscalProfile }[];
 }
 
 export interface ExportPayload {
   version: string;
-  /** 1.1 payloads nest a TaxProfileEntity; a bare FiscalProfile (1.0) is accepted on load. */
-  taxProfile: FiscalProfile | TaxProfileEntity;
+  /** 1.2 payloads nest a year-keyed TaxProfileEntity; a 1.1 dated entity or a bare FiscalProfile (1.0) is accepted on load. */
+  taxProfile: FiscalProfile | TaxProfileEntity | LegacyTaxProfileEntity;
   placements: PlacementData[];
 }
 
@@ -67,13 +76,28 @@ export interface TaxProfileInput {
   usePfu?: boolean;
 }
 
+/** The income year of an ISO date (YYYY-MM-DD). */
+function yearOf(date: string): number {
+  return Number.parseInt(date.slice(0, 4), 10);
+}
+
+/** recordAt() for year-keyed entries — a year appears at most once. */
+function recordYearEntry(
+  entries: readonly TaxProfileHistoryEntry[],
+  entry: TaxProfileHistoryEntry
+): TaxProfileHistoryEntry[] {
+  const rest = entries.filter(e => e.year !== entry.year);
+  rest.push(entry);
+  return rest.sort((a, b) => a.year - b.year);
+}
+
 export interface AppState {
   isAuthenticated: boolean;
   isLoading: boolean;
   taxProfile: FiscalProfile;
-  /** Effective date (YYYY-MM-DD) of the current tax profile. */
-  taxProfileAsOf: string;
-  /** Past tax profiles, sorted by date (the profile at date D is the last entry with `date <= D`). */
+  /** Income year the current tax profile was recorded for. */
+  taxProfileYear: number;
+  /** Past tax profiles, sorted by year (the profile for year Y is the last entry with `year <= Y`). */
   taxProfileHistory: TaxProfileHistoryEntry[];
   placements: BasePlacement[];
 }
@@ -95,7 +119,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
       isAuthenticated: false,
       isLoading: true,
       taxProfile: AppStore.DEFAULT_TAX_PROFILE,
-      taxProfileAsOf: todayString(),
+      taxProfileYear: new Date().getFullYear(),
       taxProfileHistory: [],
       placements: []
     };
@@ -232,10 +256,10 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   getExportPayload(): ExportPayload {
     return {
-      version: "1.1",
+      version: "1.2",
       taxProfile: {
         profile: this.state.taxProfile,
-        asOf: this.state.taxProfileAsOf,
+        year: this.state.taxProfileYear,
         // Omitted while empty, like the placements' `history`: a history with
         // no recorded change adds nothing to the serialized payload.
         ...(this.state.taxProfileHistory.length > 0
@@ -263,20 +287,40 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   _hydrateState(rawData: Partial<ExportPayload>): void {
-    // 1.1 nests the profile entity ({profile, asOf, history}); a 1.0 payload
-    // stores the bare profile — its history stays empty until the first
-    // change, and getTaxProfileAt falls back to the earliest entry (the
-    // current profile) for dates preceding every recorded change.
-    const entity: TaxProfileEntity = rawData.taxProfile != null && 'profile' in rawData.taxProfile
-      ? rawData.taxProfile
-      : { profile: rawData.taxProfile as FiscalProfile };
+    // 1.2 nests the year-keyed profile entity ({profile, year, history});
+    // 1.1 stored it by date ({asOf, history[].date}) — dates fold into their
+    // income year, the last entry of a same-year group wins; 1.0 stores the
+    // bare profile. getTaxProfileForYear falls back to the earliest entry
+    // for years preceding every recorded point.
+    const entity = rawData.taxProfile != null && 'profile' in rawData.taxProfile
+      ? rawData.taxProfile as TaxProfileEntity | LegacyTaxProfileEntity
+      : { profile: rawData.taxProfile as FiscalProfile } as TaxProfileEntity;
     this.state.taxProfile = this._normalizeTaxProfile(entity.profile);
-    this.state.taxProfileAsOf = entity.asOf || todayString();
-    this.state.taxProfileHistory = Array.isArray(entity.history)
+    const currentYear = new Date().getFullYear();
+    const recordedYear = ('year' in entity && entity.year != null ? entity.year : undefined)
+      ?? ('asOf' in entity && entity.asOf ? yearOf(entity.asOf) : undefined)
+      ?? currentYear;
+    this.state.taxProfileYear = Math.min(recordedYear, currentYear);
+    const entries = Array.isArray(entity.history)
       ? entity.history
-          .map(e => ({ date: String(e.date), profile: this._normalizeTaxProfile(e.profile) }))
-          .sort((a, b) => compareDates(a.date, b.date))
+          .map(e => ({
+            year: 'year' in e && e.year != null ? e.year : yearOf((e as { date: string }).date),
+            sortKey: 'date' in e ? (e as { date: string }).date : `${'year' in e ? e.year : 0}-01-01`,
+            profile: this._normalizeTaxProfile(e.profile)
+          }))
+          .sort((a, b) => compareDates(a.sortKey, b.sortKey))
       : [];
+    // One profile per year: entries of the same year keep the latest record,
+    // and the current point owns its own year (a 1.1 history entry folded
+    // into the current year drops silently).
+    const byYear = new Map<number, FiscalProfile>();
+    for (const e of entries) {
+      byYear.set(e.year, e.profile);
+    }
+    this.state.taxProfileHistory = [...byYear.entries()]
+      .map(([year, profile]) => ({ year, profile }))
+      .filter(e => e.year < this.state.taxProfileYear)
+      .sort((a, b) => a.year - b.year);
     this.state.placements = (Array.isArray(rawData.placements) ? rawData.placements : [])
       .map(pData => PlacementFactory.create(pData));
   }
@@ -376,45 +420,86 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   /**
-   * Returns the tax profile effective at `date`: the last entry with
-   * `date <= date` — history entries plus the current profile, which acts as
-   * an implicit last entry at `taxProfileAsOf`. The earliest entry applies
-   * when `date` precedes all of them.
+   * Resolves the profile effective for `year` together with the year it was
+   * actually recorded for: the last entry with `entry.year <= year` —
+   * history entries plus the current profile as an implicit last point at
+   * `taxProfileYear`. The earliest entry applies when `year` precedes all
+   * recorded points.
    */
-  getTaxProfileAt(date: string): FiscalProfile {
+  resolveTaxProfileForYear(year: number): { profile: FiscalProfile; recordedYear: number } {
     const entries = [
       ...this.state.taxProfileHistory,
-      { date: this.state.taxProfileAsOf, profile: this.state.taxProfile }
-    ].sort((a, b) => compareDates(a.date, b.date));
-    return (resolveAt(entries, date) ?? entries[0]).profile;
+      { year: this.state.taxProfileYear, profile: this.state.taxProfile }
+    ];
+    let resolved = entries[0];
+    for (const entry of entries) {
+      if (entry.year <= year) {
+        resolved = entry;
+      } else {
+        break;
+      }
+    }
+    return { profile: resolved.profile, recordedYear: resolved.year };
+  }
+
+  /** The tax profile effective for an income year. */
+  getTaxProfileForYear(year: number): FiscalProfile {
+    return this.resolveTaxProfileForYear(year).profile;
+  }
+
+  /** The tax profile effective at `date` — the profile of its income year. */
+  getTaxProfileAt(date: string): FiscalProfile {
+    return this.getTaxProfileForYear(yearOf(date));
+  }
+
+  /** All years holding a recorded profile point, ascending. */
+  getTaxProfileYears(): number[] {
+    return [...this.state.taxProfileHistory.map(e => e.year), this.state.taxProfileYear]
+      .sort((a, b) => a - b);
+  }
+
+  hasTaxProfileHistoryEntry(year: number): boolean {
+    return this.state.taxProfileHistory.some(e => e.year === year);
   }
 
   /**
-   * Replaces the current tax profile. `asOf` is the effective date of the new
-   * profile (default: today). When the profile actually changed, the previous
-   * one is pushed into `taxProfileHistory` at its own `asOf`. An `asOf` in the
-   * past records the new profile as a history entry instead (a retroactive
-   * correction), leaving the current profile untouched.
+   * Removes the profile point recorded for `year` — the year then resolves
+   * from the previous recorded point. The current profile is not part of
+   * `taxProfileHistory` and can never be deleted this way.
    */
-  updateTaxProfile(newTaxProfile: TaxProfileInput, asOf?: string): void {
-    const effectiveDate = asOf || todayString();
+  deleteTaxProfileHistoryEntry(year: number): void {
+    this.state.taxProfileHistory = this.state.taxProfileHistory.filter(e => e.year !== year);
+    this._persistAndEmit();
+  }
+
+  /**
+   * Records the profile for `year` (default: the current income year; a
+   * later year is clamped — a profile describes a whole income year, so no
+   * point can be in the future). `year === taxProfileYear` updates the
+   * current profile in place; a more recent `year` pushes the previous
+   * profile into `taxProfileHistory`; a past `year` records a history
+   * entry instead, leaving the current profile untouched.
+   */
+  updateTaxProfile(newTaxProfile: TaxProfileInput, year?: number): void {
+    const currentYear = new Date().getFullYear();
+    const targetYear = Math.min(year ?? currentYear, currentYear);
     const normalized = this._normalizeTaxProfile(newTaxProfile);
 
-    if (effectiveDate < this.state.taxProfileAsOf) {
-      this.state.taxProfileHistory = recordAt(
+    if (targetYear < this.state.taxProfileYear) {
+      this.state.taxProfileHistory = recordYearEntry(
         this.state.taxProfileHistory,
-        { date: effectiveDate, profile: normalized }
+        { year: targetYear, profile: normalized }
       );
     } else {
-      if (effectiveDate > this.state.taxProfileAsOf
+      if (targetYear > this.state.taxProfileYear
         && JSON.stringify(this.state.taxProfile) !== JSON.stringify(normalized)) {
-        this.state.taxProfileHistory = recordAt(
+        this.state.taxProfileHistory = recordYearEntry(
           this.state.taxProfileHistory,
-          { date: this.state.taxProfileAsOf, profile: this.state.taxProfile }
+          { year: this.state.taxProfileYear, profile: this.state.taxProfile }
         );
       }
       this.state.taxProfile = normalized;
-      this.state.taxProfileAsOf = effectiveDate;
+      this.state.taxProfileYear = targetYear;
     }
 
     this._persistAndEmit();
@@ -427,8 +512,8 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   _getDefaultData(): ExportPayload {
     return {
-      version: "1.1",
-      taxProfile: { profile: AppStore.DEFAULT_TAX_PROFILE, asOf: todayString() },
+      version: "1.2",
+      taxProfile: { profile: AppStore.DEFAULT_TAX_PROFILE, year: new Date().getFullYear() },
       placements: []
     };
   }

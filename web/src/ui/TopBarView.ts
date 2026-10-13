@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { HELP_ICON, TAX_ICON } from './icons.js';
 import { HelpModalView } from './HelpModalView.js';
 import type { AppStore } from '../core/AppStore.js';
 
@@ -74,14 +75,11 @@ export class TopBarView {
       <button id="btn-export" class="btn-secondary" title="${I18n.t('actions.export')}" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
         📤
       </button>
-      <button id="btn-settings" class="btn-secondary" title="Réglages du profil fiscal" style="padding: 0.5rem 0.8rem; font-size: 1rem;">
-        ⚙️
+      <button id="btn-settings" class="btn-secondary" title="Profil fiscal" style="padding: 0.5rem 0.8rem; display: flex; align-items: center; justify-content: center;">
+        ${TAX_ICON}
       </button>
       <button id="btn-help" class="btn-secondary" title="Aide et informations" style="padding: 0.5rem 0.8rem; display: flex; align-items: center; justify-content: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
-          <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="var(--accent)" font-size="13" font-family="Inter, sans-serif">?</text>
-        </svg>
+        ${HELP_ICON}
       </button>
       <button id="btn-logout" class="btn-secondary" title="${I18n.t('auth.logoutBtn')}" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
         <span class="logout-icon" aria-hidden="true"></span>
@@ -92,10 +90,7 @@ export class TopBarView {
   _getUnauthButtons(): string {
     return `
       <button id="btn-help" class="btn-secondary" title="Aide et informations" style="padding: 0.5rem 0.8rem; display: flex; align-items: center; justify-content: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
-          <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="var(--accent)" font-size="13" font-family="Inter, sans-serif">?</text>
-        </svg>
+        ${HELP_ICON}
       </button>
       <button id="btn-top-login" class="btn-primary" title="${I18n.t('auth.loginBtn')}" style="padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
         <span class="login-icon" aria-hidden="true"></span>

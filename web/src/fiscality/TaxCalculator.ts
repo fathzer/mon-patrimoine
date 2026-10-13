@@ -185,7 +185,10 @@ export class TaxCalculator {
     const parentsParts = this._getParentsParts(household?.maritalStatus);
     const { extraParts, ceiling } = this._computeChildrenImpact(household, rates);
     const parts = parentsParts + extraParts;
-    const tmi = this._computeTmi(taxableIncome, parts, rates);
+    // The TMI is the marginal bracket of the actual tax schedule: when the
+    // extra-parts benefit hits its ceiling, the cap is a fixed amount and the
+    // next euro of income is taxed at the parents-only bracket.
+    const { tmi } = this.computeFinalTax(taxableIncome, household?.maritalStatus ?? MaritalStatus.SINGLE, extraParts, ceiling, incomeYear);
 
     return { parts, halfPartReductionCeiling: ceiling, tmi };
   }
@@ -434,21 +437,5 @@ export class TaxCalculator {
       ? rates.DECOTE.limit_couple
       : rates.DECOTE.limit_single;
     return Math.round(Math.max(0, decoteLimit - rates.DECOTE.rate * rawTax));
-  }
-
-  /**
-   * Computes the marginal income tax rate (TMI) from taxable income and parts.
-   */
-  private static _computeTmi(taxableIncome: number, parts: number, rates: YearlyFiscalRates): number {
-    if (parts <= 0 || taxableIncome <= 0) {
-      return 0;
-    }
-    const incomePerPart = taxableIncome / parts;
-    for (const bracket of rates.INCOME_TAX_BRACKETS) {
-      if (incomePerPart <= bracket.limit) {
-        return bracket.rate;
-      }
-    }
-    return 0;
   }
 }

@@ -1,4 +1,4 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { getFiscalRates } from '../fiscality/rates.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 
@@ -8,11 +8,14 @@ HelpPopover.register('help-gains-latents', () => 'Le gain latent est la différe
 export interface PfuExplanationArgs {
   fiscalProfile?: FiscalProfile;
   personalCase?: boolean;
+  /** Income year whose rates apply — defaults to the current year. */
+  year?: number;
 }
 
-export function getPfuExplanation({ fiscalProfile, personalCase = true }: PfuExplanationArgs = {}): string {
-  const pfuRate = formatPercentage(FISCAL_RATES.PFU_IR_RATE);
-  const csgDeductibleRate = formatPercentage(FISCAL_RATES.PFU_CSG_REDUCTION_RATE);
+export function getPfuExplanation({ fiscalProfile, personalCase = true, year }: PfuExplanationArgs = {}): string {
+  const rates = getFiscalRates(year);
+  const pfuRate = formatPercentage(rates.PFU_IR_RATE);
+  const csgDeductibleRate = formatPercentage(rates.PFU_CSG_REDUCTION_RATE);
   const incomeTaxWording = fiscalProfile?.usePfu
     ? 'au Prélèvement Forfaitaire Unique (PFU)'
     : "au barème progressif de l'impôt sur le revenu";
@@ -59,8 +62,8 @@ export function getWarning(content: string): string {
 </section>`;
 }
 
-export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true, icon: boolean = false): string {
-  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: { fiscalProfile, personalCase }, icon });
+export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true, icon: boolean = false, incomeYear?: number): string {
+  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: { fiscalProfile, personalCase, year: incomeYear }, icon });
 }
 
 export function getLatentGainsHelpPopover(label: string = 'gain latent'): string {

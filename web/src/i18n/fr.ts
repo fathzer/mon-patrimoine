@@ -81,7 +81,7 @@ export const fr = {
     importError: "Le fichier sélectionné n'est pas valide ou n'a pas pu être lu."
   },
   settings: {
-    title: "Réglages - Profil Fiscal",
+    title: "Profil fiscal",
     familySection: "Situation Familiale & Foyer Fiscal",
     maritalStatus: "Statut matrimonial",
     maritalStatusSingle: "Célibataire / Divorcé(e) / Séparé(e)",
@@ -107,7 +107,7 @@ export const fr = {
     parts: "Nombre de parts",
     halfPartReductionCeiling: "Remise max des 1/2 parts supplémentaires",
     tmi: "TMI",
-    estimatedTax: "Impôt estimé, hors liquidation de vos placements",
+    estimatedTax: "Impôt estimé, hors liquidation de vos placements et avant réductions d'impôt (dons, emploi à domicile…)",
     tmiSection: "Tranche Marginale d'Imposition (TMI)",
     enterTmi: "Saisir votre TMI",
     nonTaxable: "Non imposable",
@@ -115,7 +115,11 @@ export const fr = {
     pfuMode: "Mode d'imposition des plus-values :",
     pfuEnabled: "PFU (Flat Tax)",
     pfuDisabled: "Barème progressif de l'IR",
-    taxRules: "Règles fiscales"
+    taxRules: "Règles fiscales",
+    profileYear: "Année du profil",
+    currentProfile: "Profil actuel",
+    carriedOver: "Reconduit depuis {year}",
+    confirmDeleteYear: "Supprimer le profil enregistré pour {year} ? Pour cette année, le profil de l'année précédente s'appliquera."
   },
   taxExplanation: {
     title: "Explication fiscale",
