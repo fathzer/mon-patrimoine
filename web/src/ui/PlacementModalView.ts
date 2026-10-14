@@ -15,6 +15,9 @@ interface TypeOption {
   label: string;
 }
 
+/** Form controls handled by global-field capture, restore and retro lock. */
+type FormControlElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
 export interface PlacementModalOptions {
   /** Date shown in the date bar at opening (YYYY-MM-DD). Defaults to today:
    *  the resolved current state, the latest known point being asOf. */
@@ -169,9 +172,11 @@ export class PlacementModalView {
   _renderPointMeta(ctx: DateContext): string {
     // Recorded points open locked — asOf included when it is a past date:
     // the explicit unlock gesture prevents accidental retroactive writes.
+    const lockTitle = I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint');
+    const lockIcon = ctx.unlocked ? UNLOCK_ICON : LOCK_ICON;
     const lockButton = ctx.isRetro ? `
-        <button type="button" id="hist-lock" class="btn-secondary" title="${I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint')}">
-          ${ctx.unlocked ? UNLOCK_ICON : LOCK_ICON}
+        <button type="button" id="hist-lock" class="btn-secondary" title="${lockTitle}">
+          ${lockIcon}
         </button>` : '';
     let badge: string;
     if (ctx.isCurrentPoint) {
@@ -244,7 +249,7 @@ export class PlacementModalView {
     // made on enabled fields survive the rebuild below (date navigation,
     // lock toggle).
     const evolving = new Set(Object.keys(this._placement?.getEvolvingValues() ?? {}));
-    form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[name]')
+    form.querySelectorAll<FormControlElement>('[name]')
       .forEach(el => {
         if (!el.disabled && !evolving.has(el.name)) {
           this._pendingGlobals.set(el.name,
@@ -272,7 +277,7 @@ export class PlacementModalView {
       this._setHistoryFieldsEditable(ctx.unlocked, ctx.display);
     }
     for (const [name, value] of this._pendingGlobals) {
-      const el = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`[name="${name}"]`);
+      const el = form.querySelector<FormControlElement>(`[name="${name}"]`);
       if (!el || el.disabled) continue;
       if (el instanceof HTMLInputElement && el.type === 'checkbox') {
         el.checked = value as boolean;
@@ -297,10 +302,10 @@ export class PlacementModalView {
     // to a single serialized name (PER compartment amounts, stock_grant
     // per-line shares). Everything else stays locked: globals, and the
     // nameless identity fields (stock_grant dates, prices…).
-    this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+    this.container.querySelectorAll<FormControlElement>(
       '#asset-form input, #asset-form select, #asset-form textarea'
     ).forEach(el => {
-      const enabled = editable && (el.hasAttribute('data-evolving') || evolving.has(el.name));
+      const enabled = editable && (el.dataset.evolving !== undefined || evolving.has(el.name));
       // Toggles need their container styling updated, not just the input.
       if (el instanceof HTMLInputElement && el.closest('.toggle-switch')) {
         ToggleSwitch.setEnabled(el, enabled);

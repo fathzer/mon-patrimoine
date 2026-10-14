@@ -1,4 +1,4 @@
-import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, HelpPopover, getTaxSection } from '../../kit/v1/index.js';
+import { getTaxDisclaimer, getWarning, getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, HelpPopover, getTaxSection, getUnvotedScheduleWarning } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import { PFU_AFTER_8Y_PRE_2017, PFU_AFTER_8Y_POST_2017_HIGH, UC_SOCIAL_RATE, ALLOWANCE_SINGLE, ALLOWANCE_COUPLE, PREMIUM_THRESHOLD } from './module.js';
 import type { GainTaxTranche, GainTrancheScope, LifeInsuranceModule } from './module.js';
@@ -34,6 +34,7 @@ export function getLifeInsuranceTaxExplanation(placement: LifeInsuranceModule, f
     <p><i>Attention : Le plafond de ${PREMIUM_THRESHOLD.toLocaleString('fr-FR')} €, ainsi que l'abattement portent sur l'ensemble des contrats. Le calcul repose ici sur les primes du seul contrat saisi.</i></p>
 
     <p>Dans votre cas, ${getPersonalCaseWording(placement, fiscalProfile, now)}</p>
+    ${getUnvotedScheduleWarning(now.getFullYear())}
     ${getTaxDisclaimer()}`)}
 </div>
 `;

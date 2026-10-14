@@ -1,4 +1,4 @@
-import { getFiscalRates } from '../fiscality/rates.js';
+import { getFiscalRates, getVotedScheduleYear } from '../fiscality/rates.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 
@@ -51,6 +51,18 @@ export function getTaxDisclaimer(extraContent: string = ''): string {
     </p>
     ${extraContent}
   `);
+}
+
+/**
+ * Warning displayed when the requested income year's schedule is not voted
+ * yet: the computation silently falls back to the latest voted year (see
+ * getFiscalRates). Empty string when the schedule is voted.
+ */
+export function getUnvotedScheduleWarning(incomeYear: number): string {
+  const votedYear = getVotedScheduleYear(incomeYear);
+  return votedYear === incomeYear ? '' : getWarning(
+    `<p>Le barème de l'impôt sur le revenu ${incomeYear} n'est pas encore disponible : les tranches, plafonds et taux de ${votedYear} sont utilisés à la place.</p>`
+  );
 }
 
 export function getWarning(content: string): string {

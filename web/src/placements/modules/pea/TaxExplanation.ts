@@ -1,4 +1,4 @@
-import { getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning, getTaxSection } from '../../kit/v1/index.js';
+import { getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarning, getUnvotedScheduleWarning, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { PeaModule } from './module.js';
 
@@ -36,6 +36,7 @@ export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: Fiscal
       <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</li>
       <li><b>Après 5 ans</b> : les gains sont exonérés d'impôt sur le revenu.</li>
     </ul>
-    ${incomeTaxSection}`)}
+    ${incomeTaxSection}
+    ${exemptFromIncomeTax ? '' : getUnvotedScheduleWarning(now.getFullYear())}`)}
 </div>`;
 }

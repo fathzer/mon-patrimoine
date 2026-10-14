@@ -2,7 +2,7 @@ import { I18n } from '../core/I18n.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { EARLIEST_FISCAL_YEAR } from '../fiscality/rates.js';
 import { getTaxRulesHelpPopover } from '../i18n/TaxExplanation.js';
-import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
+import { getPfuHelpPopover, getUnvotedScheduleWarning } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
@@ -136,9 +136,11 @@ export class SettingsModalView {
    *  on navigation. Past years open locked: the explicit unlock gesture
    *  prevents accidental retroactive writes. */
   _renderYearMeta(ctx: ProfileYearContext): string {
+    const lockTitle = I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint');
+    const lockIcon = ctx.unlocked ? UNLOCK_ICON : LOCK_ICON;
     const lockButton = ctx.isRetro ? `
-        <button type="button" id="hist-lock" class="btn-secondary" title="${I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint')}">
-          ${ctx.unlocked ? UNLOCK_ICON : LOCK_ICON}
+        <button type="button" id="hist-lock" class="btn-secondary" title="${lockTitle}">
+          ${lockIcon}
         </button>` : '';
     let badge: string;
     if (ctx.isCurrent) {
@@ -345,6 +347,7 @@ export class SettingsModalView {
                   · ${I18n.t('settings.estimatedTax')} : <span id="final-tax-display">${taxResult.finalTax.toLocaleString('fr-FR')} €</span>
                   ${HelpPopover.getHtml({ title: I18n.t('settings.estimatedTax'), content: I18n.t('settings.estimatedTaxHelp'), label: '?', icon: true })}
                 </span>
+                ${getUnvotedScheduleWarning(ctx.viewYear)}
               </div>
             </section>
 

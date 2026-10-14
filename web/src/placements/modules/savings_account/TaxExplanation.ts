@@ -1,4 +1,4 @@
-import { getTaxDisclaimer, getPfuHelpPopover, formatPercentage } from '../../kit/v1/index.js';
+import { getTaxDisclaimer, getPfuHelpPopover, getUnvotedScheduleWarning, formatPercentage } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { SavingsAccountModule } from './module.js';
 
@@ -25,6 +25,7 @@ export function getSavingsAccountTaxExplanation(placement: SavingsAccountModule,
 
   <h3>Imposition à l'impôt sur le revenu</h3>
   <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</p>
+  ${getUnvotedScheduleWarning(now.getFullYear())}
   ${taxDisclaimer}
 </div>
 `;

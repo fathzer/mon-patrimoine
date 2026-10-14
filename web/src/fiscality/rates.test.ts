@@ -4,6 +4,7 @@ import {
   FISCAL_RATES,
   FISCAL_RATES_BY_YEAR,
   getFiscalRates,
+  getVotedScheduleYear,
   getSocialContributionRate
 } from "./rates.js";
 
@@ -32,6 +33,22 @@ describe("getFiscalRates", () => {
 
   it("exposes the current-year schedule through FISCAL_RATES", () => {
     expect(FISCAL_RATES).toBe(getFiscalRates(new Date().getFullYear()));
+  });
+});
+
+describe("getVotedScheduleYear", () => {
+  it("returns the requested year when its schedule is known", () => {
+    expect(getVotedScheduleYear(2024)).toBe(2024);
+  });
+
+  it("returns the latest known year for a not-yet-voted income year", () => {
+    const latestYear = Math.max(...Object.keys(FISCAL_RATES_BY_YEAR).map(Number));
+    expect(getVotedScheduleYear(latestYear + 1)).toBe(latestYear);
+  });
+
+  it("clamps years predating the table to the earliest known year", () => {
+    const earliestYear = Math.min(...Object.keys(FISCAL_RATES_BY_YEAR).map(Number));
+    expect(getVotedScheduleYear(1990)).toBe(earliestYear);
   });
 });
 

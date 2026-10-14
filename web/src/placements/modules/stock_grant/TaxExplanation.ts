@@ -1,4 +1,4 @@
-import { getPfuHelpPopover, getWarning, formatPercentage, getSocialContributionRate, getTaxSection } from '../../kit/v1/index.js';
+import { getPfuHelpPopover, getWarning, getUnvotedScheduleWarning, formatPercentage, getSocialContributionRate, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import {
   SPECIAL_SOCIAL_RATE,
@@ -63,6 +63,7 @@ export class StockGrantTaxExplanation {
     <p>Le seuil de ${threshold} € est réparti proportionnellement entre les attributions éligibles (à partir du 31/12/2016).</p>
 
     ${getWarning('<p>Il existe une possibilité d\'abattement fixe de 500 000 € pour les dirigeants de PME partant à la retraite. Cette possibilité n\'est pas disponible dans l\'application.</p>')}
+    ${getUnvotedScheduleWarning(now.getFullYear())}
   `)}
 </div>
 `;

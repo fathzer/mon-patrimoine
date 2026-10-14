@@ -1,4 +1,4 @@
-import { getPfuExplanation, getTaxDisclaimer, getLatentGainsHelpPopover, formatPercentage } from '../../kit/v1/index.js';
+import { getPfuExplanation, getTaxDisclaimer, getLatentGainsHelpPopover, getUnvotedScheduleWarning, formatPercentage } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { CtoModule } from './module.js';
 
@@ -11,6 +11,7 @@ export function getCtoTaxExplanation(placement: CtoModule, fiscalProfile: Fiscal
   <p>La base taxable est le ${getLatentGainsHelpPopover()} du portefeuille, c'est-à-dire la différence entre la valeur actuelle du compte et la valeur d'acquisition des titres, déduction faite du solde en espèces.</p>
   <p>Les prélèvements sociaux (CSG/CRDS) sont appliqués sur ce gain au taux global de ${socialRate}.</p>
   ${getPfuExplanation({ fiscalProfile, year: now.getFullYear() })}
+  ${getUnvotedScheduleWarning(now.getFullYear())}
 
   ${fiscalProfile?.usePfu ? '' : getTaxDisclaimer()}
 </div>

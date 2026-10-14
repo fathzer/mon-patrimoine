@@ -4,6 +4,7 @@ import {
   formatPercentage,
   formatCurrency,
   getWarning,
+  getUnvotedScheduleWarning,
   getTaxSection,
   HelpPopover
 } from '../../kit/v1/index.js';
@@ -62,7 +63,8 @@ export function getPerTaxExplanation(placement: PerModule, fiscalProfile: Fiscal
       </tbody>
     </table>
     <h3 style="margin-top: 1rem;">Détail par compartiment</h3>
-    ${compartmentDetails}`;
+    ${compartmentDetails}
+    ${getUnvotedScheduleWarning(now.getFullYear())}`;
 
   return `
 <div class="tax-explanation">

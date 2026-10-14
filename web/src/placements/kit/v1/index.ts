@@ -36,7 +36,7 @@ export type { Household, HouseholdLike } from '../../../fiscality/Household.js';
 export { TaxCalculator } from '../../../fiscality/TaxCalculator.js';
 
 // --- Fiscal rates ---
-export { SOCIAL_CONTRIBUTION_RATES, FISCAL_RATES, FISCAL_RATES_BY_YEAR, getFiscalRates, getSocialContributionRate } from '../../../fiscality/rates.js';
+export { SOCIAL_CONTRIBUTION_RATES, FISCAL_RATES, FISCAL_RATES_BY_YEAR, getFiscalRates, getVotedScheduleYear, getSocialContributionRate } from '../../../fiscality/rates.js';
 export type { TaxBracket, YearlyFiscalRates } from '../../../fiscality/rates.js';
 
 // --- Dated history ---
@@ -54,6 +54,7 @@ export {
   getTaxDisclaimer,
   getLatentGainsHelpPopover,
   getWarning,
+  getUnvotedScheduleWarning,
   formatPercentage,
   formatCurrency,
   getTaxSection

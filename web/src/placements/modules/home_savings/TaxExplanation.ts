@@ -1,4 +1,4 @@
-import { SOCIAL_CONTRIBUTION_RATES, getSocialContributionRate, formatPercentage, getPfuHelpPopover, getTaxDisclaimer, getTaxSection } from '../../kit/v1/index.js';
+import { SOCIAL_CONTRIBUTION_RATES, getSocialContributionRate, formatPercentage, getPfuHelpPopover, getTaxDisclaimer, getUnvotedScheduleWarning, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import { CSG_2018_THRESHOLD } from './module.js';
 import type { HomeSavingsModule } from './module.js';
@@ -16,6 +16,7 @@ function _getIncomeTaxSection(placement: HomeSavingsModule, fiscalProfile: Fisca
   if (placement.isPfuEligible(now)) {
     return `
       <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</p>
+      ${getUnvotedScheduleWarning(now.getFullYear())}
       ${taxDisclaimer}
     `;
   }
