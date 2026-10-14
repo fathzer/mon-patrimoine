@@ -56,7 +56,7 @@ export class StockGrantEditor extends BasePlacementEditor {
           <input type="date" class="attribution-acquisition-date form-control" value="${attribution?.acquisitionDate || ''}" style="width: 100%;" />
         </td>
         <td>
-          <input type="number" step="1" min="0" class="attribution-shares form-control" value="${attribution?.numberOfShares || 0}" required style="width: 100%;" />
+          <input type="number" step="1" min="0" class="attribution-shares form-control" data-evolving value="${attribution?.numberOfShares || 0}" required style="width: 100%;" />
         </td>
         <td>
           <input type="number" step="0.01" class="attribution-price form-control" value="${attribution?.acquisitionPrice || 0}" style="width: 100%;" />

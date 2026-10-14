@@ -144,6 +144,6 @@ export const fr = {
     nextPoint: "Point suivant",
     deletePoint: "Supprimer ce point",
     confirmDeletePoint: "Supprimer l'état enregistré au {date} ? À cette date, le placement reprendra l'état connu précédent.",
-    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (type, nom, établissement, dates de contrat…) se modifient à l'état actuel."
+    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (nom, établissement, dates de contrat…) se modifient à la date du jour."
   }
 };

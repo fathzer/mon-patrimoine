@@ -74,11 +74,11 @@ export class PerEditor extends BasePlacementEditor {
         <legend style="font-weight: 600; padding: 0 0.5rem;">${title}${helpPopover}</legend>
         <div class="form-group">
           <label>${labels.contributions}</label>
-          <input type="number" step="0.01" name="${key}_contributions" class="form-control" value="${contributions}" required />
+          <input type="number" step="0.01" name="${key}_contributions" class="form-control" data-evolving value="${contributions}" required />
         </div>
         <div class="form-group">
           <label>${labels.gain} <span style="font-weight: normal; font-size: 0.85rem; color: var(--text-muted, #666);">(${labels.gainOptional})</span> ${HelpPopover.getHtml({ content: labels.gainHelp, label: '?', icon: true })}</label>
-          <input type="number" step="0.01" name="${key}_gain" class="form-control" value="${gainValue}" />
+          <input type="number" step="0.01" name="${key}_gain" class="form-control" data-evolving value="${gainValue}" />
         </div>
       </fieldset>
     `;

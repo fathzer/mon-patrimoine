@@ -1,5 +1,5 @@
 import { I18n } from '../core/I18n.js';
-import { todayString } from '../core/DatedHistory.js';
+import { todayString, compareDates } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { bindDatedInput } from './datedInput.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
@@ -32,8 +32,9 @@ interface DateContext {
   viewDate: string;
   /** Instance reconstructed at the view date (nearest known state as prefill). */
   display: BasePlacement;
-  /** A state is recorded after the view date: saving there is a retro write,
-   *  restricted to evolving fields and gated behind the lock. */
+  /** The view date is a recorded point other than today's (≤ asOf, ≠ today):
+   *  saving there is a retro write, restricted to evolving fields and gated
+   *  behind the lock. */
   isRetro: boolean;
   /** The past-point lock released by the user (retro dates open locked). */
   unlocked: boolean;
@@ -103,7 +104,11 @@ export class PlacementModalView {
    * "new point" correction.
    */
   _resolveDateContext(placement: BasePlacement, viewDate: string, unlocked = false): DateContext {
-    const dates = placement.getHistoryDates();
+    const today = todayString();
+    const recorded = placement.getHistoryDates();
+    // Navigable points: every recorded state (asOf included), plus today —
+    // a "new point" candidate even when nothing is recorded there yet.
+    const dates = [...new Set([...recorded, today])].sort(compareDates);
     const prevDate = [...dates].reverse().find(d => d < viewDate) ?? null;
     const nextDate = dates.find(d => d > viewDate) ?? null;
     const resolved = placement.getDataAt(viewDate);
@@ -113,10 +118,12 @@ export class PlacementModalView {
     return {
       viewDate,
       display: PlacementFactory.create({ ...prefill, asOf: viewDate }),
-      isRetro: viewDate < placement.asOf,
+      // A recorded point is a past write unless it is today's live edit —
+      // asOf included: editing it corrects a past recording, not the future.
+      isRetro: viewDate <= placement.asOf && viewDate !== today,
       unlocked,
       isCurrentPoint: viewDate === placement.asOf,
-      isExistingPoint: dates.includes(viewDate),
+      isExistingPoint: recorded.includes(viewDate),
       // The current point is deletable too: deleting it rolls the
       // placement back to its previous recorded state.
       deletable: placement.hasHistoryEntry(viewDate)
@@ -160,8 +167,8 @@ export class PlacementModalView {
 
   /** Lock icon, point badge and delete button — swapped in place on navigation. */
   _renderPointMeta(ctx: DateContext): string {
-    // Past points open locked: the explicit unlock gesture prevents accidental
-    // retroactive writes. Nothing to unlock at or after the current state.
+    // Recorded points open locked — asOf included when it is a past date:
+    // the explicit unlock gesture prevents accidental retroactive writes.
     const lockButton = ctx.isRetro ? `
         <button type="button" id="hist-lock" class="btn-secondary" title="${I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint')}">
           ${ctx.unlocked ? UNLOCK_ICON : LOCK_ICON}
@@ -177,8 +184,8 @@ export class PlacementModalView {
     const closedBadge = this._placement?.isClosedAt(ctx.viewDate)
       ? `<span class="history-point-badge existing">${I18n.t('history.closedBadgeDate', { date: I18n.formatDate(this._placement.closedAt!) })}</span>`
       : '';
-    // Retro points stay behind the lock; the current point is directly
-    // deletable since it is never locked.
+    // Deleting a recorded point is a retro write too: it stays behind
+    // the lock like the evolving fields.
     const deleteButton = ctx.deletable && (ctx.unlocked || !ctx.isRetro) ? `
         <button type="button" id="hist-delete" class="btn-danger" title="${I18n.t('history.deletePoint')}">${TRASH_ICON}</button>` : '';
     return lockButton + closedBadge + badge + deleteButton;
@@ -285,10 +292,15 @@ export class PlacementModalView {
    */
   _setHistoryFieldsEditable(editable: boolean, placement: BasePlacement): void {
     const evolving = new Set(Object.keys(placement.getEvolvingValues()));
+    // An input is evolving when its name is an evolving key — or when the
+    // module marks it `data-evolving`, for evolving values that don't map
+    // to a single serialized name (PER compartment amounts, stock_grant
+    // per-line shares). Everything else stays locked: globals, and the
+    // nameless identity fields (stock_grant dates, prices…).
     this.container.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-      '#asset-form input[name], #asset-form select[name], #asset-form textarea[name]'
+      '#asset-form input, #asset-form select, #asset-form textarea'
     ).forEach(el => {
-      const enabled = editable && evolving.has(el.name);
+      const enabled = editable && (el.hasAttribute('data-evolving') || evolving.has(el.name));
       // Toggles need their container styling updated, not just the input.
       if (el instanceof HTMLInputElement && el.closest('.toggle-switch')) {
         ToggleSwitch.setEnabled(el, enabled);
@@ -296,14 +308,9 @@ export class PlacementModalView {
         el.disabled = !enabled;
       }
     });
-    // Nested-history modules (stock_grant) expose evolving per-line fields
-    // through class-based inputs rather than `name` attributes. Only the
-    // share counts evolve: line identity fields (dates, price) and row
-    // management stay locked in retro mode.
-    this.container.querySelectorAll<HTMLInputElement>('#asset-form input.attribution-shares')
-      .forEach(el => { el.disabled = !(editable && evolving.has('attributions')); });
-    this.container.querySelectorAll<HTMLInputElement | HTMLButtonElement>(
-      '#asset-form .attribution-date, #asset-form .attribution-acquisition-date, #asset-form .attribution-price, #asset-form .btn-remove-attribution, #asset-form #btn-add-attribution'
+    // Row-management buttons never unlock in retro mode.
+    this.container.querySelectorAll<HTMLButtonElement>(
+      '#asset-form .btn-remove-attribution, #asset-form #btn-add-attribution'
     ).forEach(el => { el.disabled = true; });
   }
 
