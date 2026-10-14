@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { todayString } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
+import { bindDatedInput } from './datedInput.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
@@ -356,21 +357,10 @@ export class PlacementModalView {
     });
 
     const dateInput = bar.querySelector('#hist-date') as HTMLInputElement;
-    dateInput.addEventListener('change', () => {
-      // No min/max attributes: they clamp mid-typing in segmented inputs,
-      // which makes the year untypable. Bounds are enforced on commit.
-      // Past-closure dates are navigable — the save guard blocks writing.
-      if (dateInput.value && dateInput.value < EARLIEST_FISCAL_DATE) dateInput.value = EARLIEST_FISCAL_DATE;
-      if (dateInput.value && dateInput.value > todayString()) dateInput.value = todayString();
-      const newDate = dateInput.value;
+    bindDatedInput(dateInput, EARLIEST_FISCAL_DATE, todayString, (newDate) => {
       if (newDate && newDate !== this._ctx!.viewDate) {
         this._navigateTo(placement, newDate);
       }
-    });
-    // Enter in the date field must navigate only — implicit form submission
-    // would otherwise write a history entry.
-    dateInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') e.preventDefault();
     });
   }
 

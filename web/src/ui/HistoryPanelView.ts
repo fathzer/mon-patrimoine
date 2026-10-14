@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { todayString } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
+import { bindDatedInput } from './datedInput.js';
 
 interface HistoryPanelOptions {
   onClose?: () => void;
@@ -64,13 +65,12 @@ export class HistoryPanelView {
     });
 
     const dateInput = this.container!.querySelector('#history-date') as HTMLInputElement | null;
-    dateInput?.addEventListener('change', () => {
-      // No min/max attributes: they clamp mid-typing in segmented inputs,
-      // which makes the year untypable. Bounds are enforced on commit.
-      if (dateInput!.value && dateInput!.value < EARLIEST_FISCAL_DATE) dateInput!.value = EARLIEST_FISCAL_DATE;
-      if (dateInput!.value && dateInput!.value > todayString()) dateInput!.value = todayString();
-      this._date = dateInput!.value || null;
-      this._onDateChange(this._date);
-    });
+    // Clearing the field exits the dated view (empty value → null).
+    if (dateInput) {
+      bindDatedInput(dateInput, EARLIEST_FISCAL_DATE, todayString, (value) => {
+        this._date = value || null;
+        this._onDateChange(this._date);
+      });
+    }
   }
 }
