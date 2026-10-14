@@ -2,10 +2,10 @@ import { getLatentGainsHelpPopover, getPfuHelpPopover, formatPercentage, getWarn
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { PeaModule } from './module.js';
 
-export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: FiscalProfile | undefined): string {
-  const years = placement.getHoldingYears(new Date());
-  const exemptFromIncomeTax = placement.isExemptFromIncomeTax(new Date());
-  const socialRate = formatPercentage(placement.getSocialChargesRate());
+export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
+  const years = placement.getHoldingYears(now);
+  const exemptFromIncomeTax = placement.isExemptFromIncomeTax(now);
+  const socialRate = formatPercentage(placement.getSocialChargesRate(now));
   const isPeaPme = placement.peaType === 'pea_pme';
   const planName = isPeaPme ? 'PEA-PME' : 'PEA';
   const planFullName = isPeaPme
@@ -33,7 +33,7 @@ export function getPeaTaxExplanation(placement: PeaModule, fiscalProfile: Fiscal
   ${getTaxSection('Imposition à l\'impôt sur le revenu', `
     <p>L'imposition d'un ${planName} dépend de l'ancienneté du contrat :</p>
     <ul>
-      <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</li>
+      <li><b>Avant 5 ans</b> : les gains sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</li>
       <li><b>Après 5 ans</b> : les gains sont exonérés d'impôt sur le revenu.</li>
     </ul>
     ${incomeTaxSection}`)}

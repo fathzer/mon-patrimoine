@@ -41,8 +41,8 @@ export class RealEstateModule extends BasePlacement {
     return RealEstateEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, _fiscalProfile: FiscalProfile): string {
-    return getRealEstateTaxExplanation(placement as RealEstateModule);
+  static getTaxExplanation(placement: BasePlacement, _fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getRealEstateTaxExplanation(placement as RealEstateModule, now);
   }
 
   primaryResidence: boolean;

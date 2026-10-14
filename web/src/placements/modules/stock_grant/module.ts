@@ -257,8 +257,8 @@ export class StockGrantModule extends BasePlacement {
     return StockGrantEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return StockGrantTaxExplanation.get(placement as StockGrantModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return StockGrantTaxExplanation.get(placement as StockGrantModule, fiscalProfile, now);
   }
 
   stockName: string;

@@ -29,8 +29,8 @@ export class HomeSavingsModule extends BasePlacement {
     return HomeSavingsEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile, now);
   }
 
   currentValue: number;

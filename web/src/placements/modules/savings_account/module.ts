@@ -23,8 +23,8 @@ export class SavingsAccountModule extends BasePlacement {
     return SavingsAccountEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getSavingsAccountTaxExplanation(placement as SavingsAccountModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getSavingsAccountTaxExplanation(placement as SavingsAccountModule, fiscalProfile, now);
   }
 
   currentValue: number;

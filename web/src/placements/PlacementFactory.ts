@@ -138,9 +138,9 @@ export class PlacementFactory {
     return (ModuleClass as unknown as PlacementModuleStatic).getCategory();
   }
 
-  static getTaxExplanation(type: string, placement: BasePlacement, fiscalProfile: FiscalProfile): string {
+  static getTaxExplanation(type: string, placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
     const ModuleClass = this._getModule(type).ModuleClass;
-    return (ModuleClass as unknown as PlacementModuleStatic).getTaxExplanation(placement, fiscalProfile);
+    return (ModuleClass as unknown as PlacementModuleStatic).getTaxExplanation(placement, fiscalProfile, now);
   }
 
   static getDefinition(type: string): ModuleDefinition {

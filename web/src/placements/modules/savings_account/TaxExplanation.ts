@@ -2,8 +2,8 @@ import { getTaxDisclaimer, getPfuHelpPopover, formatPercentage } from '../../kit
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import type { SavingsAccountModule } from './module.js';
 
-export function getSavingsAccountTaxExplanation(placement: SavingsAccountModule, fiscalProfile: FiscalProfile | undefined): string {
-  const socialRate = formatPercentage(placement.getSocialChargesRate());
+export function getSavingsAccountTaxExplanation(placement: SavingsAccountModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
+  const socialRate = formatPercentage(placement.getSocialChargesRate(now));
   const taxExempt = placement.taxExempt !== false;
   const taxDisclaimer = fiscalProfile?.usePfu ? '' : getTaxDisclaimer();
 
@@ -24,7 +24,7 @@ export function getSavingsAccountTaxExplanation(placement: SavingsAccountModule,
   <p>Les intérêts sont soumis aux prélèvements sociaux au taux de ${socialRate}.</p>
 
   <h3>Imposition à l'impôt sur le revenu</h3>
-  <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover()}.</p>
+  <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</p>
   ${taxDisclaimer}
 </div>
 `;

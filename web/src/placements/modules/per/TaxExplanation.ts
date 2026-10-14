@@ -18,10 +18,10 @@ const COMPARTMENT_LABELS: Record<PerCompartmentKey, string> = {
   employee_savings: 'Épargne salariale'
 };
 
-export function getPerTaxExplanation(placement: PerModule, fiscalProfile: FiscalProfile | undefined): string {
-  const socialRate = formatPercentage(placement.getSocialChargesRate());
+export function getPerTaxExplanation(placement: PerModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
+  const socialRate = formatPercentage(placement.getSocialChargesRate(now));
   const compartments = placement.getComputedCompartments();
-  const pfuPopover = getPfuHelpPopover(fiscalProfile, 'PFU', true);
+  const pfuPopover = getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear());
 
   // --- Social charges section ---
   const socialChargesNote = placement.knowsNetValue

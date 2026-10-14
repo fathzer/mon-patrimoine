@@ -23,8 +23,8 @@ export class PeeModule extends BasePlacement {
     return PeeEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPeeTaxExplanation(placement as PeeModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getPeeTaxExplanation(placement as PeeModule, fiscalProfile, now);
   }
 
   totalDeposits: number;

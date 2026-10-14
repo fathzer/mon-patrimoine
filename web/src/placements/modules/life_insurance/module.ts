@@ -62,8 +62,8 @@ export class LifeInsuranceModule extends BasePlacement {
     return LifeInsuranceEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getLifeInsuranceTaxExplanation(placement as LifeInsuranceModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getLifeInsuranceTaxExplanation(placement as LifeInsuranceModule, fiscalProfile, now);
   }
 
   openingDate: string;

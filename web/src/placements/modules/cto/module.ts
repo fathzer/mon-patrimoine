@@ -22,8 +22,8 @@ export class CtoModule extends BasePlacement {
     return CtoEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getCtoTaxExplanation(placement as CtoModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getCtoTaxExplanation(placement as CtoModule, fiscalProfile, now);
   }
 
   acquisitionValue: number;

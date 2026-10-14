@@ -48,8 +48,8 @@ export class PerModule extends BasePlacement {
     return PerEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPerTaxExplanation(placement as PerModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getPerTaxExplanation(placement as PerModule, fiscalProfile, now);
   }
 
   grossValue: number;

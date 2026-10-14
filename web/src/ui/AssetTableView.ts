@@ -454,12 +454,15 @@ export class AssetTableView {
   _showTaxExplanation(item: EvaluationEntry): void {
     const asOfDate = this.summary?.asOfDate ?? null;
     const profile = asOfDate ? this.store.getTaxProfileAt(asOfDate) : this.store.getTaxProfile();
+    // The reference date is the view date, not the instance's asOf (the
+    // resolved state may predate it): rates and age rules apply at it.
+    const now = asOfDate ? new Date(`${asOfDate}T12:00:00`) : new Date();
     const title = asOfDate
       ? I18n.t('taxExplanation.titleAt', { date: I18n.formatDate(asOfDate) })
       : I18n.t('taxExplanation.title');
     let content: string;
     try {
-      content = PlacementFactory.getTaxExplanation(item.instance.type, item.instance, profile);
+      content = PlacementFactory.getTaxExplanation(item.instance.type, item.instance, profile, now);
     } catch {
       content = '<p class="text-muted">Tax explanation is not available for this placement type yet.</p>';
     }

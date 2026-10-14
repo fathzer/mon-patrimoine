@@ -6,7 +6,7 @@ export function getAcquisitionFeesHelp(label: string = '?', icon: boolean = fals
   return HelpPopover.getHtml({ title: 'Frais d\'acquisition', content: 'le prix d’acquisition à retenir est le prix stipulé dans l\'acte notarié effectivement acquitté par le cédant, ou en cas d’acquisition à titre gratuit, tel qu’il a été stipulé dans l’acte.En cas d’acquisition à titre gratuit, le prix d\'acquisition s\'entend de la valeur vénale au jour du transfert, diminué le cas échéant de l\'abattement de 20 % prévu à l\'article 764 bis du CGI. A défaut de prix stipulé dans l\'acte ou de valeur retenue pour les droits de mutation à titre gratuit, le prix d\'acquisition s\'entend de la valeur vénale réelle à la date d\'entrée dans le patrimoine du cédant d\'après une déclaration détaillée et estimative des parties.', label: label, icon: icon });
 }
 
-export function getRealEstateTaxExplanation(placement: RealEstateModule): string {
+export function getRealEstateTaxExplanation(placement: RealEstateModule, now: Date = new Date()): string {
   if (placement?.primaryResidence) {
     return `
 <div class="tax-explanation">
@@ -16,7 +16,6 @@ export function getRealEstateTaxExplanation(placement: RealEstateModule): string
 `;
   }
 
-  const now = new Date();
   const years = placement.getHoldingYears(now);
   const socialRate = formatPercentage(placement.getSocialChargesRate());
   const socialChargesReduction = formatPercentage(placement.getReductionRate(years));

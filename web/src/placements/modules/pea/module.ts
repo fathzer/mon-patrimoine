@@ -25,8 +25,8 @@ export class PeaModule extends BasePlacement {
     return PeaEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPeaTaxExplanation(placement as PeaModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getPeaTaxExplanation(placement as PeaModule, fiscalProfile, now);
   }
 
   totalDeposits: number;

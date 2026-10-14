@@ -1,4 +1,4 @@
-import { getPfuHelpPopover, getWarning, formatPercentage, SOCIAL_CONTRIBUTION_RATES, getTaxSection } from '../../kit/v1/index.js';
+import { getPfuHelpPopover, getWarning, formatPercentage, getSocialContributionRate, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import {
   SPECIAL_SOCIAL_RATE,
@@ -11,8 +11,8 @@ import {
 } from './module.js';
 
 export class StockGrantTaxExplanation {
-  static get(placement: StockGrantModule, fiscalProfile: FiscalProfile | undefined): string {
-    const standardRate = formatPercentage(SOCIAL_CONTRIBUTION_RATES.CSG_CRDS);
+  static get(placement: StockGrantModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
+    const standardRate = formatPercentage(getSocialContributionRate(now));
     const specialRate = formatPercentage(SPECIAL_SOCIAL_RATE);
     const employerContributionRate = formatPercentage(EMPLOYER_CONTRIBUTION_RATE);
     const flatTaxRate = formatPercentage(FLAT_TAX_RATE_BEFORE_2012);
@@ -51,7 +51,7 @@ export class StockGrantTaxExplanation {
   `)}
 
   ${getTaxSection('Impôt sur le revenu', `
-    <p>Les plus-value de cessions sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</p>
+    <p>Les plus-value de cessions sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</p>
     <p>Le régime d'imposition des gains d'acquisition dépend de la date d'attribution :</p>
     <ul>
       <li><b>Avant le 28/09/2012</b> : taux forfaitaire de ${flatTaxRate} (ou option pour le barème, selon les règles des traitements et salaires).</li>

@@ -5,7 +5,7 @@ import type { GainTaxTranche, GainTrancheScope, LifeInsuranceModule } from './mo
 
 const REFORM_DATE = '27/09/2017';
 
-export function getLifeInsuranceTaxExplanation(placement: LifeInsuranceModule, fiscalProfile: FiscalProfile | undefined): string {
+export function getLifeInsuranceTaxExplanation(placement: LifeInsuranceModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
   const socialRate = formatPercentage(UC_SOCIAL_RATE);
   const pfuLow = formatPercentage(PFU_AFTER_8Y_PRE_2017);
   const pfuHigh = formatPercentage(PFU_AFTER_8Y_POST_2017_HIGH);
@@ -22,7 +22,7 @@ export function getLifeInsuranceTaxExplanation(placement: LifeInsuranceModule, f
     </ul>
     ${getWarning("<p>Le gain latent est réparti entre unités de compte et fonds en euros au prorata de leurs valeurs actuelles, ce qui est une grossière approximation.</p><p>Le reliquat des gains des fonds en euros pour l'année en cours est négligé dans le calcul.</p>")}`)}
   ${getTaxSection('Imposition à l\'impôt sur le revenu', `
-    <p>Le ${getLatentGainsHelpPopover()} est soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</p>
+    <p>Le ${getLatentGainsHelpPopover()} est soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</p>
     <p>Les contrats de plus de 8 ans bénéficient :
       <ul>
         <li>d'un abattement annuel de ${ALLOWANCE_SINGLE.toLocaleString('fr-FR')} € pour une personne seule et ${ALLOWANCE_COUPLE.toLocaleString('fr-FR')} € pour un couple. Ce montant est déduit de la base imposable.</li>
@@ -33,7 +33,7 @@ export function getLifeInsuranceTaxExplanation(placement: LifeInsuranceModule, f
 
     <p><i>Attention : Le plafond de ${PREMIUM_THRESHOLD.toLocaleString('fr-FR')} €, ainsi que l'abattement portent sur l'ensemble des contrats. Le calcul repose ici sur les primes du seul contrat saisi.</i></p>
 
-    <p>Dans votre cas, ${getPersonalCaseWording(placement, fiscalProfile)}</p>
+    <p>Dans votre cas, ${getPersonalCaseWording(placement, fiscalProfile, now)}</p>
     ${getTaxDisclaimer()}`)}
 </div>
 `;
@@ -106,10 +106,10 @@ function getTranchesWording(tranches: GainTaxTranche[]): string {
  * progressive scale) before 8 years, and the allowance plus reduced/standard
  * PFU rates afterwards.
  */
-function getPersonalCaseWording(placement: LifeInsuranceModule, fiscalProfile: FiscalProfile | undefined): string {
-  const years = placement.getContractYears(new Date());
+function getPersonalCaseWording(placement: LifeInsuranceModule, fiscalProfile: FiscalProfile | undefined, now: Date): string {
+  const years = placement.getContractYears(now);
   const yearsWording = `le contrat est ouvert depuis ${years} an${years > 1 ? 's' : ''}`;
-  const breakdown = placement.getIncomeTaxBreakdown(fiscalProfile);
+  const breakdown = placement.getIncomeTaxBreakdown(fiscalProfile, now);
   if (breakdown.latentGain <= 0) {
     return `${yearsWording} et ne dégage aucun gain latent : aucun impôt sur le revenu n'est dû.`;
   }

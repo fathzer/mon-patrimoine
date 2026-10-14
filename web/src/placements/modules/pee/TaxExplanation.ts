@@ -4,8 +4,8 @@ import type { PeeModule } from './module.js';
 
 const HISTORICAL_RATE_HELP = 'La règle dite du « taux historique » s\'applique à la fraction de plus-value générée avant le 1er janvier 2018, et pour la plus-value produite dans les 5 ans suivant un versement effectué entre 2013 et 2017.';
 
-export function getPeeTaxExplanation(placement: PeeModule, _fiscalProfile: FiscalProfile | undefined): string {
-  const socialRate = formatPercentage(placement.getSocialChargesRate());
+export function getPeeTaxExplanation(placement: PeeModule, _fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
+  const socialRate = formatPercentage(placement.getSocialChargesRate(now));
 
   const socialChargesSection = placement.knowsNetValue
     ? `<p>Dans le cas de votre PEE, les prélèvements sociaux ont été calculés à partir de la valeur nette que vous avez indiquée.</p>`

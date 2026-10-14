@@ -56,13 +56,17 @@ export type PlacementEditorConstructor = new (container: HTMLElement, store?: Ap
 
 /**
  * Function signature for tax explanation providers.
- * The host calls it via `PlacementFactory.getTaxExplanation(type, placement, fp)`
+ * The host calls it via `PlacementFactory.getTaxExplanation(type, placement, fp, now)`
  * to render the tax explanation panel for a placement.
+ *
+ * `now` is the reference date of the view (the dashboard view date in a
+ * dated view, today otherwise): rates and age-dependent rules are resolved
+ * at it. The `placement` itself is already the dated reconstruction.
  *
  * Modules typically delegate to a `TaxExplanation.ts` helper, but the only
  * contract is that this function returns the HTML string for the panel.
  */
-export type TaxExplanationProvider = (placement: BasePlacement, fiscalProfile: FiscalProfile) => string;
+export type TaxExplanationProvider = (placement: BasePlacement, fiscalProfile: FiscalProfile, now?: Date) => string;
 
 /**
  * Describes the static side (constructor) that every placement module must
