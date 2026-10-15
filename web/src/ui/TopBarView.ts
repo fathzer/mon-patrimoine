@@ -56,17 +56,17 @@ export class TopBarView {
 
   _getAuthButtons(): string {
     return `
-      <button id="btn-show-breakdown" class="btn-secondary" title="${I18n.t('summary.breakdownTitle')}" style="padding: 0.5rem 0.8rem; display: ${this._breakdownVisible ? 'none' : 'inline-flex'}; align-items: center; justify-content: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
-          <path d="M12 12 L12 3 A9 9 0 0 1 21 12 Z" fill="var(--accent)"/>
-        </svg>
-      </button>
       <button id="btn-show-history" class="btn-secondary" title="${I18n.t('history.title')}" style="padding: 0.5rem 0.8rem; display: ${(this._historyVisible || !this._hasPlacements()) ? 'none' : 'inline-flex'}; align-items: center; justify-content: center;">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 3v5h5"/>
           <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
           <path d="M12 7v5l4 2"/>
+        </svg>
+      </button>
+      <button id="btn-show-breakdown" class="btn-secondary" title="${I18n.t('summary.breakdownTitle')}" style="padding: 0.5rem 0.8rem; display: ${this._breakdownVisible ? 'none' : 'inline-flex'}; align-items: center; justify-content: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
+          <path d="M12 12 L12 3 A9 9 0 0 1 21 12 Z" fill="var(--accent)"/>
         </svg>
       </button>
       <button id="btn-import" class="btn-secondary" title="${I18n.t('actions.import')}" style="padding: 0.5rem 0.8rem; font-size: 1rem;">

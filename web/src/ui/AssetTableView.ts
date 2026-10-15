@@ -4,6 +4,7 @@ import type { SortLevel, SortField } from '../core/UiState.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
+import { getInflationDisplayWarning } from '../i18n/commonTaxExplanations.js';
 import type { AppStore, EvaluationEntry, GlobalSummary } from '../core/AppStore.js';
 import type { BasePlacement, Evaluation } from '../placements/BasePlacement.js';
 
@@ -39,6 +40,8 @@ export class AssetTableView {
   modalRoot: HTMLElement | null;
   _showInactive: boolean;
   _onToggleInactive: ((show: boolean) => void) | null;
+  /** Presentation-only inflation factor applied to displayed amounts. */
+  _displayFactor: number;
 
   constructor(store: AppStore, options: AssetTableOptions = {}) {
     this.store = store;
@@ -55,6 +58,7 @@ export class AssetTableView {
     this.modalRoot = null;
     this._showInactive = false;
     this._onToggleInactive = null;
+    this._displayFactor = 1;
   }
 
   setContainer(container: HTMLElement): void {
@@ -64,6 +68,7 @@ export class AssetTableView {
   render(summary: GlobalSummary, modalRoot: HTMLElement, showInactive = false, onToggleInactive: ((show: boolean) => void) | null = null): void {
     this._closePopup();
     this.summary = summary;
+    this._displayFactor = summary.priceLevelFactor ?? 1;
     this.modalRoot = modalRoot;
     this._showInactive = showInactive;
     this._onToggleInactive = onToggleInactive;
@@ -467,11 +472,18 @@ export class AssetTableView {
       content = '<p class="text-muted">Tax explanation is not available for this placement type yet.</p>';
     }
 
+    // When the asset list is displayed in current (inflation-adjusted) euros,
+    // warn that the explanation keeps the original nominal amounts.
+    const inflationAlert = this._displayFactor !== 1 && this.summary?.priceLevelBaseMonth
+      ? getInflationDisplayWarning(this.summary.priceLevelBaseMonth)
+      : '';
+
     this.modalRoot!.innerHTML = `
       <div class="modal-overlay">
         <div class="modal-content help-modal-content">
           <h2>${title}</h2>
           <div class="help-modal-body">
+            ${inflationAlert}
             ${content}
           </div>
           <div class="modal-actions help-modal-footer">
@@ -698,7 +710,8 @@ export class AssetTableView {
     if (amount == null || amount === 0) {
       return '';
     }
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+    const displayed = this._displayFactor !== 1 ? amount * this._displayFactor : amount;
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(displayed);
   }
 
   _renderFiscalIcon(evaluation: Evaluation, instance: BasePlacement): string {

@@ -24,8 +24,8 @@ export class AssetDonutChartView {
     this.onLeave = options.onLeave || (() => {});
   }
 
-  render(evaluations: EvaluationEntry[], valueKey: ValueKey = 'grossValue'): void {
-    const { total, byCat } = this._computeByCategory(evaluations, valueKey);
+  render(evaluations: EvaluationEntry[], valueKey: ValueKey = 'grossValue', displayFactor: number = 1): void {
+    const { total, byCat } = this._computeByCategory(evaluations, valueKey, displayFactor);
     const segments = Object.entries(byCat)
       .filter(([, value]) => value > 0)
       .sort(([, a], [, b]) => b - a);
@@ -41,12 +41,12 @@ export class AssetDonutChartView {
     this._bindEvents();
   }
 
-  _computeByCategory(evaluations: EvaluationEntry[] | undefined, valueKey: ValueKey): { total: number; byCat: Record<string, number> } {
+  _computeByCategory(evaluations: EvaluationEntry[] | undefined, valueKey: ValueKey, displayFactor: number): { total: number; byCat: Record<string, number> } {
     const byCat: Record<string, number> = {};
     let total = 0;
     for (const { instance, evaluation } of (evaluations || [])) {
       const cat = instance.getCategory();
-      const amount = evaluation[valueKey] || 0;
+      const amount = (evaluation[valueKey] || 0) * displayFactor;
       byCat[cat] = (byCat[cat] || 0) + amount;
       total += amount;
     }

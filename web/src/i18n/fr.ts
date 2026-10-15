@@ -144,6 +144,13 @@ export const fr = {
     nextPoint: "Point suivant",
     deletePoint: "Supprimer ce point",
     confirmDeletePoint: "Supprimer l'état enregistré au {date} ? À cette date, le placement reprendra l'état connu précédent.",
-    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (nom, établissement, dates de contrat…) se modifient à la date du jour."
+    lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (nom, établissement, dates de contrat…) se modifient à la date du jour.",
+    inflationLabel: "Évaluation",
+    inflationNone: "Hors inflation",
+    inflationBaseMonth: "Les montants historiques sont affichés en euros actuels (base {month})",
+    inflationLoading: "Chargement de l'indice…",
+    inflationLoadError: "Indice indisponible",
+    inflationHelpTitle: "Évaluation en euros constants",
+    inflationHelpBody: "Ce menu permet d'afficher les montants historiques en euros constants (pouvoir d'achat d'aujourd'hui) à partir d'un indice des prix à la consommation publié par l'INSEE. Les calculs et l'édition restent en euros de l'époque ; seul l'affichage est concerné."
   }
 };

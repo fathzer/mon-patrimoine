@@ -6,6 +6,8 @@ export interface UiStateData {
   filterTotals: boolean;
   historyVisible: boolean;
   showClosedPlacements: boolean;
+  /** Selected INSEE inflation series id, or null for "no inflation". */
+  inflationSource: string | null;
 }
 
 export type SortField = 'name' | 'institution' | 'category' | 'grossValue' | 'netValue';
@@ -30,7 +32,8 @@ export class UiState {
         breakdownVisible: typeof parsed.breakdownVisible === 'boolean' ? parsed.breakdownVisible : true,
         filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false,
         historyVisible: typeof parsed.historyVisible === 'boolean' ? parsed.historyVisible : false,
-        showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false
+        showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false,
+        inflationSource: typeof parsed.inflationSource === 'string' ? parsed.inflationSource : null
       };
     } catch {
       return this._default();
@@ -54,7 +57,8 @@ export class UiState {
       breakdownVisible: true,
       filterTotals: false,
       historyVisible: false,
-      showClosedPlacements: false
+      showClosedPlacements: false,
+      inflationSource: null
     };
   }
 }

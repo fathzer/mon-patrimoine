@@ -17,12 +17,15 @@ export class AssetBreakdownView {
   _useNet: boolean;
   _onClose: () => void;
   _summary: GlobalSummary | null;
+  /** Presentation-only inflation factor applied to displayed amounts. */
+  _displayFactor: number;
 
   constructor(container: HTMLElement | null, options: AssetBreakdownOptions = {}) {
     this.container = container;
     this._useNet = false;
     this._onClose = options.onClose || (() => {});
     this._summary = null;
+    this._displayFactor = 1;
   }
 
   setContainer(container: HTMLElement): void {
@@ -31,6 +34,7 @@ export class AssetBreakdownView {
 
   render(summary: GlobalSummary): void {
     this._summary = summary;
+    this._displayFactor = summary.priceLevelFactor ?? 1;
     const breakdownData = this._getBreakdownData(summary, this._useNet);
     const evaluations: EvaluationEntry[] = summary?.evaluations || [];
     this.container!.className = 'breakdown-group';
@@ -55,16 +59,17 @@ export class AssetBreakdownView {
       onHover: (cat) => this._highlightCategory(cat),
       onLeave: () => this._clearHighlight()
     });
-    donutChart.render(evaluations, this._useNet ? 'netValue' : 'grossValue');
+    donutChart.render(evaluations, this._useNet ? 'netValue' : 'grossValue', this._displayFactor);
 
     this._bindEvents();
   }
 
   _getBreakdownData(summary: GlobalSummary | null | undefined, useNet: boolean): Record<string, BreakdownRowData> {
+    const f = this._displayFactor;
     if (!useNet) {
       const data: Record<string, BreakdownRowData> = {};
       for (const [cat, val] of Object.entries(summary?.breakdown || {})) {
-        data[cat] = { value: val.gross, percentage: val.percentage };
+        data[cat] = { value: val.gross * f, percentage: val.percentage };
       }
       return data;
     }
@@ -73,7 +78,7 @@ export class AssetBreakdownView {
     let total = 0;
     for (const { instance, evaluation } of (summary?.evaluations || [])) {
       const cat = instance.getCategory();
-      const value = evaluation.netValue ?? ((evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0));
+      const value = (evaluation.netValue ?? ((evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0))) * f;
       netByCat[cat] = (netByCat[cat] || 0) + value;
       total += value;
     }

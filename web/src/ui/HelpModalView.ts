@@ -107,6 +107,24 @@ export class HelpModalView {
               </div>
             </section>
 
+            <!-- CHAPITRE 4 : Sources de données -->
+            <section class="help-section" style="margin-bottom: 0.5rem;">
+              <h3 class="help-section-title">
+                📊 Sources de données
+              </h3>
+              <p>
+                Les indices mensuels des prix à la consommation utilisés pour l'affichage en euros constants sont issus des publications de l'Institut national de la statistique et des études économiques (INSEE). Les séries suivantes (base 2025, ensemble des ménages, France) sont proposées dans la carte « Historique » :
+              </p>
+              <ul class="help-provider-list">
+                <li><code>insee-011814630</code> — Ensemble (tous produits)</li>
+                <li><code>insee-011814056</code> — Ensemble hors tabac</li>
+                <li><code>insee-011814080</code> — Ensemble hors tabac et alcool</li>
+              </ul>
+              <p>
+                Le mois courant n'étant pas encore publié, la base des « euros actuels » est le dernier mois disponible. Les montants affichés en euros constants le sont à titre indicatif ; les calculs et l'édition restent en euros de l'époque.
+              </p>
+            </section>
+
           </div>
 
           <!-- Pied de modale -->

@@ -40,6 +40,27 @@
   width: auto;
 }
 
+.history-panel-controls select.form-control {
+  width: auto;
+}
+
+/* Inflation group sticks to the right edge and stays on a single line.
+   On small screens it wraps below the date and aligns to the left. */
+.history-panel-inflation-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .history-panel-inflation-group {
+    margin-left: 0;
+  }
+}
+
 #history-chart {
   margin-top: var(--space-md);
 }

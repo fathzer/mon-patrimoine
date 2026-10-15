@@ -26,6 +26,14 @@ export interface GlobalSummary {
   categories?: string[];
   breakdown?: Record<string, BreakdownEntry>;
   evaluations?: EvaluationEntry[];
+  /**
+   * Presentation-only multiplier applied to displayed amounts (asset list,
+   * totals, breakdown) to express them in current euros. Defaults to 1
+   * (nominal euros of the time). Never affects stored values or calculations.
+   */
+  priceLevelFactor?: number;
+  /** Latest published month of the selected inflation series, when known. */
+  priceLevelBaseMonth?: string;
 }
 
 export interface TaxProfileHistoryEntry {

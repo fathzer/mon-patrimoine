@@ -70,3 +70,26 @@ select.form-control option {
   padding: 0 var(--space-sm);
   margin-bottom: var(--space-md);
 }
+
+/* Warning variant: same fieldset/legend layout as form-section, but with the
+   disclaimer red tint and a tighter legend spacing. */
+.form-section.warning-section {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.form-section.warning-section > legend {
+  font-size: var(--font-size-lg);
+  color: var(--accent-blue);
+  margin-bottom: 0;
+}
+
+.form-section.warning-section > p {
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.form-section.warning-section > p:last-child {
+  margin: 0;
+}

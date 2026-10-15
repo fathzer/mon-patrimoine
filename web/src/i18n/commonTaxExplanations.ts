@@ -65,13 +65,20 @@ export function getUnvotedScheduleWarning(incomeYear: number): string {
   );
 }
 
+/**
+ * Warning displayed in the tax explanation modal when the asset list is being
+ * shown in current (inflation-adjusted) euros: the explanation itself always
+ * uses the original nominal amounts. `baseMonth` is the latest published
+ * month of the selected INSEE series.
+ */
+export function getInflationDisplayWarning(baseMonth: string): string {
+  return getWarning(
+    `<p>Les montants affichés dans la liste des actifs sont actuellement exprimés en euros constants (base ${baseMonth}). Cette explication fiscale conserve les montants d'origine en euros de l'époque.</p>`
+  );
+}
+
 export function getWarning(content: string): string {
-  return `<section class="help-section" style="margin-bottom: 0.5rem;">
-  <h3 class="help-section-title">⚠️ Avertissement</h3>
-  <div class="help-disclaimer-box">
-    ${content}
-  </div>
-</section>`;
+  return `<fieldset class="form-section warning-section"><legend>⚠️ Avertissement</legend>${content}</fieldset>`;
 }
 
 export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true, icon: boolean = false, incomeYear?: number): string {

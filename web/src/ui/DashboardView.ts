@@ -9,6 +9,7 @@ import { AssetBreakdownView } from './AssetBreakdownView.js';
 import { AssetTableView } from './AssetTableView.js';
 import { HistoryPanelView } from './HistoryPanelView.js';
 import { HelpModalView } from './HelpModalView.js';
+import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
 
 export class DashboardView {
@@ -23,6 +24,8 @@ export class DashboardView {
   _historyVisible: boolean;
   _showClosedPlacements: boolean;
   _historyDate: string | null;
+  _inflation: InflationUiState;
+  _inflationIndex: InflationIndex | null;
   _layoutInitialized: boolean;
   _topBarContainer: HTMLElement | null;
   _pageContent: HTMLElement | null;
@@ -41,9 +44,13 @@ export class DashboardView {
     this._historyVisible = ui.historyVisible;
     this._showClosedPlacements = ui.showClosedPlacements;
     this._historyDate = null;
+    this._inflation = { ...NO_INFLATION_UI_STATE, source: ui.inflationSource };
+    this._inflationIndex = this._inflation.source ? getCachedInflationIndex(this._inflation.source) : null;
     this._historyPanelView = new HistoryPanelView(null, {
       onClose: () => this._hideHistory(),
-      onDateChange: (date) => this._onHistoryDateChange(date)
+      onDateChange: (date) => this._onHistoryDateChange(date),
+      onInflationSourceChange: (source) => this._onInflationSourceChange(source),
+      getInflationState: () => this._inflation
     });
     this._layoutInitialized = false;
     this._topBarContainer = null;
@@ -97,9 +104,9 @@ export class DashboardView {
     this._pageContent!.innerHTML = `
       <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
+      <section id="summary-history" class="summary-history"></section>
       <section id="summary-totals" class="summary-totals"></section>
       <section id="summary-breakdown" class="summary-breakdown"></section>
-      <section id="summary-history" class="summary-history"></section>
       <div id="assets-container"></div>
     `;
 
@@ -184,6 +191,8 @@ export class DashboardView {
       history.innerHTML = '<div id="history-container"></div>';
       this._historyPanelView.setContainer(history.querySelector('#history-container') as HTMLElement);
       this._historyPanelView.render();
+      this._syncInflationSelector();
+      this._ensureInflationIndexLoaded();
     } else {
       history.style.display = 'none';
       history.innerHTML = '';
@@ -227,9 +236,64 @@ export class DashboardView {
    * The summary actually displayed: reconstructed at `_historyDate` when the
    * user picked one; the emitted current summary otherwise. The closed
    * toggle only controls the asset table's grayed rows, not the summary.
+   * A presentation-only `priceLevelFactor` is attached when an inflation
+   * series is selected — it never alters the underlying nominal values.
    */
   _viewSummary(): GlobalSummary {
-    return this._historyDate == null ? this._summary! : this.store.getSummaryAt(this._historyDate);
+    const base = this._historyDate == null ? this._summary! : this.store.getSummaryAt(this._historyDate);
+    if (!this._inflationIndex) return base;
+    const refDate = base.asOfDate ?? todayString();
+    return {
+      ...base,
+      priceLevelFactor: this._inflationIndex.factorFor(refDate),
+      priceLevelBaseMonth: this._inflationIndex.latestMonth
+    };
+  }
+
+  /** Loads the selected inflation series lazily; re-renders once available. */
+  _ensureInflationIndexLoaded(): void {
+    const source = this._inflation.source;
+    if (!source || this._inflationIndex || this._inflation.loading) return;
+    this._inflation = { ...this._inflation, loading: true };
+    this._syncInflationSelector();
+    loadInflationIndex(source)
+      .then(idx => {
+        this._inflationIndex = idx;
+        this._inflation = {
+          ...this._inflation,
+          loading: false,
+          error: !idx,
+          baseMonth: idx?.latestMonth ?? null
+        };
+        this._syncInflationSelector();
+        this._renderSummary();
+        this._renderAssetTable();
+      })
+      .catch(() => {
+        this._inflationIndex = null;
+        this._inflation = { ...this._inflation, loading: false, error: true };
+        this._syncInflationSelector();
+      });
+  }
+
+  /** Reflects the current inflation loading state into the panel selector. */
+  _syncInflationSelector(): void {
+    this._historyPanelView.refreshInflation();
+  }
+
+  _onInflationSourceChange(source: string | null): void {
+    UiState.save({ inflationSource: source });
+    this._inflationIndex = source ? getCachedInflationIndex(source) : null;
+    this._inflation = {
+      source,
+      baseMonth: this._inflationIndex?.latestMonth ?? null,
+      loading: false,
+      error: false
+    };
+    this._syncInflationSelector();
+    this._renderSummary();
+    this._renderAssetTable();
+    this._ensureInflationIndexLoaded();
   }
 
   _onHistoryDateChange(date: string | null): void {
@@ -307,8 +371,9 @@ export class DashboardView {
 
   _getDisplayedTotals(): { gross: number; net: number } {
     const view = this._viewSummary();
+    const factor = view.priceLevelFactor ?? 1;
     if (!this._filterTotals) {
-      return { gross: view.totalGross || 0, net: view.finalNetValue || 0 };
+      return { gross: (view.totalGross || 0) * factor, net: (view.finalNetValue || 0) * factor };
     }
     const filtered = this._assetTableView.getFilteredEvaluations(view.evaluations);
     let totalGross = 0;
@@ -317,7 +382,7 @@ export class DashboardView {
       totalGross += evaluation.grossValue || 0;
       totalNet += evaluation.netValue ?? ((evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0));
     }
-    return { gross: totalGross, net: totalNet };
+    return { gross: totalGross * factor, net: totalNet * factor };
   }
 
   formatCurrency(amount: number): string {
