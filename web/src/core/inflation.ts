@@ -1,8 +1,9 @@
 /**
- * Monthly consumer-price index series (INSEE, base 2025) and presentation-only
- * deflation helper. All amounts stored and computed by the application stay in
- * nominal "euros of the time"; this module only produces a multiplicative factor
- * used to express a historical amount in current euros for display.
+ * Monthly consumer-price index series (INSEE, base 2025) fetched lazily from
+ * a GitHub Gist that is kept up to date by a scheduled workflow. All amounts
+ * stored and computed by the application stay in nominal "euros of the time";
+ * this module only produces a multiplicative factor used to express a
+ * historical amount in current euros for display.
  *
  * The current month is generally not published yet, so the base for "current
  * euros" is the latest available month, not the calendar month.
@@ -106,11 +107,11 @@ export const INFLATION_SERIES_LABELS: Record<InflationSeriesId, string> = {
 
 const cache = new Map<string, InflationIndex | null>();
 
-/** Loads a series JSON lazily and caches it. Returns null on failure. */
+/** Loads a series JSON lazily from the shared Gist and caches it. Returns null on failure. */
 export async function loadInflationIndex(id: string): Promise<InflationIndex | null> {
   if (cache.has(id)) return cache.get(id) ?? null;
   try {
-    const res = await fetch(`./data/inflation/insee-${id}.json`);
+    const res = await fetch(`https://gist.githubusercontent.com/fathzer/5646b5558f759655717914400cc50a03/raw/insee-${id}.json`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = (await res.json()) as InflationSourceData;
     const idx = new InflationIndex(data);

@@ -18,7 +18,7 @@ export function getWelcomeHtml(): string {
           </div>
           <div class="welcome-card">
             <div class="welcome-card-header">
-              <div class="welcome-card-icon">📈</div>
+              <div class="welcome-card-icon">💰</div>
               <h3 class="welcome-card-title">Obtenez gratuitement une vision estimative de la "vraie" valeur de votre patrimoine.</h3>
             </div>
             <p class="welcome-card-text">Les applications comme <a href="https://finary.com/fr" target="_blank" class="help-link">Finary</a>
@@ -27,6 +27,14 @@ export function getWelcomeHtml(): string {
              Ce que peut vous rapporter la vente d'une même action peut, suivant sa valeur d'acquisition, sa date d'achat, son mode de détention, varier de plus de 30%.</p>
              <p class="welcome-card-text">${I18n.t('app.title')} calcule la valeur nette de vos actifs en estimant les prélèvements sociaux et les impôts<sup>(1)</sup>.</p>
              <p class="auth-comparison-note"><sup>(1)</sup> Nos calculs sont des estimations qui ne prennent pas en compte toute la complexité du système fiscal français. Ils ne remplacent pas un conseil fiscal professionnel.</p>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-header">
+              <div class="welcome-card-icon">📈</div>
+              <h3 class="welcome-card-title">Suivez l'historique de votre patrimoine</h3>
+            </div>
+            <p class="welcome-card-text">Saisissez les valeurs de vos placements à différentes dates et visualisez leur évolution. Corrigez rétroactivement une erreur de saisie sans perdre l'historique ultérieur.</p>
+            <p class="welcome-card-text">Affichez vos montants en euros constants (pouvoir d'achat d'aujourd'hui) grâce aux indices de prix à la consommation publiés par l'INSEE.</p>
           </div>
           <div class="welcome-card">
             <div class="welcome-card-header">
@@ -49,7 +57,6 @@ export function getWelcomeHtml(): string {
           </div>
           <ul class="welcome-card-list">
             <li>La mise à jour automatique des valeurs de marché, ni des soldes de vos comptes (pas de connexion à vos banques). C'est à vous de saisir et de maintenir les données.</li>
-            <li>Le suivi de l'évolution de votre patrimoine. ${I18n.t('app.title')} vous donne la vue instantannée de celui-ci (du passé faisons table rase !).</li>
             <li>La gestion de budget ou le suivi des dépenses. Son objectif unique est de calculer la valeur de votre patrimoine global.</li>
           </ul>
         </div>
@@ -66,8 +73,10 @@ export function getWelcomeHtml(): string {
               <tr><td>Application mobile</td><td>Oui</td><td>Oui</td></tr>
               <tr><td>Connexion aux banques</td><td>Non</td><td>Oui<sup>(1)</sup></td></tr>
               <tr><td>Mise à jour automatique</td><td>Non</td><td>Oui<sup>(2)</sup></td></tr>
+              <tr><td>Estimation nette de prélèvements de votre patrimoine</td><td>Oui</td><td>Non</td></tr>
               <tr><td>Gestion de budget</td><td>Non</td><td>Payant</td></tr>
-              <tr><td>Historiques des valeurs</td><td>Non</td><td>Oui</td></tr>
+              <tr><td>Historique des valeurs</td><td>Oui</td><td>Oui</td></tr>
+              <tr><td>Prise en compte de l'inflation dans la performance</td><td>Oui</td><td>Non</td></tr>
               <tr><td>Stockage des données</td><td>Votre Cloud personnel</td><td>Serveurs Finary</td></tr>
               <tr><td>Open source</td><td><a href="https://github.com/fathzer/mon-patrimoine" target="_blank" class="help-link">Oui</a></td><td>Non</td></tr>
             </tbody>

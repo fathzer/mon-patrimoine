@@ -134,7 +134,7 @@ valuesEqual(a, b)                                       // égalité structurell
 
 ## Étape 5 — Inflation
 
-- **Données** : séries IPC mensuelles INSEE (base 2025, France) — fichiers JSON embarqués sous `web/data/inflation/insee-{id}.json`, téléchargés de façon paresseuse (`fetch` au premier usage, cache en mémoire) pour ne pas pénaliser les réseaux lents. Trois sources : `011814612` (tous produits), `011814056` (hors tabac), `011814080` (hors tabac et alcool) — mention INSEE dans l'aide.
+- **Données** : séries IPC mensuelles INSEE (base 2025, France) — fichiers JSON chargés paresseusement depuis le Gist `5646b5558f759655717914400cc50a03` (`raw/insee-{id}.json`, mis à jour automatiquement par un workflow GitHub ; la dépendance GitHub existe déjà via GitHub Pages), mis en cache en mémoire pour ne pas pénaliser les réseaux lents. Trois sources : `011814630` (tous produits), `011814056` (hors tabac), `011814080` (hors tabac et alcool) — mention INSEE dans l'aide.
 - **`web/src/core/inflation.ts`** : `InflationIndex` (mois triés, valeur du mois D = plus grand mois ≤ D — sinon le plus ancien), facteur = `indice(dernier mois publié) / indice(mois de D)` ; registre de séries + chargement paresseux. Le mois courant n'étant pas encore publié, la base « euros constants » est le dernier mois disponible.
 - **Plomberie affichage** : `GlobalSummary.priceLevelFactor` — multiplicateur de présentation produit par `DashboardView._viewSummary()` (jamais persisté, jamais appliqué aux données ni aux calculs) ; `_getDisplayedTotals`, lignes `AssetTableView`, `AssetBreakdownView` et le donut multiplient les montants affichés (les pourcentages sont inchangés — facteur uniforme).
 - **UI** : sélecteur dans la carte « Historique » (`HistoryPanelView`) — hors inflation / tous produits / hors tabac / hors tabac et alcool — choix persisté dans `UiState`.
@@ -157,7 +157,7 @@ valuesEqual(a, b)                                       // égalité structurell
 
 - `fiscality/rates.ts`, `fiscality/TaxCalculator.ts`, `tests/openfiscaSmoke.test.ts` (étape 1)
 - `core/DatedHistory.ts` (nouveau), `placements/BasePlacement.ts`, `kit/v1/index.ts`, `core/AppStore.ts`
-- `ui/HistoryChartView.ts` (nouveau), `ui/DashboardView.ts`, `ui/AssetTableView.ts`, `ui/PlacementModalView.ts`, `i18n/fr.ts`, `core/inflation.ts` + `data/inflation/` (nouveaux)
+- `ui/HistoryChartView.ts` (nouveau), `ui/DashboardView.ts`, `ui/AssetTableView.ts`, `ui/PlacementModalView.ts`, `i18n/fr.ts`, `core/inflation.ts` (nouveau)
 - `placements/modules/*` (un par un)
 
 ## Vérification

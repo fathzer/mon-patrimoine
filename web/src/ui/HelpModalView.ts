@@ -123,6 +123,9 @@ export class HelpModalView {
               <p>
                 Le mois courant n'étant pas encore publié, la base des « euros actuels » est le dernier mois disponible. Les montants affichés en euros constants le sont à titre indicatif ; les calculs et l'édition restent en euros de l'époque.
               </p>
+              <p>
+                Les séries sont chargées à la demande depuis un <a href="https://gist.github.com/fathzer/5646b5558f759655717914400cc50a03" target="_blank" rel="noopener noreferrer" class="help-link">GitHub Gist</a> mis à jour automatiquement à chaque nouvelle publication de l'INSEE.
+              </p>
             </section>
 
           </div>
