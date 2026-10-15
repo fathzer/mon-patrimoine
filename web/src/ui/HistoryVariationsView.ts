@@ -8,6 +8,7 @@ const signedCurrency = new Intl.NumberFormat('fr-FR', {
 const signedPercent = new Intl.NumberFormat('fr-FR', {
   style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero'
 });
+const shortDateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 const YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
 const ts = (d: string) => Date.parse(d + 'T00:00:00Z');
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -58,7 +59,7 @@ export class HistoryVariationsView {
 
     const chips = [
       this._chip(I18n.t('history.varSinceStart'), first, last, constPts?.[0] ?? null, constPts?.at(-1) ?? null, true),
-      this._periodChip(I18n.t('history.varYtd'), `${Number(last.date.slice(0, 4))}-01-01`, points, constPts),
+      this._periodChip(I18n.t('history.varYtd'), `${Number(last.date.slice(0, 4))}-01-01`, points, constPts, true),
       this._periodChip(I18n.t('history.var1Y'), shiftMonths(last.date, -12), points, constPts)
     ].filter(c => c !== '');
 
@@ -72,12 +73,16 @@ export class HistoryVariationsView {
     details?.addEventListener('toggle', () => { this._open = details.open; });
   }
 
-  /** Chip for a fixed start date; skipped when no point covers the start. */
-  _periodChip(label: string, start: string, points: ChartPoint[], constPts: ChartPoint[] | null): string {
+  /**
+   * Chip for a fixed start date; skipped when no point covers the start.
+   * `withCagr` annualizes the delta (YTD — meaningless under ~3 months,
+   * guarded by the cagr() floor).
+   */
+  _periodChip(label: string, start: string, points: ChartPoint[], constPts: ChartPoint[] | null, withCagr = false): string {
     const a = valueAt(points, start);
     const last = points.at(-1)!;
     if (!a || a.date >= last.date) return '';
-    return this._chip(label, a, last, constPts ? valueAt(constPts, start) : null, constPts?.at(-1) ?? null, false);
+    return this._chip(label, a, last, constPts ? valueAt(constPts, start) : null, constPts?.at(-1) ?? null, withCagr);
   }
 
   _chip(label: string, a: ChartPoint, b: ChartPoint, ca: ChartPoint | null, cb: ChartPoint | null, withCagr: boolean): string {
@@ -110,9 +115,11 @@ export class HistoryVariationsView {
     let partial = false;
     for (let y = firstYear; y <= lastYear; y++) {
       const jan1 = `${y}-01-01`;
-      const dec31 = `${y}-12-31`;
       const start = jan1 < first.date ? first.date : jan1;
-      const end = dec31 > last.date ? last.date : dec31;
+      // Year Y runs from Jan-1 Y to Jan-1 Y+1: a record dated exactly on
+      // Jan-1 closes the previous year, a record on Jan-2 belongs to the
+      // next one. The last year ends at the latest point.
+      const end = y === lastYear ? last.date : `${y + 1}-01-01`;
       if (end <= start) continue;
       if (start > jan1) partial = true;
       const base = valueAt(points, start) ?? first;
@@ -138,7 +145,11 @@ export class HistoryVariationsView {
         }
         avgCell = `<span class="${deltaCls(last.net - base.net)}">${avgTxt}</span>`;
       }
-      rows.push(`<tr><td>${y}${start > jan1 ? ' *' : ''}</td>
+      const range = I18n.t('history.varRange', {
+        from: shortDateFmt.format(ts(start)),
+        to: shortDateFmt.format(ts(end))
+      });
+      rows.push(`<tr title="${esc(range)}"><td>${y}${start > jan1 ? ' *' : ''}</td>
         <td class="${deltaCls(dGross)}">${fmtDelta(dGross, base.gross)}</td>
         <td class="${deltaCls(dNet)}">${fmtDelta(dNet, base.net)}</td>
         ${constCell}
@@ -146,7 +157,7 @@ export class HistoryVariationsView {
     }
     if (!rows.length) return '';
     const constTh = constPts ? `<th>${esc(I18n.t('history.varNetConst'))}</th>` : '';
-    const foot = partial ? `<p class="variations-foot">${esc(I18n.t('history.varPartialYear', { date: first.date }))}</p>` : '';
+    const foot = partial ? `<p class="variations-foot">${esc(I18n.t('history.varPartialYear', { date: shortDateFmt.format(ts(first.date)) }))}</p>` : '';
     return `<div class="variations-scroll"><table class="variations-table">
       <thead><tr><th>${esc(I18n.t('history.varYear'))}</th><th>${esc(I18n.t('history.varGross'))}</th>
         <th>${esc(I18n.t('history.varNet'))}</th>${constTh}<th>${esc(I18n.t('history.varAvgSince'))}</th></tr></thead>

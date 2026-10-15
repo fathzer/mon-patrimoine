@@ -173,6 +173,7 @@ export const fr = {
     varAvgSince: "Moyenne annuelle depuis",
     varPerYear: "/an",
     varPartialYear: "* depuis le {date}",
+    varRange: "Du {from} au {to}",
     annotateTitle: "Annoter la date affichée",
     annotationPlaceholder: "Ex : Don de 150 k€ aux enfants",
     annotationSave: "Enregistrer",

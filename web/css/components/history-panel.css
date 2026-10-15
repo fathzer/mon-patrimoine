@@ -420,6 +420,10 @@
   margin-bottom: var(--space-xs);
 }
 
+.chart-tooltip-annotation-date {
+  color: var(--text-muted);
+}
+
 .chart-tooltip-annotation {
   margin-top: var(--space-xs);
   padding-top: var(--space-xs);

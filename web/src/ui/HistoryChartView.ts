@@ -379,7 +379,7 @@ export class HistoryChartView {
       const lastDate = this._points.at(-1)!.date;
       const annos = this._annotations
         .filter(a => a.date >= this._points[0].date && a.date <= lastDate && Math.abs(this._x(a.date) - svgX) < 10)
-        .map(a => `<div class="chart-tooltip-annotation">💬 ${esc(a.text)}</div>`)
+        .map(a => `<div class="chart-tooltip-annotation">💬 <span class="chart-tooltip-annotation-date">${fullDateFmt.format(ts(a.date))}</span> — ${esc(a.text)}</div>`)
         .join('');
       // Title = exact cursor date (what a click would pick); the data date is
       // shown too when the displayed state comes from an earlier record.
