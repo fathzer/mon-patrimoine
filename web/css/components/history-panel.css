@@ -367,3 +367,62 @@
   color: var(--text-muted);
   margin-top: var(--space-xs);
 }
+
+/* --- Chart annotations --- */
+
+.history-annotate-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  padding: var(--space-xs);
+}
+
+.history-annotate-btn:hover {
+  color: var(--accent-blue);
+}
+
+.annotation-editor {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.annotation-editor[hidden] {
+  display: none;
+}
+
+.annotation-editor-date {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.annotation-editor input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+  width: auto;
+}
+
+.chart-annotation {
+  fill: var(--color-warning);
+  stroke: var(--color-surface);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.chart-tooltip-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.chart-tooltip-annotation {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--card-border);
+  font-size: var(--font-size-xs);
+}

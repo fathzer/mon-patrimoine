@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { compareDates } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
+import type { ChartAnnotation } from '../core/AppStore.js';
 
 export interface ChartPoint {
   date: string;
@@ -32,6 +33,7 @@ const fullDateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 's
 
 const ts = (date: string): number => Date.parse(date);
 const dateString = (t: number): string => new Date(t).toISOString().slice(0, 10);
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 /**
  * Collects the dates at which the chart samples the history: every recorded
@@ -94,6 +96,8 @@ export class HistoryChartView {
   /** The full series, kept to re-slice on period change. */
   _fullPoints: ChartPoint[];
   _selectedDate: string | null;
+  /** User annotations drawn as markers; kept for re-renders (resize, period). */
+  _annotations: ChartAnnotation[];
   _container: HTMLElement | null;
   _lastWidth: number;
   _resizeTimer: ReturnType<typeof setTimeout> | null;
@@ -112,6 +116,7 @@ export class HistoryChartView {
     this._points = [];
     this._fullPoints = [];
     this._selectedDate = null;
+    this._annotations = [];
     this._container = null;
     this._lastWidth = 0;
     this._resizeTimer = null;
@@ -142,10 +147,11 @@ export class HistoryChartView {
    * Renders the chart into `container` for the given series. `selectedDate`,
    * when in range, is marked with a vertical line.
    */
-  render(container: HTMLElement, points: ChartPoint[], selectedDate: string | null = null): void {
+  render(container: HTMLElement, points: ChartPoint[], selectedDate: string | null = null, annotations?: ChartAnnotation[]): void {
     this._fullPoints = points;
     this._points = this._sliceForPeriod(points);
     this._selectedDate = selectedDate;
+    if (annotations !== undefined) this._annotations = annotations;
     this._container = container;
     this._exploring = false;
     this._suppressClick = false;
@@ -227,6 +233,17 @@ export class HistoryChartView {
       <polygon class="chart-selected-tick" />
     </g>`;
 
+    // User annotations: a diamond on the net curve at each annotated date.
+    const annoMarkers = this._annotations
+      .filter(a => a.date >= visible[0].date && a.date <= visible.at(-1)!.date)
+      .map(a => {
+        let i = 0;
+        while (i + 1 < visible.length && visible[i + 1].date <= a.date) i++;
+        const ax = x(a.date);
+        const ay = y(visible[i].net);
+        return `<polygon class="chart-annotation" points="${ax.toFixed(1)},${(ay - 4.5).toFixed(1)} ${(ax + 4.5).toFixed(1)},${ay.toFixed(1)} ${ax.toFixed(1)},${(ay + 4.5).toFixed(1)} ${(ax - 4.5).toFixed(1)},${ay.toFixed(1)}" />`;
+      }).join('');
+
     // A period button is only useful when data exists before its window
     // start — otherwise the slice would just duplicate Max.
     const fullFirst = this._fullPoints[0].date;
@@ -245,6 +262,7 @@ export class HistoryChartView {
           <path d="${stepPath(p => p.gross)}" class="chart-line chart-gross" fill="none" />
           <path d="${stepPath(p => p.net)}" class="chart-line chart-net" fill="none" />
           ${selected}
+          ${annoMarkers}
           <line class="chart-cursor" y1="${PAD.top}" y2="${PAD.top + innerH}" style="display:none" />
           <line x1="${PAD.left}" y1="${PAD.top + innerH}" x2="${width - PAD.right}" y2="${PAD.top + innerH}" class="chart-axis" />
           ${xTicks}
@@ -357,9 +375,22 @@ export class HistoryChartView {
       let i = 0;
       while (i + 1 < this._points.length && this._points[i + 1].date <= date) i++;
       const p = this._points[i];
-      tooltip.innerHTML = `<div class="chart-tooltip-date">${fullDateFmt.format(ts(p.date))}</div>
+      // Annotations within a few pixels of the cursor join the tooltip.
+      const lastDate = this._points.at(-1)!.date;
+      const annos = this._annotations
+        .filter(a => a.date >= this._points[0].date && a.date <= lastDate && Math.abs(this._x(a.date) - svgX) < 10)
+        .map(a => `<div class="chart-tooltip-annotation">💬 ${esc(a.text)}</div>`)
+        .join('');
+      // Title = exact cursor date (what a click would pick); the data date is
+      // shown too when the displayed state comes from an earlier record.
+      const dataDate = p.date !== date
+        ? `<div class="chart-tooltip-sub">${I18n.t('history.chartDataAsOf', { date: fullDateFmt.format(ts(p.date)) })}</div>`
+        : '';
+      tooltip.innerHTML = `<div class="chart-tooltip-date">${fullDateFmt.format(ts(date))}</div>
+        ${dataDate}
         <div><span class="chart-legend-swatch chart-gross-swatch"></span>${I18n.t('summary.totalGross')} : ${currencyFmt.format(p.gross)}</div>
-        <div><span class="chart-legend-swatch chart-net-swatch"></span>${I18n.t('summary.totalNet')} : ${currencyFmt.format(p.net)}</div>`;
+        <div><span class="chart-legend-swatch chart-net-swatch"></span>${I18n.t('summary.totalNet')} : ${currencyFmt.format(p.net)}</div>
+        ${annos}`;
       tooltip.style.display = 'block';
       const tipW = tooltip.offsetWidth;
       tooltip.style.left = `${Math.min(Math.max(svgX + 10, 4), Math.max(4, rect.width - tipW - 4))}px`;

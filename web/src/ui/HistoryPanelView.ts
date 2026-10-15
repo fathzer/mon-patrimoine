@@ -4,6 +4,7 @@ import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { bindDatedInput } from './datedInput.js';
 import { HelpPopover } from './HelpPopover.js';
 import { INFLATION_SERIES_IDS, INFLATION_SERIES_LABELS, NO_INFLATION_UI_STATE, type InflationUiState } from '../core/inflation.js';
+import type { ChartAnnotation } from '../core/AppStore.js';
 
 interface HistoryPanelOptions {
   onClose?: () => void;
@@ -11,6 +12,10 @@ interface HistoryPanelOptions {
   onInflationSourceChange?: (source: string | null) => void;
   /** Pulls the current inflation UI state from the owner; the panel stays stateless. */
   getInflationState?: () => InflationUiState;
+  /** Pulls the chart annotations from the owner. */
+  getAnnotations?: () => ChartAnnotation[];
+  onAnnotationSave?: (date: string, text: string) => void;
+  onAnnotationDelete?: (date: string) => void;
 }
 
 /**
@@ -29,6 +34,9 @@ export class HistoryPanelView {
   _onDateChange: (date: string | null) => void;
   _onInflationSourceChange: (source: string | null) => void;
   _getInflationState: () => InflationUiState;
+  _getAnnotations: () => ChartAnnotation[];
+  _onAnnotationSave: (date: string, text: string) => void;
+  _onAnnotationDelete: (date: string) => void;
 
   constructor(container: HTMLElement | null, options: HistoryPanelOptions = {}) {
     this.container = container;
@@ -37,6 +45,9 @@ export class HistoryPanelView {
     this._onDateChange = options.onDateChange || (() => {});
     this._onInflationSourceChange = options.onInflationSourceChange || (() => {});
     this._getInflationState = options.getInflationState || (() => NO_INFLATION_UI_STATE);
+    this._getAnnotations = options.getAnnotations || (() => []);
+    this._onAnnotationSave = options.onAnnotationSave || (() => {});
+    this._onAnnotationDelete = options.onAnnotationDelete || (() => {});
   }
 
   setContainer(container: HTMLElement): void {
@@ -72,6 +83,7 @@ export class HistoryPanelView {
       <div class="history-panel-controls">
         <label for="history-date">${I18n.t('history.viewAtDate')}</label>
         <input type="date" id="history-date" class="form-control" value="${this._date ?? ''}" />
+        <button id="history-annotate" class="history-annotate-btn" type="button" title="${I18n.t('history.annotateTitle')}">✎</button>
         <span class="history-panel-inflation-group">
           <label for="inflation-source">${I18n.t('history.inflationLabel')}</label>
           <select id="inflation-source" class="form-control">
@@ -84,6 +96,13 @@ export class HistoryPanelView {
             icon: true
           })}
         </span>
+      </div>
+      <div id="annotation-editor" class="annotation-editor" hidden>
+        <span class="annotation-editor-date"></span>
+        <input type="text" id="annotation-text" class="form-control" maxlength="200" placeholder="${I18n.t('history.annotationPlaceholder')}" />
+        <button type="button" class="btn-primary" data-action="annotation-save">${I18n.t('history.annotationSave')}</button>
+        <button type="button" class="btn-danger" data-action="annotation-delete" hidden>${I18n.t('history.annotationDelete')}</button>
+        <button type="button" class="btn-secondary" data-action="annotation-cancel">${I18n.t('history.annotationCancel')}</button>
       </div>
       <div id="history-chart"></div>
       <div id="history-variations"></div>
@@ -129,5 +148,40 @@ export class HistoryPanelView {
       HelpPopover.hide();
       this._onInflationSourceChange(inflationSelect!.value || null);
     });
+
+    this.container!.querySelector('#history-annotate')?.addEventListener('click', () => {
+      this._openAnnotationEditor();
+    });
+    const editor = this.container!.querySelector('#annotation-editor') as HTMLElement;
+    editor.querySelector('[data-action="annotation-cancel"]')?.addEventListener('click', () => {
+      editor.hidden = true;
+    });
+    editor.querySelector('[data-action="annotation-save"]')?.addEventListener('click', () => {
+      const input = editor.querySelector('#annotation-text') as HTMLInputElement;
+      this._onAnnotationSave(this._annotationDate(), input.value);
+      editor.hidden = true;
+    });
+    editor.querySelector('[data-action="annotation-delete"]')?.addEventListener('click', () => {
+      this._onAnnotationDelete(this._annotationDate());
+      editor.hidden = true;
+    });
+  }
+
+  /** Date an annotation targets: the view date, or today when none is set. */
+  _annotationDate(): string {
+    return this._date ?? todayString();
+  }
+
+  /** Opens the inline editor, prefilled with the existing annotation if any. */
+  _openAnnotationEditor(): void {
+    const editor = this.container!.querySelector('#annotation-editor') as HTMLElement;
+    const input = editor.querySelector('#annotation-text') as HTMLInputElement;
+    const existing = this._getAnnotations().find(a => a.date === this._annotationDate());
+    editor.querySelector('.annotation-editor-date')!.textContent =
+      new Date(this._annotationDate() + 'T00:00:00').toLocaleDateString('fr-FR');
+    input.value = existing?.text ?? '';
+    (editor.querySelector('[data-action="annotation-delete"]') as HTMLElement).hidden = !existing;
+    editor.hidden = false;
+    input.focus();
   }
 }

@@ -434,3 +434,49 @@ describe("AppStore getValueSeries (history chart)", () => {
     expect(series[series.length - 1].gross).toBe(12 * 2000);
   });
 });
+
+describe("AppStore annotations", () => {
+  it("upserts one annotation per date, sorted, and persists on export", () => {
+    const store = makeStore();
+    store.setAnnotation("2024-06-01", "  Don 150k€  ");
+    store.setAnnotation("2023-01-15", "Achat maison");
+    store.setAnnotation("2024-06-01", "Don 150k€ aux enfants");
+
+    expect(store.state.annotations).toEqual([
+      { date: "2023-01-15", text: "Achat maison" },
+      { date: "2024-06-01", text: "Don 150k€ aux enfants" }
+    ]);
+
+    const payload = store.getExportPayload();
+    expect(payload.annotations).toEqual(store.state.annotations);
+
+    const reloaded = makeStore();
+    reloaded._hydrateState(payload);
+    expect(reloaded.state.annotations).toEqual(store.state.annotations);
+  });
+
+  it("removes an annotation and drops empty/blank entries", () => {
+    const store = makeStore();
+    store.setAnnotation("2024-06-01", "Note");
+    store.removeAnnotation("2024-06-01");
+    store.setAnnotation("2024-07-01", "   ");
+
+    expect(store.state.annotations).toEqual([]);
+    expect(store.getExportPayload().annotations).toBeUndefined();
+  });
+
+  it("tolerates malformed annotation entries on load", () => {
+    const store = makeStore();
+    store._hydrateState({
+      version: "1.2",
+      taxProfile: profile(40000),
+      placements: [],
+      annotations: [
+        { date: "2024-01-01", text: "ok" },
+        { text: "no date" } as never,
+        { date: "2024-02-01", text: "  " }
+      ]
+    });
+    expect(store.state.annotations).toEqual([{ date: "2024-01-01", text: "ok" }]);
+  });
+});

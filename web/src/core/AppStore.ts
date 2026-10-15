@@ -64,11 +64,19 @@ interface LegacyTaxProfileEntity {
   history?: { date: string; profile: FiscalProfile }[];
 }
 
+/** A user comment pinned to a date, shown as a marker on the history chart. */
+export interface ChartAnnotation {
+  date: string;
+  text: string;
+}
+
 export interface ExportPayload {
   version: string;
   /** 1.2 payloads nest a year-keyed TaxProfileEntity; a 1.1 dated entity or a bare FiscalProfile (1.0) is accepted on load. */
   taxProfile: FiscalProfile | TaxProfileEntity | LegacyTaxProfileEntity;
   placements: PlacementData[];
+  /** User annotations on the history chart — omitted while empty. */
+  annotations?: ChartAnnotation[];
 }
 
 export type AppStoreEvents = {
@@ -108,6 +116,8 @@ export interface AppState {
   /** Past tax profiles, sorted by year (the profile for year Y is the last entry with `year <= Y`). */
   taxProfileHistory: TaxProfileHistoryEntry[];
   placements: BasePlacement[];
+  /** User annotations on the history chart, sorted by date (one per date). */
+  annotations: ChartAnnotation[];
 }
 
 export class AppStore extends EventBus<AppStoreEvents> {
@@ -129,7 +139,8 @@ export class AppStore extends EventBus<AppStoreEvents> {
       taxProfile: AppStore.DEFAULT_TAX_PROFILE,
       taxProfileYear: new Date().getFullYear(),
       taxProfileHistory: [],
-      placements: []
+      placements: [],
+      annotations: []
     };
   }
 
@@ -285,8 +296,29 @@ export class AppStore extends EventBus<AppStoreEvents> {
           ? { history: this.state.taxProfileHistory }
           : {})
       },
-      placements: this.state.placements.map(p => p.toJSON())
+      placements: this.state.placements.map(p => p.toJSON()),
+      // Omitted while empty, like the placements' `history`.
+      ...(this.state.annotations.length > 0 ? { annotations: this.state.annotations } : {})
     };
+  }
+
+  /**
+   * Upserts the annotation at `date` — a single annotation per date keeps the
+   * chart markers unambiguous. An empty text removes the annotation.
+   */
+  setAnnotation(date: string, text: string): void {
+    const trimmed = text.trim();
+    this.state.annotations = this.state.annotations.filter(a => a.date !== date);
+    if (trimmed) {
+      this.state.annotations.push({ date, text: trimmed });
+      this.state.annotations.sort((a, b) => compareDates(a.date, b.date));
+    }
+    this._persistAndEmit();
+  }
+
+  removeAnnotation(date: string): void {
+    this.state.annotations = this.state.annotations.filter(a => a.date !== date);
+    this._persistAndEmit();
   }
 
   _persistAndEmit(): void {
@@ -342,6 +374,10 @@ export class AppStore extends EventBus<AppStoreEvents> {
       .sort((a, b) => a.year - b.year);
     this.state.placements = (Array.isArray(rawData.placements) ? rawData.placements : [])
       .map(pData => PlacementFactory.create(pData));
+    this.state.annotations = (Array.isArray(rawData.annotations) ? rawData.annotations : [])
+      .filter(a => a && typeof a.date === 'string' && typeof a.text === 'string' && a.text.trim())
+      .map(a => ({ date: a.date, text: a.text.trim() }))
+      .sort((a, b) => compareDates(a.date, b.date));
   }
 
   _normalizeTaxProfile(taxProfile: TaxProfileInput = {}): FiscalProfile {

@@ -54,7 +54,10 @@ export class DashboardView {
       onClose: () => this._hideHistory(),
       onDateChange: (date) => this._onHistoryDateChange(date),
       onInflationSourceChange: (source) => this._onInflationSourceChange(source),
-      getInflationState: () => this._inflation
+      getInflationState: () => this._inflation,
+      getAnnotations: () => this.store.state.annotations,
+      onAnnotationSave: (date, text) => this.store.setAnnotation(date, text),
+      onAnnotationDelete: (date) => this.store.removeAnnotation(date)
     });
     this._historyChartView = new HistoryChartView({ onPickDate: (date) => this._onChartDatePick(date) });
     this._variationsView = new HistoryVariationsView();
@@ -228,7 +231,7 @@ export class DashboardView {
           return { date: p.date, gross: p.gross * f, net: p.net * f };
         })
       : nominal;
-    this._historyChartView.render(chart, points, this._historyDate);
+    this._historyChartView.render(chart, points, this._historyDate, this.store.state.annotations);
     const variations = this._pageContent?.querySelector('#history-variations') as HTMLElement | null;
     if (variations) this._variationsView.render(variations, nominal, index);
   }
