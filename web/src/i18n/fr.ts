@@ -153,6 +153,12 @@ export const fr = {
     inflationHelpTitle: "Évaluation en euros constants",
     inflationHelpBody: "Ce menu permet d'afficher les montants historiques en euros constants (pouvoir d'achat d'aujourd'hui) à partir d'un indice des prix à la consommation publié par l'INSEE. Les calculs et l'édition restent en euros de l'époque ; seul l'affichage est concerné.",
     chartTitle: "Évolution du patrimoine",
-    chartEmpty: "Pas encore de données historiques à afficher."
+    chartEmpty: "Pas encore de données historiques à afficher.",
+    period6M: "6M",
+    periodYTD: "Année",
+    period1A: "1A",
+    period5A: "5A",
+    period10A: "10A",
+    periodMax: "Max"
   }
 };

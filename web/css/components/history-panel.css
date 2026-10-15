@@ -67,6 +67,39 @@
 
 /* History chart: step lines for gross/net totals, hover cursor + tooltip. */
 
+.chart-periods {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xs);
+}
+
+.chart-period {
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  padding: 0.15rem 0.7rem;
+  cursor: pointer;
+}
+
+.chart-period:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-main);
+}
+
+.chart-period:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.chart-period.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .chart-wrap {
   position: relative;
 }

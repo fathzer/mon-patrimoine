@@ -18,6 +18,12 @@ Ce pourrait aussi être très utile pour la synchronisation ... qui serait un pl
 
 ## Ajout d'autres StorageProvider (pCloud, One Drive, etc...)
 
+## Annotations sur le graphe d'historique
+Permettre de poser un commentaire à une date (« Don de 150 k€ aux enfants », « éclatement de la bulle IA »…) pour expliquer une variation brutale du patrimoine. Stockage global `annotations: { date, text }[]` (migration : défaut `[]`), saisie depuis la carte Historique à la date de vue, rendu = marqueur sur la courbe + texte dans le tooltip. Voir étape 7 de HISTORY_PLAN.md.
+
+## Storage Provider « démo » (Gist + provider local)
+Créer un Gist contenant un fichier `placements.json` imaginaire (jeu de données de démo) et un StorageProvider « démo » : charge le fichier du Gist, permet de bricoler en local, sauvegarde dans le localStorage (aucune donnée réelle ne quitte le navigateur). Sert de sandbox d'évaluation pour un nouvel utilisateur.
+
 ## TODO Curieux
 TODO préexistants (déjà dans le code avant mes changements — le linter les re-signe simplement parce que le fichier a été modifié). Ce ne sont pas des régressions :
 

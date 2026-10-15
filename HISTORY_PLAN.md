@@ -148,7 +148,16 @@ valuesEqual(a, b)                                       // égalité structurell
 - **Séries** : `collectChartDates` (union des dates d'historique des placements filtrés + 1ᵉʳ janvier de chaque année couverte + aujourd'hui, stride au-delà de 2000 échantillons) ; `AppStore.getValueSeries(dates, placements)` somme `grossValue` et `netValueBeforeIR − imposition` avec `getTaxProfileAt(D)` / `getEvaluation(profile, D)`. Mesuré : ~5 000 dates × 12 placements en ≈ 80 ms — synchrone.
 - **Inflation** : quand une source est sélectionnée, chaque point est multiplié par `factorFor(D)` — cohérent avec l'affichage euros constants du reste de la page.
 
-## Étape 7 — Finitions
+## Étape 7 — Variations & annotations
+
+Contexte : la variation **globale** du patrimoine (éventuellement filtrée) est le seul indicateur de « performance » qui ait du sens — les mouvements internes entre placements s'annulent au niveau global, et la variation par placement est du bruit (versements/retraits indiscernables de la performance, le PER excepté qui connaît ses versements). La variation globale contient trois composantes : performance des actifs, flux externes (dons, achats), évolution fiscale — les annotations couvrent les flux externes, les marqueurs PS la fiscalité.
+
+- **Annotations manuelles** : `state.annotations: { date, text }[]` (global, migration : défaut `[]`) — saisie depuis la carte Historique à la date de vue (bouton ✎ + input inline) ; rendu = marqueur sur la courbe + texte dans le tooltip au survol. Persisté dans `UiState` ? Non — données métier : dans le `placements.json` / état persisté.
+- **Marqueurs automatiques PS** : les dates de changement des taux de prélèvements sociaux sont dans `SOCIAL_CONTRIBUTION_RATES` — générer des marqueurs « PS : 17,2 % → 18,6 % » qui expliquent les sauts de la courbe nette (l'écart brut/net visualise le coût fiscal latent).
+- **Bloc de variations** : KPI chips sous le graphe (Δ depuis le début, CAGR, YTD, 1A — nominal et constant) + table annuelle (Δ €/% nominal et constant, brut et net, avec marqueur sur les années à discontinuité). Option : courbe du CAGR glissant (3 ans) montrant la vitesse de croissance dans le temps.
+- **Pas d'overlay CPI** : redondant — la courbe en euros constants (étape 5) répond déjà à « ai-je battu l'inflation ? ».
+
+## Étape 8 — Finitions
 
 - `thin()` appliqué dans `recordState` (politique 6 mois / hebdo / mensuel).
 - Docs : `README.md` et **`PLACEMENTS.md`** (contrat : `asOf`, `closedAt`, `history`, `getEvolvingValues`, `getDataAt`, `recordState`, convention `{date, values}`).
@@ -158,6 +167,7 @@ valuesEqual(a, b)                                       // égalité structurell
 - `fiscality/rates.ts`, `fiscality/TaxCalculator.ts`, `tests/openfiscaSmoke.test.ts` (étape 1)
 - `core/DatedHistory.ts` (nouveau), `placements/BasePlacement.ts`, `kit/v1/index.ts`, `core/AppStore.ts`
 - `ui/HistoryChartView.ts` (nouveau), `ui/DashboardView.ts`, `ui/AssetTableView.ts`, `ui/PlacementModalView.ts`, `i18n/fr.ts`, `core/inflation.ts` (nouveau)
+- étape 7 : `core/AppStore.ts` (`state.annotations`), `ui/HistoryChartView.ts` (marqueurs), `ui/HistoryPanelView.ts` (saisie)
 - `placements/modules/*` (un par un)
 
 ## Vérification

@@ -26,6 +26,8 @@ const MAX_SAMPLES = 2000;
 const currencyFmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const axisFmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', notation: 'compact', maximumFractionDigits: 1 });
 const yearFmt = new Intl.DateTimeFormat('fr-FR', { year: 'numeric' });
+const monthYearFmt = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' });
+const dayMonthFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
 const fullDateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const ts = (date: string): number => Date.parse(date);
@@ -79,16 +81,23 @@ export function collectChartDates(placements: readonly DatedPlacement[], today: 
  * the date under the cursor into the history date field. On touch screens a
  * long press enters the same exploration mode while dragging.
  */
+type ChartPeriod = '6M' | 'YTD' | '1A' | '5A' | '10A' | 'MAX';
+const CHART_PERIODS: ChartPeriod[] = ['6M', 'YTD', '1A', '5A', '10A', 'MAX'];
+
 export class HistoryChartView {
   _onPickDate: (date: string) => void;
   _exploring: boolean;
   _suppressClick: boolean;
   _pressTimer: ReturnType<typeof setTimeout> | null;
+  /** The currently displayed (period-sliced) points — used for scales/tooltip. */
   _points: ChartPoint[];
+  /** The full series, kept to re-slice on period change. */
+  _fullPoints: ChartPoint[];
   _selectedDate: string | null;
   _container: HTMLElement | null;
   _lastWidth: number;
   _resizeTimer: ReturnType<typeof setTimeout> | null;
+  _period: ChartPeriod;
   _t0: number;
   _t1: number;
 
@@ -98,10 +107,12 @@ export class HistoryChartView {
     this._suppressClick = false;
     this._pressTimer = null;
     this._points = [];
+    this._fullPoints = [];
     this._selectedDate = null;
     this._container = null;
     this._lastWidth = 0;
     this._resizeTimer = null;
+    this._period = 'MAX';
     this._t0 = 0;
     this._t1 = 0;
 
@@ -127,36 +138,38 @@ export class HistoryChartView {
    * when in range, is marked with a vertical line.
    */
   render(container: HTMLElement, points: ChartPoint[], selectedDate: string | null = null): void {
-    this._points = points;
+    this._fullPoints = points;
+    this._points = this._sliceForPeriod(points);
     this._selectedDate = selectedDate;
     this._container = container;
     this._exploring = false;
     this._suppressClick = false;
     this._clearPressTimer();
 
-    if (points.length < 2) {
+    if (this._points.length < 2) {
       container.innerHTML = `<p class="text-muted" style="font-size: 0.85rem;">${I18n.t('history.chartEmpty')}</p>`;
       this._lastWidth = 0;
       return;
     }
 
+    const visible = this._points;
     const width = Math.max(160, container.clientWidth || 640);
     this._lastWidth = width;
     const innerW = width - PAD.left - PAD.right;
     const innerH = CHART_HEIGHT - PAD.top - PAD.bottom;
-    this._t0 = ts(points[0].date);
-    this._t1 = ts(points.at(-1)!.date);
+    this._t0 = ts(visible[0].date);
+    this._t1 = ts(visible.at(-1)!.date);
     if (this._t0 === this._t1) this._t1 += 86400000;
-    const yMax = Math.max(...points.map(p => Math.max(p.gross, p.net)), 1) * 1.05;
+    const yMax = Math.max(...visible.map(p => Math.max(p.gross, p.net)), 1) * 1.05;
 
     const x = (date: string): number => PAD.left + ((ts(date) - this._t0) / (this._t1 - this._t0)) * innerW;
     const y = (value: number): number => PAD.top + innerH - (value / yMax) * innerH;
 
     // Step curve: each point reaches the previous ordinate at its abscissa.
     const stepPath = (get: (p: ChartPoint) => number): string => {
-      let d = `M ${x(points[0].date).toFixed(1)} ${y(get(points[0])).toFixed(1)}`;
-      for (let i = 1; i < points.length; i++) {
-        d += ` L ${x(points[i].date).toFixed(1)} ${y(get(points[i - 1])).toFixed(1)} L ${x(points[i].date).toFixed(1)} ${y(get(points[i])).toFixed(1)}`;
+      let d = `M ${x(visible[0].date).toFixed(1)} ${y(get(visible[0])).toFixed(1)}`;
+      for (let i = 1; i < visible.length; i++) {
+        d += ` L ${x(visible[i].date).toFixed(1)} ${y(get(visible[i - 1])).toFixed(1)} L ${x(visible[i].date).toFixed(1)} ${y(get(visible[i])).toFixed(1)}`;
       }
       return d;
     };
@@ -171,8 +184,8 @@ export class HistoryChartView {
     // year-only labels; neighbours closer than minTickGap are dropped (the
     // final "today" tick always wins over a crowding January 1st).
     const minTickGap = 44;
-    const firstDate = points[0].date;
-    const lastDate = points.at(-1)!.date;
+    const firstDate = visible[0].date;
+    const lastDate = visible.at(-1)!.date;
     const candidates: string[] = [firstDate];
     for (let y = Number(firstDate.slice(0, 4)) + 1; y <= Number(lastDate.slice(0, 4)); y++) {
       candidates.push(`${y}-01-01`);
@@ -188,16 +201,33 @@ export class HistoryChartView {
       }
       kept.push({ d, tx });
     }
+    // Edge labels get finer granularity on short ranges — bare "2026" labels
+    // (or worse, a duplicated "oct. 2026") are unhelpful there.
+    const spanDays = (this._t1 - this._t0) / 86400000;
+    const edgeFmt = spanDays < 120 ? dayMonthFmt : spanDays < 548 ? monthYearFmt : yearFmt;
     const xTicks = kept.map(({ d, tx }) => {
       const anchor = d === firstDate ? 'start' : d === lastDate ? 'end' : 'middle';
-      return `<text x="${tx.toFixed(1)}" y="${CHART_HEIGHT - 8}" class="chart-axis-label" text-anchor="${anchor}">${yearFmt.format(ts(d))}</text>`;
+      const isEdge = d === firstDate || d === lastDate;
+      const fmt = isEdge ? edgeFmt : yearFmt;
+      return `<text x="${tx.toFixed(1)}" y="${CHART_HEIGHT - 8}" class="chart-axis-label" text-anchor="${anchor}">${fmt.format(ts(d))}</text>`;
     }).join('');
 
-    const selected = selectedDate && selectedDate >= points[0].date && selectedDate <= points.at(-1)!.date
+    const selected = selectedDate && selectedDate >= visible[0].date && selectedDate <= visible.at(-1)!.date
       ? `<line x1="${x(selectedDate).toFixed(1)}" y1="${PAD.top}" x2="${x(selectedDate).toFixed(1)}" y2="${PAD.top + innerH}" class="chart-selected" />`
       : '';
 
+    // A period button is only useful when data exists before its window
+    // start — otherwise the slice would just duplicate Max.
+    const fullFirst = this._fullPoints[0].date;
+    const fullLast = this._fullPoints.at(-1)!.date;
+    const periodButtons = CHART_PERIODS.map(p => {
+      const start = p === 'MAX' ? null : this._periodStart(p);
+      const disabled = start != null && (start <= fullFirst || start >= fullLast);
+      return `<button type="button" class="chart-period${p === this._period ? ' active' : ''}" data-period="${p}"${disabled ? ' disabled' : ''}>${I18n.t(`history.period${p === 'MAX' ? 'Max' : p}`)}</button>`;
+    }).join('');
+
     container.innerHTML = `
+      <div class="chart-periods">${periodButtons}</div>
       <div class="chart-wrap">
         <svg class="history-chart" viewBox="0 0 ${width} ${CHART_HEIGHT}" width="100%" height="${CHART_HEIGHT}" role="img" aria-label="${I18n.t('history.chartTitle')}">
           ${gridLines}
@@ -216,7 +246,50 @@ export class HistoryChartView {
       </div>
     `;
 
+    container.querySelectorAll('.chart-period').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const period = (btn as HTMLElement).dataset.period as ChartPeriod;
+        if (period && period !== this._period) {
+          this._period = period;
+          this.render(container, this._fullPoints, this._selectedDate);
+        }
+      });
+    });
+
     this._bindChart(container, width);
+  }
+
+  /** Start date of `period`, or null for the whole range (Max). */
+  _periodStart(period: ChartPeriod): string | null {
+    const last = this._fullPoints.at(-1)?.date;
+    if (!last) return null;
+    const months: Partial<Record<ChartPeriod, number>> = { '6M': 6, '1A': 12, '5A': 60, '10A': 120 };
+    if (period === 'YTD') return `${last.slice(0, 4)}-01-01`;
+    const n = months[period];
+    if (n == null) return null;
+    const d = new Date(ts(last));
+    d.setUTCMonth(d.getUTCMonth() - n);
+    return d.toISOString().slice(0, 10);
+  }
+
+  /**
+   * Restricts the series to the selected period, prepending a boundary point
+   * at the period start holding the last state known at that date (step
+   * semantics — the curve starts at the right level even between records).
+   */
+  _sliceForPeriod(points: ChartPoint[]): ChartPoint[] {
+    if (points.length === 0) return points;
+    const start = this._periodStart(this._period);
+    if (!start) return points;
+    const last = points.at(-1)!.date;
+    if (start >= last) return points.slice(-2);
+    let before: ChartPoint | undefined;
+    const visible = points.filter(p => {
+      if (p.date < start) before = p;
+      return p.date >= start;
+    });
+    const head = before ?? visible[0];
+    return [{ date: start, gross: head.gross, net: head.net }, ...visible.filter(p => p.date > start)];
   }
 
   _bindChart(container: HTMLElement, width: number): void {
