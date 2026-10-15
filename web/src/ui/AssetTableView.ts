@@ -170,7 +170,7 @@ export class AssetTableView {
   _inactivePlacements(evaluations: EvaluationEntry[]): BasePlacement[] {
     const evaluatedIds = new Set(evaluations.map(e => e.instance.id));
     return this.store.state.placements
-      .filter(p => !evaluatedIds.has(p.id) && this._matchesFilters(p));
+      .filter(p => !evaluatedIds.has(p.id) && this.matchesFilters(p));
   }
 
   _renderAssetRows(evaluations: EvaluationEntry[], showInactive = false): string {
@@ -517,10 +517,11 @@ export class AssetTableView {
   }
 
   _getFilteredEvaluations(evaluations: EvaluationEntry[] | undefined): EvaluationEntry[] {
-    return (evaluations || []).filter(({ instance }) => this._matchesFilters(instance));
+    return (evaluations || []).filter(({ instance }) => this.matchesFilters(instance));
   }
 
-  _matchesFilters(instance: BasePlacement): boolean {
+  /** Whether a placement passes the category/institution filters. */
+  matchesFilters(instance: BasePlacement): boolean {
     const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
     const raw = (instance.institution || '').trim();
     const instKey = raw || NO_INSTITUTION_KEY;

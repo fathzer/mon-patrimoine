@@ -8,6 +8,7 @@ import { ToggleSwitch } from './ToggleSwitch.js';
 import { AssetBreakdownView } from './AssetBreakdownView.js';
 import { AssetTableView } from './AssetTableView.js';
 import { HistoryPanelView } from './HistoryPanelView.js';
+import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
 import { HelpModalView } from './HelpModalView.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
@@ -18,6 +19,7 @@ export class DashboardView {
   _assetTableView: AssetTableView;
   _breakdownView: AssetBreakdownView;
   _historyPanelView: HistoryPanelView;
+  _historyChartView: HistoryChartView;
   _summary: GlobalSummary | null;
   _filterTotals: boolean;
   _breakdownVisible: boolean;
@@ -52,6 +54,7 @@ export class DashboardView {
       onInflationSourceChange: (source) => this._onInflationSourceChange(source),
       getInflationState: () => this._inflation
     });
+    this._historyChartView = new HistoryChartView({ onPickDate: (date) => this._onChartDatePick(date) });
     this._layoutInitialized = false;
     this._topBarContainer = null;
     this._pageContent = null;
@@ -164,6 +167,7 @@ export class DashboardView {
       this._filterTotals = toggle!.checked;
       UiState.save({ filterTotals: this._filterTotals });
       this._renderTotals();
+      this._renderHistoryChart();
     });
   }
 
@@ -193,10 +197,41 @@ export class DashboardView {
       this._historyPanelView.render();
       this._syncInflationSelector();
       this._ensureInflationIndexLoaded();
+      this._renderHistoryChart();
     } else {
       history.style.display = 'none';
       history.innerHTML = '';
     }
+  }
+
+  /**
+   * Recomputes the gross/net series over the full history and renders the
+   * SVG chart. Follows the summary's placements (filters apply when "filter
+   * totals" is on) and the same per-date display factor when an inflation
+   * series is selected.
+   */
+  _renderHistoryChart(): void {
+    const chart = this._pageContent?.querySelector('#history-chart') as HTMLElement | null;
+    if (!this._historyVisible || !chart) return;
+    const placements = this._filterTotals
+      ? this.store.state.placements.filter(p => this._assetTableView.matchesFilters(p))
+      : this.store.state.placements;
+    const dates = collectChartDates(placements, todayString());
+    let points: ChartPoint[] = this.store.getValueSeries(dates, placements);
+    const index = this._inflationIndex;
+    if (index) {
+      points = points.map(p => {
+        const f = index.factorFor(p.date);
+        return { date: p.date, gross: p.gross * f, net: p.net * f };
+      });
+    }
+    this._historyChartView.render(chart, points, this._historyDate);
+  }
+
+  /** A click on the chart picks the clicked date into the history date field. */
+  _onChartDatePick(date: string): void {
+    this._historyPanelView.setDate(date);
+    this._onHistoryDateChange(date);
   }
 
   _hideBreakdown(): void {

@@ -1,6 +1,8 @@
 /// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
 import { AppStore } from "./AppStore.js";
+import { collectChartDates } from "../ui/HistoryChartView.js";
+import { EARLIEST_FISCAL_DATE } from "../fiscality/rates.js";
 import { Household } from "../fiscality/Household.js";
 import { BasePlacement } from "../placements/BasePlacement.js";
 import { PlacementFactory } from "../placements/PlacementFactory.js";
@@ -355,5 +357,80 @@ describe("AppStore getSummaryAt", () => {
     expect(p.currentValue).toBe(50);
     expect(p.asOf).toBe("2024-01-01");
     expect(p.history).toEqual([]);
+  });
+});
+
+describe("AppStore getValueSeries (history chart)", () => {
+  const makeAuthedStore = (): AppStore => {
+    const store = makeStore();
+    store.state.isAuthenticated = true;
+    return store;
+  };
+
+  it("sums gross and net values at each date across placements", () => {
+    const store = makeAuthedStore();
+    store.state.placements.push(
+      new TestPlacement({
+        id: "p1", currentValue: 100, asOf: "2025-06-01",
+        history: [{ date: "2024-01-01", values: { currentValue: 50 } }]
+      }),
+      new TestPlacement({ id: "p2", currentValue: 40, asOf: "2025-01-01" }),
+      new TestPlacement({ id: "closed", currentValue: 10, asOf: "2024-01-01", closedAt: "2024-06-01" })
+    );
+
+    const series = store.getValueSeries(["2024-03-01", "2025-06-01", "2026-01-01"]);
+    // p1 resolves to 50 (history), p2 has no state yet, closed still open.
+    expect(series[0]).toEqual({ date: "2024-03-01", gross: 60, net: 60 });
+    // All three contribute their state at that date — except closed (closedAt < date).
+    expect(series[1]).toEqual({ date: "2025-06-01", gross: 140, net: 140 });
+    expect(series[2]).toEqual({ date: "2026-01-01", gross: 140, net: 140 });
+  });
+
+  it("collectChartDates never samples before the earliest fiscal date", () => {
+    const store = makeAuthedStore();
+    // A placement attributed before 2019 (e.g. an old stock grant): the
+    // chart starts at the earliest fiscal date, where its state resolves.
+    store.state.placements.push(new TestPlacement({
+      id: "p1", currentValue: 100, asOf: "2026-01-10",
+      history: [{ date: "2005-06-01", values: { currentValue: 50 } }]
+    }));
+
+    const dates = collectChartDates(store.state.placements, "2026-01-20");
+    expect(dates[0]).toBe(EARLIEST_FISCAL_DATE);
+    expect(dates.every(d => d >= EARLIEST_FISCAL_DATE)).toBe(true);
+    // The pre-2019 placement still contributes from 2019-01-01 onward.
+    expect(store.getValueSeries([EARLIEST_FISCAL_DATE])[0].gross).toBe(50);
+  });
+
+  it("computes a 20-year thinned history fast enough to run synchronously", () => {
+    const store = makeAuthedStore();
+    const today = new Date();
+    const daysAgo = (n: number): string => new Date(today.getTime() - n * 86400000).toISOString().slice(0, 10);
+
+    // What thin() would retain over 20 years: ~180 daily days, weekly to 2
+    // years, then monthly — roughly 370 points per placement. Stagger the
+    // dates so unions stay distinct (worst case for the chart).
+    for (let i = 0; i < 12; i++) {
+      const history = [];
+      for (let d = 179; d >= 0; d--) history.push({ date: daysAgo(d), values: { currentValue: 1000 + d } });
+      for (let w = 26; w <= 104; w++) history.push({ date: daysAgo(w * 7 + i), values: { currentValue: 1000 + w } });
+      for (let m = 25; m <= 240; m++) history.push({ date: daysAgo(Math.round(m * 30.44) + i), values: { currentValue: 1000 + m } });
+      history.sort((a, b) => a.date < b.date ? -1 : 1);
+      store.state.placements.push(new TestPlacement({ id: `p${i}`, currentValue: 2000, asOf: daysAgo(0), history }));
+    }
+
+    const allDates = new Set<string>();
+    for (const p of store.state.placements) for (const d of p.getHistoryDates()) allDates.add(d);
+    expect(allDates.size).toBeGreaterThan(2000);
+
+    const dates = collectChartDates(store.state.placements, daysAgo(0));
+    const start = performance.now();
+    const series = store.getValueSeries(dates);
+    const elapsed = performance.now() - start;
+
+    // Thousands of dates × 12 placements must stay comfortably synchronous.
+    expect(elapsed).toBeLessThan(3000);
+    expect(series.length).toBe(dates.length);
+    expect(series[series.length - 1].gross).toBe(12 * 2000);
   });
 });

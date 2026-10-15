@@ -132,7 +132,7 @@ valuesEqual(a, b)                                       // égalité structurell
 - **Alerte « barème non voté » (fait)** : `getVotedScheduleYear(incomeYear)` rend explicite l'année du barème réellement utilisée par `getFiscalRates` (table 2019–2025 — un `incomeYear` sans budget voté retombe sur la dernière année connue) ; `getUnvotedScheduleWarning(incomeYear)` renvoie une alerte `getWarning` (« barème {Y} non voté, taux {voté} utilisés ») quand les deux divergent. Affichée sous l'estimation TMI/impôt du profil fiscal (`ctx.viewYear`) et dans la section « Imposition à l'IR » des explications placement — sauf `pee`/`real_estate` (pas de barème annuel utilisé) et les cas exonérés d'IR (PEA > 5 ans, PEL/CEL non éligibles).
 - **Placements clôturés (fait)** : la clôture est un **champ du formulaire** (toggle « Placement clôturé » + date, sans borne haute — une clôture future est possible) éditable à l'état courant et en création (un placement peut être créé déjà clôturé) ; verrouillé aux dates passées comme tout champ global. `updatePlacement` n'hérite `closedAt` du précédent que si le payload l'omet — `null` explicite = réouverture. `closePlacement(id, date | null)` reste l'API store.
 
-## Étape 5 — Inflation
+## Étape 5 — Inflation ✅
 
 - **Données** : séries IPC mensuelles INSEE (base 2025, France) — fichiers JSON chargés paresseusement depuis le Gist `5646b5558f759655717914400cc50a03` (`raw/insee-{id}.json`, mis à jour automatiquement par un workflow GitHub ; la dépendance GitHub existe déjà via GitHub Pages), mis en cache en mémoire pour ne pas pénaliser les réseaux lents. Trois sources : `011814630` (tous produits), `011814056` (hors tabac), `011814080` (hors tabac et alcool) — mention INSEE dans l'aide.
 - **`web/src/core/inflation.ts`** : `InflationIndex` (mois triés, valeur du mois D = plus grand mois ≤ D — sinon le plus ancien), facteur = `indice(dernier mois publié) / indice(mois de D)` ; registre de séries + chargement paresseux. Le mois courant n'étant pas encore publié, la base « euros constants » est le dernier mois disponible.
@@ -141,12 +141,12 @@ valuesEqual(a, b)                                       // égalité structurell
 - **Édition et explications fiscales : restent en euros de l'époque** ; alerte dans le modal d'explication quand l'affichage est en euros constants.
 - Optionnel : script de régénération via API INSEE.
 
-## Étape 6 — Vue graphe (brut + net)
+## Étape 6 — Vue graphe (brut + net) ✅
 
-- **`web/src/ui/HistoryChartView.ts`** : SVG maison — axes, courbe agrégée, tooltip ; sélecteur 1M/6M/YTD/1A/5A/10A/Max ; toggles **brut/net** (actif dès le départ grâce à l'étape 1) et nominal/euros constants (étape 5).
-- **Filtres** : extraire le prédicat de `AssetTableView._getFilteredEvaluations` (catégories + institutions, persisté dans `UiState`) vers un helper partagé — la sélection du graphe = filtres actuels.
-- Séries : union des dates d'historique des placements filtrés dans la fenêtre + bornes + aujourd'hui ; pour chaque D : `PlacementFactory.create(p.getDataAt(D))?.getEvaluation(store.getTaxProfileAt(D), D)` → somme brut / net (`grossValue` vs `netValueBeforeIR − imposition` à taux de l'année D).
-- `DashboardView` : nouvelle section + clés i18n (`fr.ts`).
+- **`web/src/ui/HistoryChartView.ts`** : SVG maison — courbes en escalier (un état tient jusqu'au point suivant), grille + axes, tooltip au survol avec curseur pointillé ; clic = date cliquée dans le champ ; appui long (400 ms) + glisser sur mobile. Légende brut/net, marqueur de la date de vue. Pleine période (premier point → aujourd'hui).
+- **Filtres** : `AssetTableView.matchesFilters` exposé — le graphe suit les filtres catégories/institutions quand « filtrer les totaux » est actif, comme le résumé.
+- **Séries** : `collectChartDates` (union des dates d'historique des placements filtrés + 1ᵉʳ janvier de chaque année couverte + aujourd'hui, stride au-delà de 2000 échantillons) ; `AppStore.getValueSeries(dates, placements)` somme `grossValue` et `netValueBeforeIR − imposition` avec `getTaxProfileAt(D)` / `getEvaluation(profile, D)`. Mesuré : ~5 000 dates × 12 placements en ≈ 80 ms — synchrone.
+- **Inflation** : quand une source est sélectionnée, chaque point est multiplié par `factorFor(D)` — cohérent avec l'affichage euros constants du reste de la page.
 
 ## Étape 7 — Finitions
 

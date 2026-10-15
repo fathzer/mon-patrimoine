@@ -471,6 +471,32 @@ export class AppStore extends EventBus<AppStoreEvents> {
     return this.getTaxProfileForYear(yearOf(date));
   }
 
+  /**
+   * Gross/net totals at each given date for `placements` (defaults to all).
+   * A placement contributes only when it has a state at that date. Used by
+   * the history chart; a placement whose module fails to load is skipped.
+   */
+  getValueSeries(dates: string[], placements: BasePlacement[] = this.state.placements): { date: string; gross: number; net: number }[] {
+    return dates.map(date => {
+      const profile = this.getTaxProfileAt(date);
+      const now = new Date(`${date}T12:00:00`);
+      let gross = 0;
+      let net = 0;
+      for (const placement of placements) {
+        const data = placement.getDataAt(date);
+        if (data == null) continue;
+        try {
+          const evaluation = PlacementFactory.create(data).getEvaluation(profile, now);
+          gross += evaluation.grossValue || 0;
+          net += (evaluation.netValueBeforeIR ?? 0) - (evaluation.imposition ?? 0);
+        } catch {
+          // A placement whose module failed to load is skipped, not fatal.
+        }
+      }
+      return { date, gross, net };
+    });
+  }
+
   /** All years holding a recorded profile point, ascending. */
   getTaxProfileYears(): number[] {
     return [...this.state.taxProfileHistory.map(e => e.year), this.state.taxProfileYear]
