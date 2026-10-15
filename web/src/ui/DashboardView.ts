@@ -9,6 +9,7 @@ import { AssetBreakdownView } from './AssetBreakdownView.js';
 import { AssetTableView } from './AssetTableView.js';
 import { HistoryPanelView } from './HistoryPanelView.js';
 import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
+import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { HelpModalView } from './HelpModalView.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
@@ -20,6 +21,7 @@ export class DashboardView {
   _breakdownView: AssetBreakdownView;
   _historyPanelView: HistoryPanelView;
   _historyChartView: HistoryChartView;
+  _variationsView: HistoryVariationsView;
   _summary: GlobalSummary | null;
   _filterTotals: boolean;
   _breakdownVisible: boolean;
@@ -55,6 +57,7 @@ export class DashboardView {
       getInflationState: () => this._inflation
     });
     this._historyChartView = new HistoryChartView({ onPickDate: (date) => this._onChartDatePick(date) });
+    this._variationsView = new HistoryVariationsView();
     this._layoutInitialized = false;
     this._topBarContainer = null;
     this._pageContent = null;
@@ -217,15 +220,17 @@ export class DashboardView {
       ? this.store.state.placements.filter(p => this._assetTableView.matchesFilters(p))
       : this.store.state.placements;
     const dates = collectChartDates(placements, todayString());
-    let points: ChartPoint[] = this.store.getValueSeries(dates, placements);
+    const nominal: ChartPoint[] = this.store.getValueSeries(dates, placements);
     const index = this._inflationIndex;
-    if (index) {
-      points = points.map(p => {
-        const f = index.factorFor(p.date);
-        return { date: p.date, gross: p.gross * f, net: p.net * f };
-      });
-    }
+    const points = index
+      ? nominal.map(p => {
+          const f = index.factorFor(p.date);
+          return { date: p.date, gross: p.gross * f, net: p.net * f };
+        })
+      : nominal;
     this._historyChartView.render(chart, points, this._historyDate);
+    const variations = this._pageContent?.querySelector('#history-variations') as HTMLElement | null;
+    if (variations) this._variationsView.render(variations, nominal, index);
   }
 
   /** A click on the chart picks the clicked date into the history date field. */
@@ -336,6 +341,7 @@ export class DashboardView {
     // Picking today means the current view — keep no history date at all.
     this._historyDate = date === todayString() ? null : date;
     // No history-panel re-render: the date input keeps the focus.
+    this._historyChartView.setSelectedDate(date);
     this._renderTotals();
     this._renderBreakdown();
     this._renderAssetTable();

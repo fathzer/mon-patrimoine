@@ -149,6 +149,12 @@
 .chart-selected {
   stroke: var(--accent-blue);
   stroke-width: 1;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.chart-selected-tick {
+  fill: var(--accent-blue);
   pointer-events: none;
 }
 
@@ -258,4 +264,106 @@
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   margin-bottom: var(--space-md);
+}
+
+/* --- Variations block (KPI chips + annual table) --- */
+
+.variations {
+  margin-top: var(--space-md);
+}
+
+.variations-summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-sm);
+  list-style: none;
+  user-select: none;
+}
+
+.variations-summary::-webkit-details-marker {
+  display: none;
+}
+
+.variations-summary::before {
+  content: '▸\00a0 ';
+}
+
+.variations[open] > .variations-summary::before {
+  content: '▾\00a0 ';
+}
+
+.kpi-grid {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.kpi {
+  background: var(--bg-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  min-width: 140px;
+  flex: 1;
+}
+
+.kpi-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.kpi-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.kpi-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.kpi-const {
+  color: var(--text-muted);
+}
+
+.delta-pos { color: var(--accent); }
+.delta-neg { color: var(--danger); }
+
+.variations-scroll {
+  overflow-x: auto;
+}
+
+.variations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  min-width: 420px;
+}
+
+.variations-table th,
+.variations-table td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: right;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.variations-table th {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xs);
+}
+
+.variations-table th:first-child,
+.variations-table td:first-child {
+  text-align: left;
+}
+
+.variations-foot {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
 }

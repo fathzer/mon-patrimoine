@@ -86,6 +86,7 @@ export class HistoryPanelView {
         </span>
       </div>
       <div id="history-chart"></div>
+      <div id="history-variations"></div>
     `;
 
     this._bindEvents();

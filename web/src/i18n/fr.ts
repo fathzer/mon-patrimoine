@@ -159,6 +159,18 @@ export const fr = {
     period1A: "1A",
     period5A: "5A",
     period10A: "10A",
-    periodMax: "Max"
+    periodMax: "Max",
+    variationsTitle: "Variations",
+    varSinceStart: "Depuis le début",
+    varYtd: "Année en cours",
+    var1Y: "12 derniers mois",
+    varConstEuros: "€ constants",
+    varYear: "Année",
+    varGross: "Δ brut",
+    varNet: "Δ net",
+    varNetConst: "Δ net (€ constants)",
+    varAvgSince: "Moyenne annuelle depuis",
+    varPerYear: "/an",
+    varPartialYear: "* depuis le {date}"
   }
 };

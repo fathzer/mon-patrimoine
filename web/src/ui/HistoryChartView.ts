@@ -100,6 +100,9 @@ export class HistoryChartView {
   _period: ChartPeriod;
   _t0: number;
   _t1: number;
+  /** Horizontal projection of the last render — reused by the selection marker. */
+  _x: (date: string) => number;
+  _axisY: number;
 
   constructor(options: HistoryChartOptions = {}) {
     this._onPickDate = options.onPickDate || (() => {});
@@ -115,6 +118,8 @@ export class HistoryChartView {
     this._period = 'MAX';
     this._t0 = 0;
     this._t1 = 0;
+    this._x = () => 0;
+    this._axisY = 0;
 
     // The SVG is drawn at measured pixels: re-render on resize so text keeps
     // its size instead of being scaled down by the viewBox.
@@ -129,7 +134,7 @@ export class HistoryChartView {
   _rerenderOnResize(): void {
     const c = this._container;
     if (c && c.isConnected && Math.abs((c.clientWidth || 0) - this._lastWidth) > 4) {
-      this.render(c, this._points, this._selectedDate);
+      this.render(c, this._fullPoints, this._selectedDate);
     }
   }
 
@@ -163,6 +168,8 @@ export class HistoryChartView {
     const yMax = Math.max(...visible.map(p => Math.max(p.gross, p.net)), 1) * 1.05;
 
     const x = (date: string): number => PAD.left + ((ts(date) - this._t0) / (this._t1 - this._t0)) * innerW;
+    this._x = x;
+    this._axisY = PAD.top + innerH;
     const y = (value: number): number => PAD.top + innerH - (value / yMax) * innerH;
 
     // Step curve: each point reaches the previous ordinate at its abscissa.
@@ -212,9 +219,13 @@ export class HistoryChartView {
       return `<text x="${tx.toFixed(1)}" y="${CHART_HEIGHT - 8}" class="chart-axis-label" text-anchor="${anchor}">${fmt.format(ts(d))}</text>`;
     }).join('');
 
-    const selected = selectedDate && selectedDate >= visible[0].date && selectedDate <= visible.at(-1)!.date
-      ? `<line x1="${x(selectedDate).toFixed(1)}" y1="${PAD.top}" x2="${x(selectedDate).toFixed(1)}" y2="${PAD.top + innerH}" class="chart-selected" />`
-      : '';
+    // Selected view date: a dotted vertical line plus a tick hanging under the
+    // x-axis so the position stays visible even where curves overlap the line.
+    // Positioned by `_updateSelectedMarker` — also called on date-field changes.
+    const selected = `<g class="chart-selected-group" style="display:none">
+      <line class="chart-selected" y1="${PAD.top}" y2="${this._axisY}" />
+      <polygon class="chart-selected-tick" />
+    </g>`;
 
     // A period button is only useful when data exists before its window
     // start — otherwise the slice would just duplicate Max.
@@ -257,6 +268,35 @@ export class HistoryChartView {
     });
 
     this._bindChart(container, width);
+    this._updateSelectedMarker();
+  }
+
+  /** Moves/hides the selection marker without re-rendering the whole SVG. */
+  setSelectedDate(date: string | null): void {
+    this._selectedDate = date;
+    this._updateSelectedMarker();
+  }
+
+  _updateSelectedMarker(): void {
+    const g = this._container?.querySelector<SVGGElement>('.chart-selected-group');
+    if (!g) return;
+    const d = this._selectedDate;
+    const visible = this._points;
+    if (!d || visible.length < 2 || d < visible[0].date || d > visible.at(-1)!.date) {
+      g.style.display = 'none';
+      return;
+    }
+    const sx = this._x(d);
+    const axisY = this._axisY;
+    const line = g.querySelector<SVGLineElement>('.chart-selected')!;
+    line.setAttribute('x1', sx.toFixed(1));
+    line.setAttribute('x2', sx.toFixed(1));
+    line.setAttribute('y2', axisY.toFixed(1));
+    g.querySelector<SVGPolygonElement>('.chart-selected-tick')!.setAttribute(
+      'points',
+      `${sx.toFixed(1)},${axisY + 7} ${(sx - 4.5).toFixed(1)},${axisY} ${(sx + 4.5).toFixed(1)},${axisY}`
+    );
+    g.style.display = '';
   }
 
   /** Start date of `period`, or null for the whole range (Max). */
