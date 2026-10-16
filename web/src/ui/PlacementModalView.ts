@@ -121,9 +121,10 @@ export class PlacementModalView {
     return {
       viewDate,
       display: PlacementFactory.create({ ...prefill, asOf: viewDate }),
-      // A recorded point is a past write unless it is today's live edit —
-      // asOf included: editing it corrects a past recording, not the future.
-      isRetro: viewDate <= placement.asOf && viewDate !== today,
+      // A recorded point before asOf is a past write; asOf itself is the
+      // live current state — global fields stay editable there without
+      // creating a new point. Today's view is never retro either.
+      isRetro: viewDate < placement.asOf && viewDate !== today,
       unlocked,
       isCurrentPoint: viewDate === placement.asOf,
       isExistingPoint: recorded.includes(viewDate),
