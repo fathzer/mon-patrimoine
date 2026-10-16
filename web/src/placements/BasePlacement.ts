@@ -1,7 +1,7 @@
 import { Category, CategoryValues } from '../core/Categories.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
-import { compareDates, deleteAt, recordAt, resolveAt, todayString, valuesEqual } from '../core/DatedHistory.js';
+import { compareDates, deleteAt, makeResolver, recordAt, resolveAt, todayString, valuesEqual } from '../core/DatedHistory.js';
 import type { HistoryEntry } from '../core/DatedHistory.js';
 import { BasePlacementEditor } from '../ui/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
@@ -217,6 +217,27 @@ export abstract class BasePlacement {
     const data = this.toJSON();
     delete data.history;
     return { ...data, ...resolved.values, asOf: resolved.date };
+  }
+
+  /**
+   * Resolves the in-force state at each of `dates` in a single pass —
+   * equivalent to calling `getDataAt` per date, but the history cursor
+   * only moves forward and `toJSON()` runs once: O(H + D) instead of
+   * O(H × D). Used to build historical series over many dates.
+   * @param dates query dates (YYYY-MM-DD), ascending.
+   * @returns one PlacementData per input date, aligned by index — null
+   *   where no state is in force at that date.
+   */
+  getDataSeriesAt(dates: readonly string[]): (PlacementData | null)[] {
+    const resolve = makeResolver([...this.history, { date: this.asOf, values: this.getEvolvingValues() }]);
+    const base = this.toJSON();
+    delete base.history;
+    return dates.map(date => {
+      const resolved = resolve(date);
+      return resolved == null || this.isClosedAt(date)
+        ? null
+        : { ...base, ...resolved.values, asOf: resolved.date };
+    });
   }
 
   /**

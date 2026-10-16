@@ -77,27 +77,28 @@
 
 .chart-period {
   background: none;
-  border: 1px solid var(--card-border);
+  border: 1px solid var(--accent-blue);
   border-radius: var(--radius-pill);
-  color: var(--text-muted);
+  color: var(--accent-blue);
   font-size: var(--font-size-xs);
   padding: 0.15rem 0.7rem;
   cursor: pointer;
 }
 
 .chart-period:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--text-main);
+  background: #3b82f622;
 }
 
 .chart-period:disabled {
-  opacity: 0.35;
+  border-color: var(--card-border);
+  color: var(--text-muted);
+  opacity: 0.5;
   cursor: default;
 }
 
 .chart-period.active {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-blue);
+  color: var(--color-text-primary);
 }
 
 .chart-wrap {

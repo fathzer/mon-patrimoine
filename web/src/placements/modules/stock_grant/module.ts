@@ -1,4 +1,4 @@
-import { BasePlacement, Category, compareDates, deleteAt, getSocialContributionRate, recordAt, resolveAt } from '../../kit/v1/index.js';
+import { BasePlacement, Category, compareDates, deleteAt, getSocialContributionRate, makeResolver, recordAt, resolveAt } from '../../kit/v1/index.js';
 import { StockGrantEditor } from './Editor.js';
 import { StockGrantTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -364,6 +364,53 @@ export class StockGrantModule extends BasePlacement {
       attributions,
       asOf: date
     } as StockGrantModuleData;
+  }
+
+  /**
+   * Same reconstruction as `getDataAt`, batched over `dates`: price and
+   * each line's share count resolve through forward-only cursors instead
+   * of re-scanning their histories per date.
+   * @param dates query dates (YYYY-MM-DD), ascending.
+   * @returns one StockGrantModuleData per input date, aligned by index —
+   *   null where the placement was not tracked yet at that date.
+   */
+  override getDataSeriesAt(dates: readonly string[]): (StockGrantModuleData | null)[] {
+    const knownDates = this.getHistoryDates();
+    const firstKnown = knownDates[0];
+    const base = this.toJSON() as Record<string, unknown>;
+    delete base.history;
+    delete base.priceAsOf;
+    delete base.priceHistory;
+    const priceEntries = [
+      ...this.priceHistory,
+      { date: this.priceAsOf || this.asOf, price: this.currentPrice }
+    ].sort((a, b) => compareDates(a.date, b.date));
+    const priceResolver = makeResolver(priceEntries, true);
+    const lineResolvers = this.attributions.map(a => ({
+      attribution: a,
+      resolve: makeResolver(
+        [...a.sharesHistory, { date: a.getSharesAsOf(), shares: a.numberOfShares }]
+          .sort((x, y) => compareDates(x.date, y.date)),
+        true
+      )
+    }));
+    return dates.map(date => {
+      if (this.closedAt != null && date > this.closedAt) return null;
+      if (firstKnown == null || date < firstKnown) return null;
+      return {
+        ...base,
+        currentPrice: priceResolver(date)!.price,
+        attributions: lineResolvers
+          .filter(({ attribution }) => !attribution.acquisitionDate || attribution.acquisitionDate <= date)
+          .map(({ attribution, resolve }) => ({
+            attributionDate: attribution.attributionDate,
+            acquisitionDate: attribution.acquisitionDate,
+            acquisitionPrice: attribution.acquisitionPrice,
+            numberOfShares: resolve(date)!.shares
+          })),
+        asOf: date
+      } as StockGrantModuleData;
+    });
   }
 
   /**

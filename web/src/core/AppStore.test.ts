@@ -407,31 +407,52 @@ describe("AppStore getValueSeries (history chart)", () => {
     const today = new Date();
     const daysAgo = (n: number): string => new Date(today.getTime() - n * 86400000).toISOString().slice(0, 10);
 
-    // What thin() would retain over 20 years: ~180 daily days, weekly to 2
-    // years, then monthly — roughly 370 points per placement. Stagger the
-    // dates so unions stay distinct (worst case for the chart).
-    for (let i = 0; i < 12; i++) {
+    // What thin() would retain over 20 years under the 1y-full / weekly-to-5y
+    // / fortnightly-to-10y / monthly-beyond policy: ~800 points per placement.
+    // 30 placements with staggered dates — the union feeds the chart, which
+    // stride-thins to MAX_SAMPLES, so getValueSeries sees ~2000 dates.
+    for (let i = 0; i < 30; i++) {
       const history = [];
-      for (let d = 179; d >= 0; d--) history.push({ date: daysAgo(d), values: { currentValue: 1000 + d } });
-      for (let w = 26; w <= 104; w++) history.push({ date: daysAgo(w * 7 + i), values: { currentValue: 1000 + w } });
-      for (let m = 25; m <= 240; m++) history.push({ date: daysAgo(Math.round(m * 30.44) + i), values: { currentValue: 1000 + m } });
+      for (let d = 364; d >= 0; d--) history.push({ date: daysAgo(d), values: { currentValue: 1000 + d } });
+      for (let w = 53; w <= 260; w++) history.push({ date: daysAgo(w * 7 + i), values: { currentValue: 1000 + w } });
+      for (let f = 131; f <= 260; f++) history.push({ date: daysAgo(f * 14 + i), values: { currentValue: 1000 + f } });
+      for (let m = 121; m <= 240; m++) history.push({ date: daysAgo(Math.round(m * 30.44) + i), values: { currentValue: 1000 + m } });
       history.sort((a, b) => a.date < b.date ? -1 : 1);
       store.state.placements.push(new TestPlacement({ id: `p${i}`, currentValue: 2000, asOf: daysAgo(0), history }));
     }
-
-    const allDates = new Set<string>();
-    for (const p of store.state.placements) for (const d of p.getHistoryDates()) allDates.add(d);
-    expect(allDates.size).toBeGreaterThan(2000);
 
     const dates = collectChartDates(store.state.placements, daysAgo(0));
     const start = performance.now();
     const series = store.getValueSeries(dates);
     const elapsed = performance.now() - start;
 
-    // Thousands of dates × 12 placements must stay comfortably synchronous.
+    // ~2000 dates × 30 placements must stay comfortably synchronous.
     expect(elapsed).toBeLessThan(3000);
-    expect(series.length).toBe(dates.length);
-    expect(series[series.length - 1].gross).toBe(12 * 2000);
+    expect(series).toHaveLength(dates.length);
+    expect(series[series.length - 1].gross).toBe(30 * 2000);
+  });
+
+  it("getDataSeriesAt resolves the same states as getDataAt per date", () => {
+    const store = makeAuthedStore();
+    const placement = new TestPlacement({
+      id: "p1",
+      currentValue: 500,
+      asOf: "2026-01-15",
+      history: [
+        { date: "2024-06-10", values: { currentValue: 100 } },
+        { date: "2025-03-01", values: { currentValue: 300 } }
+      ]
+    });
+    store.state.placements.push(placement);
+    const dates = ["2024-01-01", "2024-06-10", "2024-09-30", "2025-12-31", "2026-01-20"];
+    const batch = placement.getDataSeriesAt(dates);
+    dates.forEach((d, i) => {
+      expect(batch[i]?.asOf ?? null).toBe(placement.getDataAt(d)?.asOf ?? null);
+      expect(batch[i]?.currentValue ?? null).toBe(placement.getDataAt(d)?.currentValue ?? null);
+    });
+    expect(batch[0]).toBeNull();
+    expect(batch[3]!.currentValue).toBe(300);
+    expect(batch[4]!.currentValue).toBe(500);
   });
 });
 

@@ -30,6 +30,15 @@ const deltaCls = (v: number) => (v > 0 ? 'delta-pos' : v < 0 ? 'delta-neg' : '')
 const fmtDelta = (v: number, base: number): string =>
   base > 0 ? `${signedCurrency.format(v)}&nbsp;·&nbsp;${signedPercent.format(v / base)}` : '—';
 
+/** Delta cell: nominal figure plus a constant-euro sub-line when given. */
+const fmtDeltaCell = (v: number, base: number, cv: number | null, cbase: number | null): string => {
+  if (cv === null || cbase === null) return fmtDelta(v, base);
+  const constPart = cbase > 0
+    ? `${signedCurrency.format(cv)}&nbsp;·&nbsp;${signedPercent.format(cv / cbase)}`
+    : '—';
+  return `${fmtDelta(v, base)}<br><span class="kpi-const">${constPart} ${esc(I18n.t('history.varConstEuros'))}</span>`;
+};
+
 const cagr = (from: number, to: number, years: number): number | null =>
   from > 0 && years > 0.25 ? Math.pow(to / from, 1 / years) - 1 : null;
 
@@ -126,13 +135,8 @@ export class HistoryVariationsView {
       const e = valueAt(points, end) ?? last;
       const dGross = e.gross - base.gross;
       const dNet = e.net - base.net;
-      let constCell = '';
-      if (constPts) {
-        const cb = valueAt(constPts, start) ?? constPts[0];
-        const ce = valueAt(constPts, end) ?? constPts.at(-1)!;
-        const dc = ce.net - cb.net;
-        constCell = `<td class="${deltaCls(dc)}">${fmtDelta(dc, cb.net)}</td>`;
-      }
+      const cb = constPts ? valueAt(constPts, start) ?? constPts[0] : null;
+      const ce = constPts ? valueAt(constPts, end) ?? constPts.at(-1)! : null;
       const years = (ts(last.date) - ts(start)) / YEAR_MS;
       const avg = cagr(base.net, last.net, years);
       const avgEur = years > 0.25 ? (last.net - base.net) / years : null;
@@ -150,17 +154,15 @@ export class HistoryVariationsView {
         to: shortDateFmt.format(ts(end))
       });
       rows.push(`<tr title="${esc(range)}"><td>${y}${start > jan1 ? ' *' : ''}</td>
-        <td class="${deltaCls(dGross)}">${fmtDelta(dGross, base.gross)}</td>
-        <td class="${deltaCls(dNet)}">${fmtDelta(dNet, base.net)}</td>
-        ${constCell}
+        <td class="${deltaCls(dGross)}">${fmtDeltaCell(dGross, base.gross, ce && cb ? ce.gross - cb.gross : null, cb?.gross ?? null)}</td>
+        <td class="${deltaCls(dNet)}">${fmtDeltaCell(dNet, base.net, ce && cb ? ce.net - cb.net : null, cb?.net ?? null)}</td>
         <td>${avgCell}</td></tr>`);
     }
     if (!rows.length) return '';
-    const constTh = constPts ? `<th>${esc(I18n.t('history.varNetConst'))}</th>` : '';
     const foot = partial ? `<p class="variations-foot">${esc(I18n.t('history.varPartialYear', { date: shortDateFmt.format(ts(first.date)) }))}</p>` : '';
     return `<div class="variations-scroll"><table class="variations-table">
       <thead><tr><th>${esc(I18n.t('history.varYear'))}</th><th>${esc(I18n.t('history.varGross'))}</th>
-        <th>${esc(I18n.t('history.varNet'))}</th>${constTh}<th>${esc(I18n.t('history.varAvgSince'))}</th></tr></thead>
+        <th>${esc(I18n.t('history.varNet'))}</th><th>${esc(I18n.t('history.varAvgSince'))}</th></tr></thead>
       <tbody>${rows.join('')}</tbody>
     </table></div>${foot}`;
   }

@@ -83,8 +83,8 @@ export function collectChartDates(placements: readonly DatedPlacement[], today: 
  * the date under the cursor into the history date field. On touch screens a
  * long press enters the same exploration mode while dragging.
  */
-type ChartPeriod = '6M' | 'YTD' | '1A' | '5A' | '10A' | 'MAX';
-const CHART_PERIODS: ChartPeriod[] = ['6M', 'YTD', '1A', '5A', '10A', 'MAX'];
+type ChartPeriod = '1M' | '6M' | 'YTD' | '1A' | '5A' | '10A' | 'MAX';
+const CHART_PERIODS: ChartPeriod[] = ['1M', '6M', 'YTD', '1A', '5A', '10A', 'MAX'];
 
 export class HistoryChartView {
   _onPickDate: (date: string) => void;
@@ -338,7 +338,7 @@ export class HistoryChartView {
   _periodStart(period: ChartPeriod): string | null {
     const last = this._fullPoints.at(-1)?.date;
     if (!last) return null;
-    const months: Partial<Record<ChartPeriod, number>> = { '6M': 6, '1A': 12, '5A': 60, '10A': 120 };
+    const months: Partial<Record<ChartPeriod, number>> = { '1M': 1, '6M': 6, '1A': 12, '5A': 60, '10A': 120 };
     if (period === 'YTD') return `${last.slice(0, 4)}-01-01`;
     const n = months[period];
     if (n == null) return null;

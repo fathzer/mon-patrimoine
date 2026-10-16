@@ -508,18 +508,23 @@ export class AppStore extends EventBus<AppStoreEvents> {
   }
 
   /**
-   * Gross/net totals at each given date for `placements` (defaults to all).
-   * A placement contributes only when it has a state at that date. Used by
-   * the history chart; a placement whose module fails to load is skipped.
+   * Gross/net totals at each given date for `placements`. A placement
+   * contributes only when it has a state at that date. Used by the
+   * history chart; a placement whose module fails to load is skipped.
+   * @param dates query dates (YYYY-MM-DD), ascending — each placement
+   *   resolves its states in a single merge-join pass over them.
+   * @param placements placements to total; defaults to all.
+   * @returns one `{ date, gross, net }` point per input date, aligned by index.
    */
   getValueSeries(dates: string[], placements: BasePlacement[] = this.state.placements): { date: string; gross: number; net: number }[] {
-    return dates.map(date => {
+    const perPlacement = placements.map(p => p.getDataSeriesAt(dates));
+    return dates.map((date, j) => {
       const profile = this.getTaxProfileAt(date);
       const now = new Date(`${date}T12:00:00`);
       let gross = 0;
       let net = 0;
-      for (const placement of placements) {
-        const data = placement.getDataAt(date);
+      for (const series of perPlacement) {
+        const data = series[j];
         if (data == null) continue;
         try {
           const evaluation = PlacementFactory.create(data).getEvaluation(profile, now);
