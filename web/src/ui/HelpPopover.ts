@@ -154,4 +154,9 @@ export class HelpPopover {
   static register(key: string, provider: ContentProvider): void {
     contentProviders.set(key, provider);
   }
+
+  /** Closes the currently open popover, if any. */
+  static hide(): void {
+    hide();
+  }
 }

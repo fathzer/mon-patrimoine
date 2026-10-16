@@ -170,6 +170,12 @@ et `kit/v1/` sera conservé pour ne pas casser les modules existants.
   Les libellés spécifiques à un placement doivent être définis localement dans
   l'éditeur (const `labels`).
 
+**Historique daté (depuis `core/DatedHistory.ts`) :**
+- `compareDates`, `resolveAt`, `makeResolver`, `recordAt`, `deleteAt`,
+  `thin`, `valuesEqual` — helpers génériques sur `{ date: string }` pour
+  les historiques triés (voir « Historique des états » ci-dessous).
+- `HistoryEntry`, `ThinPolicy` — types associés.
+
 **Aide contextuelle :**
 - `HelpPopover` — création de popovers d'aide en HTML.
 
@@ -241,15 +247,61 @@ Membres abstraits qu'un module **doit** implémenter :
 - `getTaxableIncomes(fiscalProfile: FiscalProfile, now?: Date): PlacementIncome[]`
 
 Types :
-- `PlacementData` — `{ id?, type?, label?, institution? }` ; les modules
-  l'étendent avec leurs propres champs. `type` est optionnel en entrée de
-  constructeur : chaque module le fixe lui-même (`super({ ...data, type:
-  '<nom>' })`). Il n'est requis que dans les données sérialisées, où
-  `PlacementFactory` s'en sert pour choisir la classe à instancier.
+- `PlacementData` — `{ id?, type?, label?, institution?, asOf?, closedAt?,
+  history? }` ; les modules l'étendent avec leurs propres champs. `type` est
+  optionnel en entrée de constructeur : chaque module le fixe lui-même
+  (`super({ ...data, type: '<nom>' })`). Il n'est requis que dans les données
+  sérialisées, où `PlacementFactory` s'en sert pour choisir la classe à
+  instancier.
 - `Evaluation` — `{ grossValue, netValueBeforeIR, socialCharges, latentGain,
   imposition, netValue? }`.
 - `PlacementEditorConstructor` — `new (container: HTMLElement, store?: AppStore)
   => BasePlacementEditor`.
+
+#### Historique des états
+
+Chaque placement suit un modèle **à états datés** : l'état courant vit dans
+les champs du module, daté par `asOf` ; les états passés sont dans
+`history: HistoryEntry[]` — chaque entrée `{ date, values }` capture **toutes**
+les valeurs évolutives à sa date. La sémantique est en escalier : l'état en
+vigueur à une date D est la dernière entrée avec `date <= D` (jamais
+d'interpolation). `closedAt` marque une clôture : un relevé daté décrit
+l'état en fin de journée, donc le placement n'existe déjà plus le jour de
+sa clôture (`D >= closedAt`) — mais il conserve son historique.
+
+Champs et méthodes fournis par `BasePlacement` :
+- `asOf: string` — date d'effet des valeurs courantes (YYYY-MM-DD).
+- `closedAt: string | null` — date de clôture, `null`/absent si ouvert.
+- `history: HistoryEntry[]` — états passés, triés par date.
+- `getEvolvingValues(): Record<string, unknown>` — **à surcharger** : déclare
+  les champs évolutifs du module (valeur courante, nombre de parts, ...).
+  Défaut `{}` (placement sans dimension évolutive). C'est elle qui détermine
+  ce qui est capturé dans `history` et restauré par `getDataAt`.
+- `getHistoryDates(): string[]` — union triée des dates d'enregistrement
+  + `asOf` ; alimente l'échantillonnage du graphe d'historique.
+- `getDataAt(date): PlacementData | null` — reconstruit le `PlacementData`
+  en vigueur à `date` (sans `history`, `asOf` = date de l'état résolu) ;
+  `null` avant le premier état connu ou dès `closedAt` (incluse).
+  Réutilisable tel quel avec `PlacementFactory.create()` + `getEvaluation()`.
+- `getDataSeriesAt(dates): (PlacementData | null)[]` — même résolution en
+  une passe (merge-join, `dates` ascendantes) : O(H + D) au lieu de
+  O(H × D). Utilisée par `AppStore.getValueSeries` pour le graphe.
+- `recordState(previous, effectiveDate)` — enregistrement vers l'avant :
+  pousse l'ancien état courant dans `history` à son propre `asOf` si les
+  valeurs évolutives ont changé. Appelée par `AppStore.updatePlacement`.
+- `insertHistoryEntry(date, values)` — insertion rétroactive : ajoute ou
+  remplace un état passé sans toucher à l'état courant (corrections
+  d'historique).
+
+Un module dont les valeurs évolutives ont elles-mêmes des historiques
+imbriqués (ex. `stock_grant` : prix courant + parts par ligne) surcharge
+`getDataAt`, `getDataSeriesAt`, `getHistoryDates`, `recordState` et
+`insertHistoryEntry` en réutilisant les helpers `recordAt`/`resolveAt`/
+`makeResolver` par dimension — voir `modules/stock_grant/module.ts` comme
+référence.
+
+`thin()` (rétention dégradée, voir TODOList) n'est **pas** encore appelée
+par `recordState` — l'historique n'est actuellement pas élagué.
 
 ## Contrat de l'éditeur
 

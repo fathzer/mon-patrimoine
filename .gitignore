@@ -1,2 +1,4 @@
 /.project
+/web/node_modules
+/web/dist
 /GoogleDriveCredentials.txt

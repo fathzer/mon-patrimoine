@@ -23,8 +23,8 @@ export class SavingsAccountModule extends BasePlacement {
     return SavingsAccountEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getSavingsAccountTaxExplanation(placement as SavingsAccountModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getSavingsAccountTaxExplanation(placement as SavingsAccountModule, fiscalProfile, now);
   }
 
   currentValue: number;
@@ -38,6 +38,14 @@ export class SavingsAccountModule extends BasePlacement {
     this.interestAmount = Number(data.interestAmount) || 0;
     this.taxExempt = data.taxExempt !== false;
     this.promotionalInterest = this.taxExempt ? 0 : (Number(data.promotionalInterest) || 0);
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      currentValue: this.currentValue,
+      interestAmount: this.interestAmount,
+      promotionalInterest: this.promotionalInterest
+    };
   }
 
   getTotalInterest(): number {

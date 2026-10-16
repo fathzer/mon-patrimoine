@@ -1,4 +1,4 @@
-import { BasePlacement, Category, getSocialContributionRate } from '../../kit/v1/index.js';
+import { BasePlacement, Category, compareDates, deleteAt, getSocialContributionRate, makeResolver, recordAt, resolveAt } from '../../kit/v1/index.js';
 import { StockGrantEditor } from './Editor.js';
 import { StockGrantTaxExplanation } from './TaxExplanation.js';
 import type { Evaluation, PlacementData, PlacementModuleStatic, FiscalProfile, PlacementIncome } from '../../kit/v1/index.js';
@@ -16,11 +16,27 @@ const UNIFORM_ABATTEMENT_FROM_2018 = 0.50;
 
 export { SPECIAL_SOCIAL_RATE, EMPLOYER_CONTRIBUTION_RATE, FLAT_TAX_RATE_BEFORE_2012, DETENTION_ABATTEMENT_2Y, DETENTION_ABATTEMENT_8Y, UNIFORM_ABATTEMENT_FROM_2018 };
 
+/** A past share-count state of an attribution line. */
+export interface SharesHistoryEntry {
+  date: string;
+  shares: number;
+}
+
+/** A past price state of the granted stock. */
+export interface PriceHistoryEntry {
+  date: string;
+  price: number;
+}
+
 export interface StockGrantData {
   attributionDate?: string;
   acquisitionDate?: string;
   acquisitionPrice?: number;
   numberOfShares?: number;
+  /** Effective date of the current share count (defaults to acquisitionDate). */
+  sharesAsOf?: string;
+  /** Past share counts, sorted by date. A sale records a 0 or reduced count; a line is never deleted. */
+  sharesHistory?: SharesHistoryEntry[];
 }
 
 export class StockGrant {
@@ -28,12 +44,35 @@ export class StockGrant {
   acquisitionDate: string;
   acquisitionPrice: number;
   numberOfShares: number;
+  sharesAsOf: string;
+  sharesHistory: SharesHistoryEntry[];
 
   constructor(data: StockGrantData = {}) {
     this.attributionDate = data.attributionDate || '';
     this.acquisitionDate = data.acquisitionDate || '';
     this.acquisitionPrice = Number(data.acquisitionPrice) || 0;
     this.numberOfShares = Number(data.numberOfShares) || 0;
+    this.sharesAsOf = data.sharesAsOf || '';
+    this.sharesHistory = (Array.isArray(data.sharesHistory) ? data.sharesHistory : [])
+      .map(e => ({ date: String(e.date), shares: Number(e.shares) || 0 }))
+      .sort((a, b) => compareDates(a.date, b.date));
+  }
+
+  /** Effective date of the current share count (shares are held since acquisition). */
+  getSharesAsOf(): string {
+    return this.sharesAsOf || this.acquisitionDate;
+  }
+
+  /**
+   * Share count effective at `date`. The earliest known count applies to
+   * dates preceding every recorded state.
+   */
+  getSharesAt(date: string): number {
+    const entries = [
+      ...this.sharesHistory,
+      { date: this.getSharesAsOf(), shares: this.numberOfShares }
+    ].sort((a, b) => compareDates(a.date, b.date));
+    return (resolveAt(entries, date) ?? entries[0]).shares;
   }
 
   toJSON(): StockGrantData {
@@ -41,7 +80,9 @@ export class StockGrant {
       attributionDate: this.attributionDate,
       acquisitionDate: this.acquisitionDate,
       acquisitionPrice: this.acquisitionPrice,
-      numberOfShares: this.numberOfShares
+      numberOfShares: this.numberOfShares,
+      ...(this.sharesAsOf ? { sharesAsOf: this.sharesAsOf } : {}),
+      ...(this.sharesHistory.length > 0 ? { sharesHistory: this.sharesHistory } : {})
     };
   }
 
@@ -195,6 +236,10 @@ export class StockGrant {
 export interface StockGrantModuleData extends PlacementData {
   stockName?: string;
   currentPrice?: number;
+  /** Effective date of the current price (defaults to the placement's asOf). */
+  priceAsOf?: string;
+  /** Past price states, sorted by date. */
+  priceHistory?: PriceHistoryEntry[];
   attributions?: StockGrantData[];
 }
 
@@ -212,21 +257,298 @@ export class StockGrantModule extends BasePlacement {
     return StockGrantEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return StockGrantTaxExplanation.get(placement as StockGrantModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return StockGrantTaxExplanation.get(placement as StockGrantModule, fiscalProfile, now);
   }
 
   stockName: string;
   currentPrice: number;
+  priceAsOf: string;
+  priceHistory: PriceHistoryEntry[];
   attributions: StockGrant[];
 
   constructor(data: StockGrantModuleData) {
     super({ ...data, type: 'stock_grant' });
     this.stockName = data.stockName || '';
     this.currentPrice = Number(data.currentPrice) || 0;
+    this.priceAsOf = data.priceAsOf || '';
+    this.priceHistory = (Array.isArray(data.priceHistory) ? data.priceHistory : [])
+      .map(e => ({ date: String(e.date), price: Number(e.price) || 0 }))
+      .sort((a, b) => compareDates(a.date, b.date));
     this.attributions = Array.isArray(data.attributions)
       ? data.attributions.map(a => new StockGrant(a))
       : [];
+  }
+
+  /**
+   * Identity of an attribution line across states: lines are append-only
+   * and never deleted (a sale records a 0 or reduced count in
+   * sharesHistory), so attribution + acquisition dates identify a line.
+   */
+  private static grantKey(g: { attributionDate?: string; acquisitionDate?: string }): string {
+    return `${g.attributionDate ?? ''}|${g.acquisitionDate ?? ''}`;
+  }
+
+  /**
+   * The evolving state is not serialized into the flat `history` field: it
+   * feeds the nested priceHistory / per-line sharesHistory via
+   * insertHistoryEntry(). `attributions` carries just enough identity
+   * (attributionDate + acquisitionDate) to match lines across states.
+   */
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      currentPrice: this.currentPrice,
+      attributions: this.attributions.map(a => ({
+        attributionDate: a.attributionDate,
+        acquisitionDate: a.acquisitionDate,
+        numberOfShares: a.numberOfShares
+      }))
+    };
+  }
+
+  /**
+   * Every date at which a state is known: the placement's asOf, the price's
+   * effective date and history, plus every line's shares dates.
+   */
+  override getHistoryDates(): string[] {
+    const dates = [
+      this.asOf,
+      this.priceAsOf,
+      ...this.priceHistory.map(e => e.date),
+      ...this.attributions.flatMap(a => [a.getSharesAsOf(), ...a.sharesHistory.map(e => e.date)])
+    ];
+    return [...new Set(dates.filter(Boolean))].sort(compareDates);
+  }
+
+  /**
+   * Price effective at `date`; the earliest known price applies to dates
+   * preceding every recorded state.
+   */
+  private _getPriceAt(date: string): number {
+    const entries = [
+      ...this.priceHistory,
+      { date: this.priceAsOf || this.asOf, price: this.currentPrice }
+    ].sort((a, b) => compareDates(a.date, b.date));
+    return (resolveAt(entries, date) ?? entries[0]).price;
+  }
+
+  /**
+   * Reconstructs the state effective at `date`: the resolved price plus one
+   * line per attribution already acquired (acquisitionDate <= date, an
+   * acquired-grants-only approximation) with its resolved share count.
+   * Returns null when the placement was not tracked yet at that date.
+   */
+  override getDataAt(date: string): StockGrantModuleData | null {
+    if (this.isClosedAt(date)) {
+      return null;
+    }
+    const knownDates = this.getHistoryDates();
+    if (knownDates.length === 0 || date < knownDates[0]) {
+      return null;
+    }
+    const data = this.toJSON() as Record<string, unknown>;
+    delete data.history;
+    delete data.priceAsOf;
+    delete data.priceHistory;
+    const attributions = this.attributions
+      .filter(a => !a.acquisitionDate || a.acquisitionDate <= date)
+      .map(a => ({
+        attributionDate: a.attributionDate,
+        acquisitionDate: a.acquisitionDate,
+        acquisitionPrice: a.acquisitionPrice,
+        numberOfShares: a.getSharesAt(date)
+      }));
+    return {
+      ...data,
+      currentPrice: this._getPriceAt(date),
+      attributions,
+      asOf: date
+    } as StockGrantModuleData;
+  }
+
+  /**
+   * Same reconstruction as `getDataAt`, batched over `dates`: price and
+   * each line's share count resolve through forward-only cursors instead
+   * of re-scanning their histories per date.
+   * @param dates query dates (YYYY-MM-DD), ascending.
+   * @returns one StockGrantModuleData per input date, aligned by index —
+   *   null where the placement was not tracked yet at that date.
+   */
+  override getDataSeriesAt(dates: readonly string[]): (StockGrantModuleData | null)[] {
+    const knownDates = this.getHistoryDates();
+    const firstKnown = knownDates[0];
+    const base = this.toJSON() as Record<string, unknown>;
+    delete base.history;
+    delete base.priceAsOf;
+    delete base.priceHistory;
+    const priceEntries = [
+      ...this.priceHistory,
+      { date: this.priceAsOf || this.asOf, price: this.currentPrice }
+    ].sort((a, b) => compareDates(a.date, b.date));
+    const priceResolver = makeResolver(priceEntries, true);
+    const lineResolvers = this.attributions.map(a => ({
+      attribution: a,
+      resolve: makeResolver(
+        [...a.sharesHistory, { date: a.getSharesAsOf(), shares: a.numberOfShares }]
+          .sort((x, y) => compareDates(x.date, y.date)),
+        true
+      )
+    }));
+    return dates.map(date => {
+      if (this.isClosedAt(date)) return null;
+      if (firstKnown == null || date < firstKnown) return null;
+      return {
+        ...base,
+        currentPrice: priceResolver(date)!.price,
+        attributions: lineResolvers
+          .filter(({ attribution }) => !attribution.acquisitionDate || attribution.acquisitionDate <= date)
+          .map(({ attribution, resolve }) => ({
+            attributionDate: attribution.attributionDate,
+            acquisitionDate: attribution.acquisitionDate,
+            acquisitionPrice: attribution.acquisitionPrice,
+            numberOfShares: resolve(date)!.shares
+          })),
+        asOf: date
+      } as StockGrantModuleData;
+    });
+  }
+
+  /**
+   * Records a state transition by pushing the previous values into the
+   * nested histories: the previous price into priceHistory at its own
+   * priceAsOf, and each changed line's previous share count into its own
+   * sharesHistory (lines matched by attribution + acquisition dates).
+   */
+  override recordState(previous: BasePlacement | null, effectiveDate: string): void {
+    this.asOf = effectiveDate;
+    if (!(previous instanceof StockGrantModule)) {
+      return;
+    }
+    this.closedAt ??= previous.closedAt;
+    this.history = previous.history;
+
+    if (previous.currentPrice !== this.currentPrice) {
+      this.priceHistory = recordAt(previous.priceHistory, {
+        date: previous.priceAsOf || previous.asOf,
+        price: previous.currentPrice
+      });
+      this.priceAsOf = effectiveDate;
+    } else {
+      this.priceHistory = previous.priceHistory;
+      this.priceAsOf = previous.priceAsOf;
+    }
+
+    for (const grant of this.attributions) {
+      const prevGrant = previous.attributions.find(
+        a => StockGrantModule.grantKey(a) === StockGrantModule.grantKey(grant)
+      );
+      if (!prevGrant) {
+        continue;
+      }
+      if (prevGrant.numberOfShares !== grant.numberOfShares) {
+        grant.sharesHistory = recordAt(prevGrant.sharesHistory, {
+          date: prevGrant.getSharesAsOf() || effectiveDate,
+          shares: prevGrant.numberOfShares
+        });
+        grant.sharesAsOf = effectiveDate;
+      } else {
+        grant.sharesHistory = prevGrant.sharesHistory;
+        grant.sharesAsOf = prevGrant.sharesAsOf;
+      }
+    }
+  }
+
+  /**
+   * Records a retroactive state into the nested histories; `values` is the
+   * evolving state of the new data (see getEvolvingValues). A dimension is
+   * only written when its value differs from what resolves at `date`.
+   */
+  override insertHistoryEntry(date: string, values: Record<string, unknown>): void {
+    const price = Number(values.currentPrice);
+    if (Number.isFinite(price) && price !== this._getPriceAt(date)) {
+      this.priceHistory = recordAt(this.priceHistory, { date, price });
+    }
+    const lines = Array.isArray(values.attributions) ? values.attributions as StockGrantData[] : [];
+    for (const v of lines) {
+      const grant = this.attributions.find(
+        a => StockGrantModule.grantKey(a) === StockGrantModule.grantKey(v)
+      );
+      const shares = Number(v.numberOfShares);
+      if (grant && Number.isFinite(shares) && shares !== grant.getSharesAt(date)) {
+        grant.sharesHistory = recordAt(grant.sharesHistory, { date, shares });
+      }
+    }
+  }
+
+  /** A point at `date` is deletable when any dimension recorded an entry there. */
+  override hasHistoryEntry(date: string): boolean {
+    return super.hasHistoryEntry(date)
+      || this.priceHistory.some(e => e.date === date)
+      || this.attributions.some(a => a.sharesHistory.some(e => e.date === date));
+  }
+
+  /**
+   * Deletes the state recorded at `date` in every dimension's history —
+   * price and per-line shares included.
+   */
+  override deleteHistoryEntry(date: string): void {
+    super.deleteHistoryEntry(date);
+    this.priceHistory = deleteAt(this.priceHistory, date);
+    for (const grant of this.attributions) {
+      grant.sharesHistory = deleteAt(grant.sharesHistory, date);
+    }
+  }
+
+  /**
+   * The nested model rolls back per dimension: the current point is
+   * deletable when some dimension stamped its current value at asOf and
+   * has a previous entry to revert to.
+   */
+  override canDeleteCurrentState(): boolean {
+    if (super.canDeleteCurrentState()) {
+      return true;
+    }
+    const priceReverts = (this.priceAsOf || this.asOf) === this.asOf && this.priceHistory.length > 0;
+    const sharesRevert = this.attributions.some(
+      a => a.sharesAsOf === this.asOf && a.sharesHistory.length > 0
+    );
+    return priceReverts || sharesRevert;
+  }
+
+  /**
+   * Reverts each dimension whose current value was recorded at asOf to
+   * its latest history entry — matching the state that resolves at the
+   * previous known date. asOf then falls back to that date.
+   */
+  override deleteCurrentState(): boolean {
+    let reverted = false;
+    // The flat history is unused by this module but stays consistent.
+    if (this.history.length > 0) {
+      this.history = this.history.slice(0, -1);
+      reverted = true;
+    }
+    if ((this.priceAsOf || this.asOf) === this.asOf && this.priceHistory.length > 0) {
+      const last = this.priceHistory[this.priceHistory.length - 1];
+      this.currentPrice = last.price;
+      this.priceAsOf = last.date;
+      this.priceHistory = this.priceHistory.slice(0, -1);
+      reverted = true;
+    }
+    for (const grant of this.attributions) {
+      if (grant.sharesAsOf === this.asOf && grant.sharesHistory.length > 0) {
+        const last = grant.sharesHistory[grant.sharesHistory.length - 1];
+        grant.numberOfShares = last.shares;
+        grant.sharesAsOf = last.date;
+        grant.sharesHistory = grant.sharesHistory.slice(0, -1);
+        reverted = true;
+      }
+    }
+    if (!reverted) {
+      return false;
+    }
+    const remaining = this.getHistoryDates().filter(d => d !== this.asOf);
+    this.asOf = remaining[remaining.length - 1] ?? this.asOf;
+    return true;
   }
 
   _getTotalShares(): number {
@@ -338,6 +660,8 @@ export class StockGrantModule extends BasePlacement {
       ...super.toJSON(),
       stockName: this.stockName,
       currentPrice: this.currentPrice,
+      ...(this.priceAsOf ? { priceAsOf: this.priceAsOf } : {}),
+      ...(this.priceHistory.length > 0 ? { priceHistory: this.priceHistory } : {}),
       attributions: this.attributions.map(a => a.toJSON())
     };
   }

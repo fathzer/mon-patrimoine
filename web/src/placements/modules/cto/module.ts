@@ -22,8 +22,8 @@ export class CtoModule extends BasePlacement {
     return CtoEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getCtoTaxExplanation(placement as CtoModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getCtoTaxExplanation(placement as CtoModule, fiscalProfile, now);
   }
 
   acquisitionValue: number;
@@ -35,6 +35,14 @@ export class CtoModule extends BasePlacement {
     this.acquisitionValue = Number(data.acquisitionValue) || 0;
     this.cashBalance = Number(data.cashBalance) || 0;
     this.currentValue = Number(data.currentValue) || 0;
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      acquisitionValue: this.acquisitionValue,
+      cashBalance: this.cashBalance,
+      currentValue: this.currentValue
+    };
   }
 
   getLatentGain(): number {

@@ -29,8 +29,8 @@ export class HomeSavingsModule extends BasePlacement {
     return HomeSavingsEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getHomeSavingsTaxExplanation(placement as HomeSavingsModule, fiscalProfile, now);
   }
 
   currentValue: number;
@@ -48,6 +48,12 @@ export class HomeSavingsModule extends BasePlacement {
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
     this.taxExempt = false;
     this.promotionalInterest = 0;
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    // promotionalInterest is always 0 for this module (constructor-forced),
+    // so only the two real user-entered values are tracked.
+    return { currentValue: this.currentValue, interestAmount: this.interestAmount };
   }
 
   getTotalInterest(): number {

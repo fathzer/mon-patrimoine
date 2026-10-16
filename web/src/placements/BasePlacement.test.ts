@@ -46,6 +46,9 @@ class TestPlacement extends BasePlacement {
 
 const today = (): string => new Date().toISOString().split('T')[0];
 
+/** getDataAt typed back to the test module's data shape. */
+const dataAt = (p: TestPlacement, date: string): TestData | null => p.getDataAt(date) as TestData | null;
+
 describe("BasePlacement history", () => {
   it("hydrates asOf/closedAt/history with defaults", () => {
     const p = new TestPlacement({ id: "1", currentValue: 100 });
@@ -81,11 +84,11 @@ describe("BasePlacement history", () => {
       history: [{ date: "2025-01-10", values: { currentValue: 100 } }]
     });
 
-    expect(p.getDataAt("2025-01-09")).toBeNull();
-    expect(p.getDataAt("2025-01-10")!.currentValue).toBe(100);
-    expect(p.getDataAt("2025-02-15")!.currentValue).toBe(100);
-    expect(p.getDataAt("2025-03-01")!.currentValue).toBe(120);
-    expect(p.getDataAt("2030-12-31")!.currentValue).toBe(120);
+    expect(dataAt(p,"2025-01-09")).toBeNull();
+    expect(dataAt(p,"2025-01-10")!.currentValue).toBe(100);
+    expect(dataAt(p,"2025-02-15")!.currentValue).toBe(100);
+    expect(dataAt(p,"2025-03-01")!.currentValue).toBe(120);
+    expect(dataAt(p,"2030-12-31")!.currentValue).toBe(120);
   });
 
   it("returns the resolved state date as asOf and no history", () => {
@@ -95,20 +98,23 @@ describe("BasePlacement history", () => {
       asOf: "2025-03-01",
       history: [{ date: "2025-01-10", values: { currentValue: 100 } }]
     });
-    const data = p.getDataAt("2025-02-01")!;
+    const data = dataAt(p,"2025-02-01")!;
     expect(data.asOf).toBe("2025-01-10");
     expect(data.history).toBeUndefined();
   });
 
-  it("returns null after closedAt", () => {
+  it("returns null on and after closedAt", () => {
     const p = new TestPlacement({
       id: "1",
       currentValue: 100,
       asOf: "2025-01-10",
       closedAt: "2025-06-30"
     });
-    expect(p.getDataAt("2025-06-30")!.currentValue).toBe(100);
-    expect(p.getDataAt("2025-07-01")).toBeNull();
+    expect(dataAt(p,"2025-06-29")!.currentValue).toBe(100);
+    // A dated record is the end-of-day state: closed on the 30th means
+    // already gone on the evening of the 30th.
+    expect(dataAt(p,"2025-06-30")).toBeNull();
+    expect(dataAt(p,"2025-07-01")).toBeNull();
   });
 
   it("inserts a retroactive state without touching the current state", () => {
@@ -116,8 +122,55 @@ describe("BasePlacement history", () => {
     p.insertHistoryEntry("2025-01-15", { currentValue: 90 });
 
     expect(p.currentValue).toBe(120);
-    expect(p.getDataAt("2025-01-15")!.currentValue).toBe(90);
-    expect(p.getDataAt("2025-03-01")!.currentValue).toBe(120);
+    expect(dataAt(p,"2025-01-15")!.currentValue).toBe(90);
+    expect(dataAt(p,"2025-03-01")!.currentValue).toBe(120);
+  });
+
+  it("deletes a recorded history entry but never the current state", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 120, asOf: "2025-03-01" });
+    p.insertHistoryEntry("2025-01-10", { currentValue: 80 });
+    p.insertHistoryEntry("2025-02-01", { currentValue: 90 });
+
+    expect(p.hasHistoryEntry("2025-02-01")).toBe(true);
+    expect(p.hasHistoryEntry("2025-03-01")).toBe(false);
+
+    p.deleteHistoryEntry("2025-02-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-03-01"]);
+    // The state at the deleted date now resolves to the previous entry.
+    expect(dataAt(p,"2025-02-01")!.currentValue).toBe(80);
+
+    // Deleting the current point is a no-op: asOf is not a history entry.
+    p.deleteHistoryEntry("2025-03-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-03-01"]);
+  });
+
+  it("rolls back to the previous recorded state when the current point is deleted", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 120,
+      asOf: "2025-03-01",
+      history: [
+        { date: "2025-01-10", values: { currentValue: 80 } },
+        { date: "2025-02-01", values: { currentValue: 100 } }
+      ]
+    });
+
+    expect(p.canDeleteCurrentState()).toBe(true);
+    expect(p.deleteCurrentState()).toBe(true);
+
+    expect(p.currentValue).toBe(100);
+    expect(p.asOf).toBe("2025-02-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-02-01"]);
+    // The rolled-back state resolves as the new current point.
+    expect(dataAt(p, "2025-02-15")!.currentValue).toBe(100);
+  });
+
+  it("refuses to delete the current state of a single-point placement", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
+    expect(p.canDeleteCurrentState()).toBe(false);
+    expect(p.deleteCurrentState()).toBe(false);
+    expect(p.asOf).toBe("2025-01-10");
+    expect(p.currentValue).toBe(100);
   });
 
   it("exposes every known date including the current asOf", () => {
@@ -137,7 +190,7 @@ describe("BasePlacement history", () => {
       }
     }
     const p = new InertPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
-    expect(p.getDataAt("2025-01-09")).toBeNull();
-    expect(p.getDataAt("2025-01-10")!.currentValue).toBe(100);
+    expect(dataAt(p,"2025-01-09")).toBeNull();
+    expect(dataAt(p,"2025-01-10")!.currentValue).toBe(100);
   });
 });

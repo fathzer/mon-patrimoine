@@ -1,27 +1,22 @@
-import { SOCIAL_CONTRIBUTION_RATES, formatPercentage, getPfuHelpPopover, getTaxDisclaimer, getTaxSection } from '../../kit/v1/index.js';
+import { SOCIAL_CONTRIBUTION_RATES, getSocialContributionRate, formatPercentage, getPfuHelpPopover, getTaxDisclaimer, getUnvotedScheduleWarning, getTaxSection } from '../../kit/v1/index.js';
 import type { FiscalProfile } from '../../kit/v1/index.js';
 import { CSG_2018_THRESHOLD } from './module.js';
 import type { HomeSavingsModule } from './module.js';
 
 const OLD_RATE = formatPercentage(SOCIAL_CONTRIBUTION_RATES.OLD_CSG_CRDS);
-const NEW_RATE = formatPercentage(SOCIAL_CONTRIBUTION_RATES.CSG_CRDS);
 const TRIGGER_AGE = 12;
 
 let csg2018Date: string | undefined;
-const getCsg2018Date = (): string => {
-  if (csg2018Date === undefined) {
-    csg2018Date = CSG_2018_THRESHOLD
-      .toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-      .replace(/^1 /, '1<sup>er</sup> ');
-  }
-  return csg2018Date;
-};
+const getCsg2018Date = (): string => csg2018Date ??= CSG_2018_THRESHOLD
+  .toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  .replace(/^1 /, '1<sup>er</sup> ');
 
 function _getIncomeTaxSection(placement: HomeSavingsModule, fiscalProfile: FiscalProfile | undefined, now: Date): string {
   const taxDisclaimer = fiscalProfile?.usePfu ? '' : getTaxDisclaimer();
   if (placement.isPfuEligible(now)) {
     return `
-      <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)}.</p>
+      <p>Les intérêts sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}.</p>
+      ${getUnvotedScheduleWarning(now.getFullYear())}
       ${taxDisclaimer}
     `;
   }
@@ -31,6 +26,7 @@ function _getIncomeTaxSection(placement: HomeSavingsModule, fiscalProfile: Fisca
 function _getPelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: FiscalProfile | undefined, now: Date): string {
   const moreThanTwelve = placement.isOlderThanTwelveYears(now);
   const socialRate = formatPercentage(placement.getSocialChargesRate(now));
+  const newRate = formatPercentage(getSocialContributionRate(now));
   const incomeTaxSection = _getIncomeTaxSection(placement, fiscalProfile, now);
 
   return `
@@ -42,12 +38,12 @@ function _getPelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: Fisc
   ${getTaxSection('Prélèvements sociaux', `
     <p>Le taux applicable dépend de la date d'ouverture et de l'ancienneté du contrat :</p>
     <ul>
-      <li>PEL ouvert à compter du ${getCsg2018Date()} : taux de ${NEW_RATE}.</li>
-      <li>PEL ouvert avant le ${getCsg2018Date()} : taux de ${OLD_RATE} tant que le contrat n'a pas atteint ${TRIGGER_AGE} ans, puis taux de ${NEW_RATE} au-delà de ${TRIGGER_AGE} ans.</li>
+      <li>PEL ouvert à compter du ${getCsg2018Date()} : taux de ${newRate}.</li>
+      <li>PEL ouvert avant le ${getCsg2018Date()} : taux de ${OLD_RATE} tant que le contrat n'a pas atteint ${TRIGGER_AGE} ans, puis taux de ${newRate} au-delà de ${TRIGGER_AGE} ans.</li>
     </ul>`)}
 
   ${getTaxSection('Imposition à l\'impôt sur le revenu', `
-    <p>Les intérêts de l'année sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile)} pour les PEL ouverts à compter du ${getCsg2018Date()}, ainsi que pour les PEL ouverts avant cette date ayant dépassé ${TRIGGER_AGE} ans. Avant ${TRIGGER_AGE} ans, les intérêts sont exonérés d'impôt sur le revenu.</p>`)}
+    <p>Les intérêts de l'année sont soumis à l'impôt sur le revenu au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())} pour les PEL ouverts à compter du ${getCsg2018Date()}, ainsi que pour les PEL ouverts avant cette date ayant dépassé ${TRIGGER_AGE} ans. Avant ${TRIGGER_AGE} ans, les intérêts sont exonérés d'impôt sur le revenu.</p>`)}
 
   <h3>Cas de ce placement</h3>
   <p>Ce PEL est ouvert depuis ${moreThanTwelve ? 'plus de' : 'moins de'} ${TRIGGER_AGE} ans.</p>
@@ -60,6 +56,7 @@ function _getPelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: Fisc
 function _getCelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: FiscalProfile | undefined, now: Date): string {
   const before2018 = placement.isOpenedBefore2018();
   const socialRate = formatPercentage(placement.getSocialChargesRate(now));
+  const newRate = formatPercentage(getSocialContributionRate(now));
   const incomeTaxSection = _getIncomeTaxSection(placement, fiscalProfile, now);
 
   return `
@@ -70,7 +67,7 @@ function _getCelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: Fisc
   Le taux des prélèvements sociaux et l'imposition dépendent de la date d'ouverture du contrat :</p>
   <ul>
     <li>Les CEL ouvert avec le ${getCsg2018Date()} sont exonérés d'impôt sur le revenu. Le taux des prélèvements sociaux est de ${OLD_RATE}</li>
-    <li>Les CEL ouverts à compter du ${getCsg2018Date()} sont imposables au ${getPfuHelpPopover(fiscalProfile)}. Le taux des prélèvements sociaux est de ${NEW_RATE}.</li>
+    <li>Les CEL ouverts à compter du ${getCsg2018Date()} sont imposables au ${getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear())}. Le taux des prélèvements sociaux est de ${newRate}.</li>
   </ul>
 
   <p>Ce CEL est ouvert ${before2018 ? 'avant' : 'après'} le ${getCsg2018Date()}. Le taux de prélèvements sociaux retenu est de ${socialRate}.</p>
@@ -79,8 +76,7 @@ function _getCelTaxExplanation(placement: HomeSavingsModule, fiscalProfile: Fisc
 `;
 }
 
-export function getHomeSavingsTaxExplanation(placement: HomeSavingsModule, fiscalProfile: FiscalProfile | undefined): string {
-  const now = new Date();
+export function getHomeSavingsTaxExplanation(placement: HomeSavingsModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
   return placement.homeSavingsType === 'cel'
     ? _getCelTaxExplanation(placement, fiscalProfile, now)
     : _getPelTaxExplanation(placement, fiscalProfile, now);

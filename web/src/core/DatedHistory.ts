@@ -17,6 +17,11 @@ export interface HistoryEntry {
   values: Record<string, unknown>;
 }
 
+/** Today's date in ISO form (YYYY-MM-DD). */
+export function todayString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 /**
  * Compares two ISO dates (YYYY-MM-DD) for ascending sort.
  * Exported so every history-related sort uses the same ordering.
@@ -39,6 +44,29 @@ export function compareDates(a: string, b: string): number {
  * @param entries history sorted by date (ascending).
  * @param date effective date to resolve (YYYY-MM-DD).
  */
+/**
+ * Monotonic resolver over a sorted `entries` list: successive calls must
+ * use ascending dates, and each call returns the last entry at or before
+ * `date` — the merge-join equivalent of calling `resolveAt` per date, in
+ * amortized O(1).
+ * @param entries history sorted by date (ascending).
+ * @param clampToFirst resolve dates before the first entry to that entry
+ *   (earliest-known semantics) instead of null.
+ * @returns a resolver function taking a date (YYYY-MM-DD, ascending across
+ *   calls) and returning the effective entry, or null.
+ */
+export function makeResolver<T extends { date: string }>(
+  entries: readonly T[],
+  clampToFirst = false
+): (date: string) => T | null {
+  let i = 0;
+  let resolved: T | null = null;
+  return (date: string) => {
+    while (i < entries.length && entries[i].date <= date) resolved = entries[i++];
+    return resolved ?? (clampToFirst ? entries[0] ?? null : null);
+  };
+}
+
 export function resolveAt<T extends { date: string }>(entries: readonly T[], date: string): T | null {
   let resolved: T | null = null;
   for (const entry of entries) {
@@ -64,6 +92,16 @@ export function recordAt<T extends { date: string }>(
   const rest = entries.filter(e => e.date !== entry.date);
   rest.push(entry);
   return rest.sort((a, b) => compareDates(a.date, b.date));
+}
+
+/**
+ * Returns a new history without the entry recorded at `date` (dates are
+ * unique per recordAt, so at most one entry matches).
+ * @param entries history sorted by date (ascending); not mutated.
+ * @param date effective date to delete (YYYY-MM-DD).
+ */
+export function deleteAt<T extends { date: string }>(entries: readonly T[], date: string): T[] {
+  return entries.filter(e => e.date !== date);
 }
 
 /**
@@ -95,24 +133,35 @@ export function valuesEqual(a: unknown, b: unknown): boolean {
 export interface ThinPolicy {
   /** Reference date used to compute entry ages (defaults to now). */
   now?: Date;
-  /** Entries younger than this many days keep their full resolution (default ~6 months). */
+  /** Entries younger than this many days keep their full resolution (default ~1 year). */
   fullResolutionDays?: number;
-  /** Up to this age in days, one entry per week is kept; beyond, one per month (default ~2 years). */
+  /** Up to this age in days, one entry per week is kept (default ~5 years). */
   weeklyResolutionDays?: number;
+  /** Up to this age in days, one entry per fortnight is kept; beyond, one per month (default ~10 years). */
+  fortnightlyResolutionDays?: number;
 }
 
 const DAY_MS = 24 * 3600 * 1000;
 
 /**
  * Retention slot endpoints: for every month overlapping [firstDate, now],
- * days 7, 14, 21 and the last day when the endpoint is mid-aged (between
- * `fullDays` and `weeklyDays` old), the month end only when it is older.
+ * days 7, 14, 21 and the last day when the endpoint is weekly-aged
+ * (between `fullDays` and `weeklyDays` old), days 15 and the last day
+ * when it is fortnightly-aged (between `weeklyDays` and
+ * `fortnightlyDays`), the month end only when it is older.
  * @param firstDate date of the earliest entry (YYYY-MM-DD).
  * @param now reference time in milliseconds.
  * @param fullDays recent band width in days.
  * @param weeklyDays weekly band width in days.
+ * @param fortnightlyDays fortnightly band width in days.
  */
-function slotEndpoints(firstDate: string, now: number, fullDays: number, weeklyDays: number): number[] {
+function slotEndpoints(
+  firstDate: string,
+  now: number,
+  fullDays: number,
+  weeklyDays: number,
+  fortnightlyDays: number
+): number[] {
   const endpoints: number[] = [];
   const cursor = new Date(firstDate);
   cursor.setUTCDate(1);
@@ -120,14 +169,18 @@ function slotEndpoints(firstDate: string, now: number, fullDays: number, weeklyD
     const year = cursor.getUTCFullYear();
     const month = cursor.getUTCMonth();
     const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    const age = (day: number) => (now - Date.UTC(year, month, day)) / DAY_MS;
     for (const day of [7, 14, 21, lastDay]) {
-      const end = Date.UTC(year, month, day);
-      const age = (now - end) / DAY_MS;
-      if (age >= fullDays && age < weeklyDays) {
-        endpoints.push(end);
+      if (age(day) >= fullDays && age(day) < weeklyDays) {
+        endpoints.push(Date.UTC(year, month, day));
       }
     }
-    if ((now - Date.UTC(year, month, lastDay)) / DAY_MS >= weeklyDays) {
+    for (const day of [15, lastDay]) {
+      if (age(day) >= weeklyDays && age(day) < fortnightlyDays) {
+        endpoints.push(Date.UTC(year, month, day));
+      }
+    }
+    if (age(lastDay) >= fortnightlyDays) {
       endpoints.push(Date.UTC(year, month, lastDay));
     }
     cursor.setUTCMonth(month + 1);
@@ -159,11 +212,12 @@ function slotWinners<T extends { date: string }>(entries: readonly T[], endpoint
 }
 
 /**
- * Applies a degraded-retention policy to a sorted history. Retention
- * slots are calendar period ends — days 7, 14, 21 and the last day of
- * each month for mid-age entries, month ends only for older ones — and
- * each slot keeps the *closest* entry (on a tie, the later one). Recent
- * entries are all kept, and so is the very first entry.
+ * Applies a degraded-retention policy to a sorted history: full
+ * resolution for ~1 year, one entry per week up to ~5 years (slots on
+ * days 7, 14, 21 and the last day of each month), one per fortnight up
+ * to ~10 years (days 15 and the last day), one per month beyond
+ * (month-end slots). Each slot keeps the *closest* entry (on a tie, the
+ * later one); the very first entry is always preserved.
  *
  * Why "closest to the slot" instead of "last in a bucket": states
  * recorded at period boundaries matter most — a value entered on Jan
@@ -182,10 +236,14 @@ export function thin<T extends { date: string }>(entries: readonly T[], policy: 
     return [...entries];
   }
   const now = (policy.now ?? new Date()).getTime();
-  const fullDays = policy.fullResolutionDays ?? 183;
-  const weeklyDays = policy.weeklyResolutionDays ?? 731;
+  const fullDays = policy.fullResolutionDays ?? 365;
+  const weeklyDays = policy.weeklyResolutionDays ?? 1826;   // ~5 years
+  const fortnightlyDays = policy.fortnightlyResolutionDays ?? 3652; // ~10 years
 
-  const winners = slotWinners(entries, slotEndpoints(entries[0].date, now, fullDays, weeklyDays));
+  const winners = slotWinners(
+    entries,
+    slotEndpoints(entries[0].date, now, fullDays, weeklyDays, fortnightlyDays)
+  );
   winners.add(entries[0]); // the first entry is always preserved
   for (const entry of entries) {
     if ((now - new Date(entry.date).getTime()) / DAY_MS < fullDays) {

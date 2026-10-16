@@ -506,8 +506,8 @@ export class GoogleDriveProvider extends StorageProvider {
 
   override async getDataLocation(): Promise<string | null> {
     if (!this.accessToken) return null;
-    const location = `Google Drive: /${await this._resolveFileName()}`;
-    return this.userEmail ? `${this.userEmail} — ${location}` : location;
+    const account = this.userEmail ? ` (${this.userEmail})` : '';
+    return `Google Drive${account}: /${await this._resolveFileName()}`;
   }
 
   /**

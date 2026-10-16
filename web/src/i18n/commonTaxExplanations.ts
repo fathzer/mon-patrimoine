@@ -1,4 +1,4 @@
-import { FISCAL_RATES } from '../fiscality/rates.js';
+import { getFiscalRates, getVotedScheduleYear } from '../fiscality/rates.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 
@@ -8,11 +8,14 @@ HelpPopover.register('help-gains-latents', () => 'Le gain latent est la différe
 export interface PfuExplanationArgs {
   fiscalProfile?: FiscalProfile;
   personalCase?: boolean;
+  /** Income year whose rates apply — defaults to the current year. */
+  year?: number;
 }
 
-export function getPfuExplanation({ fiscalProfile, personalCase = true }: PfuExplanationArgs = {}): string {
-  const pfuRate = formatPercentage(FISCAL_RATES.PFU_IR_RATE);
-  const csgDeductibleRate = formatPercentage(FISCAL_RATES.PFU_CSG_REDUCTION_RATE);
+export function getPfuExplanation({ fiscalProfile, personalCase = true, year }: PfuExplanationArgs = {}): string {
+  const rates = getFiscalRates(year);
+  const pfuRate = formatPercentage(rates.PFU_IR_RATE);
+  const csgDeductibleRate = formatPercentage(rates.PFU_CSG_REDUCTION_RATE);
   const incomeTaxWording = fiscalProfile?.usePfu
     ? 'au Prélèvement Forfaitaire Unique (PFU)'
     : "au barème progressif de l'impôt sur le revenu";
@@ -50,17 +53,36 @@ export function getTaxDisclaimer(extraContent: string = ''): string {
   `);
 }
 
-export function getWarning(content: string): string {
-  return `<section class="help-section" style="margin-bottom: 0.5rem;">
-  <h3 class="help-section-title">⚠️ Avertissement</h3>
-  <div class="help-disclaimer-box">
-    ${content}
-  </div>
-</section>`;
+/**
+ * Warning displayed when the requested income year's schedule is not voted
+ * yet: the computation silently falls back to the latest voted year (see
+ * getFiscalRates). Empty string when the schedule is voted.
+ */
+export function getUnvotedScheduleWarning(incomeYear: number): string {
+  const votedYear = getVotedScheduleYear(incomeYear);
+  return votedYear === incomeYear ? '' : getWarning(
+    `<p>Le barème de l'impôt sur le revenu ${incomeYear} n'est pas encore disponible : les tranches, plafonds et taux de ${votedYear} sont utilisés à la place.</p>`
+  );
 }
 
-export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true, icon: boolean = false): string {
-  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: { fiscalProfile, personalCase }, icon });
+/**
+ * Warning displayed in the tax explanation modal when the asset list is being
+ * shown in current (inflation-adjusted) euros: the explanation itself always
+ * uses the original nominal amounts. `baseMonth` is the latest published
+ * month of the selected INSEE series.
+ */
+export function getInflationDisplayWarning(baseMonth: string): string {
+  return getWarning(
+    `<p>Les montants affichés dans la liste des actifs sont actuellement exprimés en euros constants (base ${baseMonth}). Cette explication fiscale conserve les montants d'origine en euros de l'époque.</p>`
+  );
+}
+
+export function getWarning(content: string): string {
+  return `<fieldset class="form-section warning-section"><legend>⚠️ Avertissement</legend>${content}</fieldset>`;
+}
+
+export function getPfuHelpPopover(fiscalProfile: FiscalProfile | undefined = undefined, label: string = 'PFU', personalCase: boolean = true, icon: boolean = false, incomeYear?: number): string {
+  return HelpPopover.getHtml({ contentKey: 'help-pfu', label, contentArgs: { fiscalProfile, personalCase, year: incomeYear }, icon });
 }
 
 export function getLatentGainsHelpPopover(label: string = 'gain latent'): string {

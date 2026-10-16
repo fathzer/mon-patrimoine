@@ -1,6 +1,7 @@
 /// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
-import { StockGrant } from "./module.js";
+import { StockGrant, StockGrantModule } from "./module.js";
+import type { StockGrantModuleData } from "./module.js";
 
 const NOW = new Date("2024-01-01");
 
@@ -171,5 +172,196 @@ describe("StockGrant.getTaxableAcquisitionGain", () => {
     // threshold = 300000: belowThreshold = 5000, aboveThreshold = 0
     // Taxable = 5000 * 0.5 = 2500
     expect(grant.getTaxableAcquisitionGain(50, 300000, NOW)).toBe(2500);
+  });
+});
+
+const makeModule = (over: Partial<StockGrantModuleData> = {}): StockGrantModule => new StockGrantModule({
+  id: "g1",
+  stockName: "ACME",
+  currentPrice: 95,
+  asOf: "2026-10-01",
+  attributions: [
+    { attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", acquisitionPrice: 0, numberOfShares: 100 }
+  ],
+  ...over
+});
+
+describe("StockGrantModule history", () => {
+  it("pushes the previous price into priceHistory at its own effective date", () => {
+    const previous = makeModule({ currentPrice: 80, asOf: "2026-06-01" });
+    const next = makeModule({ currentPrice: 95 });
+    next.recordState(previous, "2026-10-01");
+
+    expect(next.priceHistory).toEqual([{ date: "2026-06-01", price: 80 }]);
+    expect(next.priceAsOf).toBe("2026-10-01");
+  });
+
+  it("keeps the price effective date when only shares change", () => {
+    const previous = makeModule({ currentPrice: 80, asOf: "2026-06-01", priceAsOf: "2026-04-15" });
+    const next = makeModule({
+      currentPrice: 80,
+      attributions: [{ attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 50 }]
+    });
+    next.recordState(previous, "2026-10-01");
+
+    expect(next.priceHistory).toEqual([]);
+    expect(next.priceAsOf).toBe("2026-04-15");
+    // The changed share count falls back to the line's acquisitionDate.
+    expect(next.attributions[0].sharesHistory).toEqual([{ date: "2024-03-01", shares: 100 }]);
+    expect(next.attributions[0].sharesAsOf).toBe("2026-10-01");
+  });
+
+  it("matches lines by attribution/acquisition dates, not by index", () => {
+    const previous = makeModule({
+      attributions: [
+        { attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 100 },
+        { attributionDate: "2025-01-01", acquisitionDate: "2025-03-01", numberOfShares: 60 }
+      ]
+    });
+    const next = makeModule({
+      attributions: [
+        { attributionDate: "2025-01-01", acquisitionDate: "2025-03-01", numberOfShares: 30 },
+        { attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 100 }
+      ]
+    });
+    next.recordState(previous, "2026-10-01");
+
+    expect(next.attributions[0].sharesHistory).toEqual([{ date: "2025-03-01", shares: 60 }]);
+    expect(next.attributions[1].sharesHistory).toEqual([]);
+  });
+
+  it("records a sale as a 0-share state without deleting the line", () => {
+    const previous = makeModule();
+    const next = makeModule({
+      attributions: [{ attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 0 }]
+    });
+    next.recordState(previous, "2026-10-01");
+
+    expect(next.attributions).toHaveLength(1);
+    expect(next.attributions[0].sharesHistory).toEqual([{ date: "2024-03-01", shares: 100 }]);
+    expect(next.attributions[0].getSharesAt("2026-10-01")).toBe(0);
+    expect(next.attributions[0].getSharesAt("2025-01-01")).toBe(100);
+  });
+
+  it("resolves a past state via getDataAt (price + per-line shares)", () => {
+    const p = makeModule({
+      priceHistory: [{ date: "2025-06-01", price: 80 }],
+      priceAsOf: "2026-10-01",
+      attributions: [
+        {
+          attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 50,
+          sharesAsOf: "2026-10-01", sharesHistory: [{ date: "2024-03-01", shares: 100 }]
+        },
+        { attributionDate: "2026-01-01", acquisitionDate: "2026-05-01", numberOfShares: 30 }
+      ]
+    });
+
+    const data = p.getDataAt("2025-08-01")!;
+    expect(data.currentPrice).toBe(80);
+    // The second line is not held yet at that date (acquisitionDate > D).
+    expect(data.attributions).toHaveLength(1);
+    expect(data.attributions![0].numberOfShares).toBe(100);
+    expect(data.asOf).toBe("2025-08-01");
+  });
+
+  it("returns null before the earliest known date and after closedAt", () => {
+    const p = makeModule({ closedAt: "2026-11-01" });
+    expect(p.getDataAt("2020-01-01")).toBeNull();
+    // Closed on 2026-11-01: already gone on that day (end-of-day states).
+    expect(p.getDataAt("2026-11-01")).toBeNull();
+    expect(p.getDataAt("2026-12-01")).toBeNull();
+    expect(p.getDataAt("2026-10-15")).not.toBeNull();
+  });
+
+  it("inserts a retroactive state into the nested histories without touching the current state", () => {
+    const p = makeModule();
+    p.insertHistoryEntry("2025-03-01", {
+      currentPrice: 70,
+      attributions: [{ attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 80 }]
+    });
+
+    expect(p.priceHistory).toEqual([{ date: "2025-03-01", price: 70 }]);
+    expect(p.attributions[0].sharesHistory).toEqual([{ date: "2025-03-01", shares: 80 }]);
+    expect(p.currentPrice).toBe(95);
+    expect(p.attributions[0].numberOfShares).toBe(100);
+  });
+
+  it("skips retro entries equal to the resolved state (no noise)", () => {
+    const p = makeModule();
+    p.insertHistoryEntry("2025-03-01", {
+      currentPrice: 95,
+      attributions: [{ attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 100 }]
+    });
+
+    expect(p.priceHistory).toEqual([]);
+    expect(p.attributions[0].sharesHistory).toEqual([]);
+  });
+
+  it("deletes a point from every dimension's history (price + per-line shares)", () => {
+    const p = makeModule();
+    p.insertHistoryEntry("2025-03-01", {
+      currentPrice: 70,
+      attributions: [{ attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 80 }]
+    });
+
+    expect(p.hasHistoryEntry("2025-03-01")).toBe(true);
+    p.deleteHistoryEntry("2025-03-01");
+    expect(p.hasHistoryEntry("2025-03-01")).toBe(false);
+    expect(p.priceHistory).toEqual([]);
+    expect(p.attributions[0].sharesHistory).toEqual([]);
+  });
+
+  it("rolls back per-dimension current values when the current point is deleted", () => {
+    const p = makeModule({
+      priceHistory: [{ date: "2025-06-01", price: 80 }],
+      priceAsOf: "2026-10-01",
+      attributions: [
+        {
+          attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 50,
+          sharesAsOf: "2026-10-01", sharesHistory: [{ date: "2024-03-01", shares: 100 }]
+        },
+        { attributionDate: "2026-01-01", acquisitionDate: "2026-05-01", numberOfShares: 30 }
+      ]
+    });
+
+    expect(p.canDeleteCurrentState()).toBe(true);
+    expect(p.deleteCurrentState()).toBe(true);
+
+    // Both dimensions stamped at asOf revert to their latest entries.
+    expect(p.currentPrice).toBe(80);
+    expect(p.priceAsOf).toBe("2025-06-01");
+    expect(p.priceHistory).toEqual([]);
+    expect(p.attributions[0].numberOfShares).toBe(100);
+    expect(p.attributions[0].sharesAsOf).toBe("2024-03-01");
+    // The line never stamped at asOf is untouched.
+    expect(p.attributions[1].numberOfShares).toBe(30);
+    // asOf falls back to the latest remaining known date.
+    expect(p.asOf).toBe("2026-05-01");
+  });
+
+  it("keeps the current point when no dimension was recorded at asOf", () => {
+    const p = makeModule({
+      priceAsOf: "2026-06-01",
+      priceHistory: [{ date: "2025-01-01", price: 80 }]
+    });
+    expect(p.canDeleteCurrentState()).toBe(false);
+    expect(p.deleteCurrentState()).toBe(false);
+    expect(p.currentPrice).toBe(95);
+  });
+
+  it("round-trips the nested histories through toJSON", () => {
+    const p = makeModule({
+      priceAsOf: "2026-10-01",
+      priceHistory: [{ date: "2025-06-01", price: 80 }],
+      attributions: [{
+        attributionDate: "2024-01-01", acquisitionDate: "2024-03-01", numberOfShares: 50,
+        sharesAsOf: "2026-10-01", sharesHistory: [{ date: "2024-03-01", shares: 100 }]
+      }]
+    });
+
+    const p2 = new StockGrantModule(p.toJSON());
+    expect(p2.priceHistory).toEqual([{ date: "2025-06-01", price: 80 }]);
+    expect(p2.attributions[0].sharesHistory).toEqual([{ date: "2024-03-01", shares: 100 }]);
+    expect(p2.attributions[0].sharesAsOf).toBe("2026-10-01");
   });
 });

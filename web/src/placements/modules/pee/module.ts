@@ -23,8 +23,8 @@ export class PeeModule extends BasePlacement {
     return PeeEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPeeTaxExplanation(placement as PeeModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getPeeTaxExplanation(placement as PeeModule, fiscalProfile, now);
   }
 
   totalDeposits: number;
@@ -38,6 +38,15 @@ export class PeeModule extends BasePlacement {
     this.currentValue = Number(data.currentValue) || 0;
     this.netValue = Number(data.netValue) || 0;
     this.knowsNetValue = data.knowsNetValue === true;
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      totalDeposits: this.totalDeposits,
+      currentValue: this.currentValue,
+      netValue: this.netValue,
+      knowsNetValue: this.knowsNetValue
+    };
   }
 
   getLatentGain(now: Date = new Date()): number {

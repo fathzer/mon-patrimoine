@@ -48,6 +48,27 @@ body {
   white-space: nowrap;
 }
 
+/* On narrow screens the action buttons scroll horizontally instead of
+   overflowing out of reach. `min-width: 0` lets the flex item shrink below
+   its content size so scrolling actually kicks in; the thin scrollbar keeps
+   the affordance visible on desktop. */
+.top-bar-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  overflow-x: auto;
+  min-width: 0;
+  scrollbar-width: thin;
+}
+
+.top-bar-actions::-webkit-scrollbar {
+  height: 4px;
+}
+
+.top-bar-actions > button {
+  flex-shrink: 0;
+}
+
 .logout-icon {
   display: inline-block;
   width: 1.25rem;
@@ -89,7 +110,8 @@ body {
 }
 
 .summary-totals,
-.summary-breakdown {
+.summary-breakdown,
+.summary-history {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-xl);

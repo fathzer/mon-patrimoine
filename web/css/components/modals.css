@@ -38,6 +38,11 @@
   white-space: nowrap;
 }
 
+.modal-actions-left {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 .modal-actions-divider {
   display: none;
 }
@@ -62,8 +67,11 @@
     border-top: 1px solid var(--card-border);
     margin: 0;
   }
-  .modal-actions > .btn-danger {
+  .modal-actions-left {
     order: 3;
     width: 100%;
+  }
+  .modal-actions-left > button {
+    flex: 1;
   }
 }

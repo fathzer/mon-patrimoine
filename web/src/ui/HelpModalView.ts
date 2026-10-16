@@ -1,8 +1,12 @@
+import type { StorageManager } from '../storage/StorageManager.js';
+
 export class HelpModalView {
   container: HTMLElement;
+  _storageManager: StorageManager | null;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, storageManager: StorageManager | null = null) {
     this.container = container;
+    this._storageManager = storageManager;
   }
 
   show(): void {
@@ -42,7 +46,7 @@ export class HelpModalView {
                 <h4 class="help-faq-question">
                   Où sont stockées mes données ?
                 </h4>
-                <p>L'info-bulle du bouton de déconnexion affiche l'emplacement du fichier de données.</p>
+                <p id="help-data-location" class="help-provider-text" style="display: none;"></p>
                 <div class="help-provider-block">
                   <strong class="help-provider-title">• Google Drive</strong>
                   <p class="help-provider-text">
@@ -50,7 +54,7 @@ export class HelpModalView {
                   </p>
                   <ul class="help-provider-list">
                     <li><strong>Isolation stricte :</strong> L'accès accordé à l'application est limité exclusivement aux fichiers qu'elle a elle-même créés (périmètre <code>drive.file</code>). Elle n'a aucun accès au reste de vos documents.</li>
-                    <li><strong>Déplacement libre :</strong> Vous pouvez renommer et déplacer ce fichier dans le dossier de votre choix. L'application continuera de le retrouver grâce à son identifiant unique. En revanche, l'accès restreint qui lui est accordé à votre Drive ne lui permet pas de connaître le dossier dans lequel il est rangé : l'infobulle du bouton de déconnexion affiche le compte utilisé et le nom du fichier, mais pas son chemin complet.</li>
+                    <li><strong>Déplacement libre :</strong> Vous pouvez renommer et déplacer ce fichier dans le dossier de votre choix. L'application continuera de le retrouver grâce à son identifiant unique. En revanche, l'accès restreint qui lui est accordé à votre Drive ne lui permet pas de connaître le dossier dans lequel il est rangé : l'emplacement affiché ci-dessus lorsque vous êtes connecté indique le compte utilisé et le nom du fichier, mais pas son chemin complet.</li>
                     <li><strong>Pourquoi l'email est demandé :</strong> L'application a besoin de votre adresse email uniquement pour permettre le renouvellement automatique du jeton d'accès sans vous demander de vous reconnecter. Cet email n'est stocké que localement dans votre navigateur et n'est jamais transmis à nos serveurs.</li>
                     <li><strong>Fenêtre furtive :</strong> Lors du renouvellement automatique du jeton d'accès (toutes les heures), Google peut afficher brièvement une fenêtre de confirmation pour des raisons de sécurité. Ce comportement est imposé par Google et ne peut être désactivé. La fenêtre s'affiche furtivement puis se ferme automatiquement.</li>
                   </ul>
@@ -103,6 +107,27 @@ export class HelpModalView {
               </div>
             </section>
 
+            <!-- CHAPITRE 4 : Sources de données -->
+            <section class="help-section" style="margin-bottom: 0.5rem;">
+              <h3 class="help-section-title">
+                📊 Sources de données
+              </h3>
+              <p>
+                Les indices mensuels des prix à la consommation utilisés pour l'affichage en euros constants sont issus des publications de l'Institut national de la statistique et des études économiques (INSEE). Les séries suivantes (base 2025, ensemble des ménages, France) sont proposées dans la carte « Historique » :
+              </p>
+              <ul class="help-provider-list">
+                <li><code>insee-011814630</code> — Ensemble (tous produits)</li>
+                <li><code>insee-011814056</code> — Ensemble hors tabac</li>
+                <li><code>insee-011814080</code> — Ensemble hors tabac et alcool</li>
+              </ul>
+              <p>
+                Le mois courant n'étant pas encore publié, la base des « euros actuels » est le dernier mois disponible. Les montants affichés en euros constants le sont à titre indicatif ; les calculs et l'édition restent en euros de l'époque.
+              </p>
+              <p>
+                Les séries sont chargées à la demande depuis un <a href="https://gist.github.com/fathzer/5646b5558f759655717914400cc50a03" target="_blank" rel="noopener noreferrer" class="help-link">GitHub Gist</a> mis à jour automatiquement à chaque nouvelle publication de l'INSEE.
+              </p>
+            </section>
+
           </div>
 
           <!-- Pied de modale -->
@@ -122,6 +147,24 @@ export class HelpModalView {
     `;
 
     this._bindEvents();
+    this._fillDataLocation();
+  }
+
+  _fillDataLocation(): void {
+    if (!this._storageManager) return;
+    const el = this.container.querySelector<HTMLElement>('#help-data-location');
+    if (!el) return;
+    this._storageManager.getDataLocation()
+      .then(location => {
+        if (!location) return;
+        const label = document.createElement('strong');
+        label.textContent = 'Emplacement de vos données : ';
+        const value = document.createElement('code');
+        value.textContent = location;
+        el.append(label, value);
+        el.style.display = '';
+      })
+      .catch(error => console.error('Failed to get data location:', error));
   }
 
   _bindEvents(): void {

@@ -4,6 +4,7 @@ import {
   formatPercentage,
   formatCurrency,
   getWarning,
+  getUnvotedScheduleWarning,
   getTaxSection,
   HelpPopover
 } from '../../kit/v1/index.js';
@@ -18,10 +19,10 @@ const COMPARTMENT_LABELS: Record<PerCompartmentKey, string> = {
   employee_savings: 'Épargne salariale'
 };
 
-export function getPerTaxExplanation(placement: PerModule, fiscalProfile: FiscalProfile | undefined): string {
-  const socialRate = formatPercentage(placement.getSocialChargesRate());
+export function getPerTaxExplanation(placement: PerModule, fiscalProfile: FiscalProfile | undefined, now: Date = new Date()): string {
+  const socialRate = formatPercentage(placement.getSocialChargesRate(now));
   const compartments = placement.getComputedCompartments();
-  const pfuPopover = getPfuHelpPopover(fiscalProfile, 'PFU', true);
+  const pfuPopover = getPfuHelpPopover(fiscalProfile, 'PFU', true, false, now.getFullYear());
 
   // --- Social charges section ---
   const socialChargesNote = placement.knowsNetValue
@@ -62,7 +63,8 @@ export function getPerTaxExplanation(placement: PerModule, fiscalProfile: Fiscal
       </tbody>
     </table>
     <h3 style="margin-top: 1rem;">Détail par compartiment</h3>
-    ${compartmentDetails}`;
+    ${compartmentDetails}
+    ${getUnvotedScheduleWarning(now.getFullYear())}`;
 
   return `
 <div class="tax-explanation">

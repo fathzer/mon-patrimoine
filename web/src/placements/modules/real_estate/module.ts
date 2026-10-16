@@ -41,8 +41,8 @@ export class RealEstateModule extends BasePlacement {
     return RealEstateEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, _fiscalProfile: FiscalProfile): string {
-    return getRealEstateTaxExplanation(placement as RealEstateModule);
+  static getTaxExplanation(placement: BasePlacement, _fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getRealEstateTaxExplanation(placement as RealEstateModule, now);
   }
 
   primaryResidence: boolean;
@@ -62,6 +62,10 @@ export class RealEstateModule extends BasePlacement {
     this.freeAcquisition = data.freeAcquisition === true;
     this.acquisitionFees = Number(data.acquisitionFees ?? data.acquisitionFeesAmount) || 0;
     this.works = Number(data.works ?? data.worksAmount) || 0;
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return { currentValue: this.currentValue, works: this.works };
   }
 
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {

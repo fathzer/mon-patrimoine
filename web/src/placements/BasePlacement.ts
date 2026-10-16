@@ -1,7 +1,7 @@
 import { Category, CategoryValues } from '../core/Categories.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import type { FiscalProfile, PlacementIncome } from '../fiscality/TaxCalculator.js';
-import { compareDates, recordAt, resolveAt, valuesEqual } from '../core/DatedHistory.js';
+import { compareDates, deleteAt, makeResolver, recordAt, resolveAt, todayString, valuesEqual } from '../core/DatedHistory.js';
 import type { HistoryEntry } from '../core/DatedHistory.js';
 import { BasePlacementEditor } from '../ui/BasePlacementEditor.js';
 import type { AppStore } from '../core/AppStore.js';
@@ -56,13 +56,17 @@ export type PlacementEditorConstructor = new (container: HTMLElement, store?: Ap
 
 /**
  * Function signature for tax explanation providers.
- * The host calls it via `PlacementFactory.getTaxExplanation(type, placement, fp)`
+ * The host calls it via `PlacementFactory.getTaxExplanation(type, placement, fp, now)`
  * to render the tax explanation panel for a placement.
+ *
+ * `now` is the reference date of the view (the dashboard view date in a
+ * dated view, today otherwise): rates and age-dependent rules are resolved
+ * at it. The `placement` itself is already the dated reconstruction.
  *
  * Modules typically delegate to a `TaxExplanation.ts` helper, but the only
  * contract is that this function returns the HTML string for the panel.
  */
-export type TaxExplanationProvider = (placement: BasePlacement, fiscalProfile: FiscalProfile) => string;
+export type TaxExplanationProvider = (placement: BasePlacement, fiscalProfile: FiscalProfile, now?: Date) => string;
 
 /**
  * Describes the static side (constructor) that every placement module must
@@ -185,6 +189,15 @@ export abstract class BasePlacement {
   }
 
   /**
+   * Whether the placement was already closed at `date` (default: today).
+   * A dated record is the end-of-day state, so the placement is already
+   * gone on its closure date itself.
+   */
+  isClosedAt(date: string = todayString()): boolean {
+    return this.closedAt != null && date >= this.closedAt;
+  }
+
+  /**
    * Reconstructs the serialized placement state effective at `date`, as a
    * PlacementData usable with PlacementFactory.create(). Returns null when
    * the placement was not tracked yet at that date (before its first known
@@ -192,7 +205,7 @@ export abstract class BasePlacement {
    * and its `asOf` is the resolved state date.
    */
   getDataAt(date: string): PlacementData | null {
-    if (this.closedAt != null && date > this.closedAt) {
+    if (this.isClosedAt(date)) {
       return null;
     }
     const resolved = resolveAt(
@@ -208,6 +221,27 @@ export abstract class BasePlacement {
   }
 
   /**
+   * Resolves the in-force state at each of `dates` in a single pass —
+   * equivalent to calling `getDataAt` per date, but the history cursor
+   * only moves forward and `toJSON()` runs once: O(H + D) instead of
+   * O(H × D). Used to build historical series over many dates.
+   * @param dates query dates (YYYY-MM-DD), ascending.
+   * @returns one PlacementData per input date, aligned by index — null
+   *   where no state is in force at that date.
+   */
+  getDataSeriesAt(dates: readonly string[]): (PlacementData | null)[] {
+    const resolve = makeResolver([...this.history, { date: this.asOf, values: this.getEvolvingValues() }]);
+    const base = this.toJSON();
+    delete base.history;
+    return dates.map(date => {
+      const resolved = resolve(date);
+      return resolved == null || this.isClosedAt(date)
+        ? null
+        : { ...base, ...resolved.values, asOf: resolved.date };
+    });
+  }
+
+  /**
    * Records a state transition when this (new) instance replaces `previous`.
    * If the evolving values changed, the previous current state is pushed
    * into `history` at its own effective date, and `effectiveDate` becomes
@@ -219,7 +253,6 @@ export abstract class BasePlacement {
     if (previous == null) {
       return;
     }
-    this.closedAt ??= previous.closedAt;
     if (previous.asOf < effectiveDate && !valuesEqual(previous.getEvolvingValues(), this.getEvolvingValues())) {
       this.history = recordAt(previous.history, { date: previous.asOf, values: previous.getEvolvingValues() });
     } else {
@@ -233,6 +266,51 @@ export abstract class BasePlacement {
    */
   insertHistoryEntry(date: string, values: Record<string, unknown>): void {
     this.history = recordAt(this.history, { date, values });
+  }
+
+  /**
+   * Whether a recorded history entry exists at `date` — the marker for a
+   * deletable point. The current state (asOf) is never a history entry:
+   * deleting it is a rollback handled by deleteCurrentState().
+   */
+  hasHistoryEntry(date: string): boolean {
+    return this.history.some(e => e.date === date);
+  }
+
+  /**
+   * Deletes the state recorded at `date` — the undo path for a wrong
+   * retroactive entry. The current state is untouched; modules with nested
+   * histories override to clean every dimension's history.
+   */
+  deleteHistoryEntry(date: string): void {
+    this.history = deleteAt(this.history, date);
+  }
+
+  /**
+   * Whether the current point (asOf) can be deleted — i.e. rolled back to
+   * a previous recorded state.
+   */
+  canDeleteCurrentState(): boolean {
+    return this.history.length > 0;
+  }
+
+  /**
+   * Deletes the current point (asOf): the placement rolls back to the
+   * previous recorded state, which becomes the new current state. The
+   * default implementation restores the latest flat history entry — the
+   * evolving values stored there are serialized field values, assigned
+   * back verbatim. Modules with nested histories override. Returns false
+   * when there is no previous state to roll back to.
+   */
+  deleteCurrentState(): boolean {
+    const prev = this.history[this.history.length - 1];
+    if (!prev) {
+      return false;
+    }
+    this.history = this.history.slice(0, -1);
+    Object.assign(this, prev.values);
+    this.asOf = prev.date;
+    return true;
   }
 
   /**

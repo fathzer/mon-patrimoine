@@ -25,8 +25,8 @@ export class PeaModule extends BasePlacement {
     return PeaEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPeaTaxExplanation(placement as PeaModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getPeaTaxExplanation(placement as PeaModule, fiscalProfile, now);
   }
 
   totalDeposits: number;
@@ -40,6 +40,10 @@ export class PeaModule extends BasePlacement {
     this.currentValue = Number(data.currentValue) || 0;
     this.openingDate = data.openingDate || new Date().toISOString().split('T')[0];
     this.peaType = data.peaType || 'pea';
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return { totalDeposits: this.totalDeposits, currentValue: this.currentValue };
   }
 
   getHoldingYears(now: Date = new Date()): number {

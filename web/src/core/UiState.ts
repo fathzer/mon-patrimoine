@@ -4,6 +4,11 @@ export interface UiStateData {
   sortLevels: SortLevel[];
   breakdownVisible: boolean;
   filterTotals: boolean;
+  historyVisible: boolean;
+  historyVariationsOpen: boolean;
+  showClosedPlacements: boolean;
+  /** Selected INSEE inflation series id, or null for "no inflation". */
+  inflationSource: string | null;
 }
 
 export type SortField = 'name' | 'institution' | 'category' | 'grossValue' | 'netValue';
@@ -26,7 +31,11 @@ export class UiState {
         selectedInstitutions: Array.isArray(parsed.selectedInstitutions) ? parsed.selectedInstitutions : [],
         sortLevels: Array.isArray(parsed.sortLevels) ? parsed.sortLevels as SortLevel[] : [],
         breakdownVisible: typeof parsed.breakdownVisible === 'boolean' ? parsed.breakdownVisible : true,
-        filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false
+        filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false,
+        historyVisible: typeof parsed.historyVisible === 'boolean' ? parsed.historyVisible : false,
+        historyVariationsOpen: typeof parsed.historyVariationsOpen === 'boolean' ? parsed.historyVariationsOpen : true,
+        showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false,
+        inflationSource: typeof parsed.inflationSource === 'string' ? parsed.inflationSource : null
       };
     } catch {
       return this._default();
@@ -48,7 +57,11 @@ export class UiState {
       selectedInstitutions: [],
       sortLevels: [],
       breakdownVisible: true,
-      filterTotals: false
+      filterTotals: false,
+      historyVisible: false,
+      historyVariationsOpen: true,
+      showClosedPlacements: false,
+      inflationSource: null
     };
   }
 }

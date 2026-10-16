@@ -33,6 +33,10 @@ export class CheckingAccountModule extends BasePlacement {
     this.cardBalance = Number(data.cardBalance) || 0;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return { currentValue: this.currentValue, cardBalance: this.cardBalance };
+  }
+
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {
     const grossValue = this.currentValue - this.cardBalance;
     return {

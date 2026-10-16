@@ -30,4 +30,9 @@ export class I18n {
 
     return translation as string;
   }
+
+  /** Formats a YYYY-MM-DD date in the current locale (e.g. 31/12/2025). */
+  static formatDate(dateStr: string): string {
+    return new Date(`${dateStr}T12:00:00`).toLocaleDateString('fr-FR');
+  }
 }

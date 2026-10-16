@@ -1,11 +1,16 @@
 import { I18n } from '../core/I18n.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
+import { EARLIEST_FISCAL_YEAR } from '../fiscality/rates.js';
 import { getTaxRulesHelpPopover } from '../i18n/TaxExplanation.js';
-import { getPfuHelpPopover } from '../i18n/commonTaxExplanations.js';
+import { getPfuHelpPopover, getUnvotedScheduleWarning } from '../i18n/commonTaxExplanations.js';
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
+import { TAX_ICON, LOCK_ICON, UNLOCK_ICON, TRASH_ICON } from './icons.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
-import type { HouseholdData, MaritalStatus } from '../fiscality/Household.js';
+import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
+import { MaritalStatus } from '../fiscality/Household.js';
+import type { HouseholdData } from '../fiscality/Household.js';
 
 type CaseLetter = 'P' | 'F' | 'W' | 'S' | 'G';
 
@@ -15,15 +20,15 @@ type CaseLetter = 'P' | 'F' | 'W' | 'S' | 'G';
 // and G (war-widow pension) when widowed. The spouse ticks F (invalidity,
 // including a spouse who died during the income year for a widowed person).
 const DECLARANT_CASE_OPTIONS: Record<MaritalStatus, CaseLetter[]> = {
-  single: ['P', 'W'],
-  married: ['P', 'S'],
-  widowed: ['P', 'W', 'G']
+  [MaritalStatus.SINGLE]: ['P', 'W'],
+  [MaritalStatus.MARRIED]: ['P', 'S'],
+  [MaritalStatus.WIDOWED]: ['P', 'W', 'G']
 };
 
 const SPOUSE_CASE_OPTIONS: Record<MaritalStatus, CaseLetter[]> = {
-  single: [],
-  married: ['F'],
-  widowed: ['F']
+  [MaritalStatus.SINGLE]: [],
+  [MaritalStatus.MARRIED]: ['F'],
+  [MaritalStatus.WIDOWED]: ['F']
 };
 
 function caseLabel(letter: string): string {
@@ -45,21 +50,141 @@ function householdCase(household: HouseholdData, letters: CaseLetter[]): string 
   return letters.find((letter) => household[`case${letter}`] === true) ?? '';
 }
 
+interface ProfileYearContext {
+  /** Year currently displayed in the year bar. */
+  viewYear: number;
+  /** Profile resolved for `viewYear` (recorded, or carried over from an earlier year). */
+  profile: FiscalProfile;
+  /** Year `profile` was actually recorded for. */
+  recordedYear: number;
+  /** `viewYear` is the latest recorded point — the live "current" profile. */
+  isCurrent: boolean;
+  /** A profile point is recorded after `viewYear`: saving there is a retro
+   *  write, gated behind the lock. */
+  isRetro: boolean;
+  /** The past-year lock released by the user (retro years open locked). */
+  unlocked: boolean;
+  /** An explicit profile point is recorded at `viewYear`. */
+  isRecordedPoint: boolean;
+  /** Recorded years immediately before/after `viewYear` (◀/▶ navigation). */
+  prevYear: number | null;
+  nextYear: number | null;
+}
+
 export class SettingsModalView {
   container: HTMLElement;
   store: AppStore;
+  _ctx: ProfileYearContext | null = null;
 
   constructor(container: HTMLElement, store: AppStore) {
     this.container = container;
     this.store = store;
   }
 
-  show(): void {
-    const profile = this.store.getTaxProfile();
+  show(viewYear?: number): void {
+    const ctx = this._resolveYearContext(viewYear ?? new Date().getFullYear());
+    this._ctx = ctx;
+    const currentYear = new Date().getFullYear();
+
+    this.container.innerHTML = `
+      <div class="modal-overlay">
+        <div class="modal-content help-modal-content">
+
+          <h2 class="help-modal-header">
+            <span style="display: inline-block; vertical-align: -0.25rem; margin-right: 0.3rem;">${TAX_ICON}</span>
+            ${I18n.t('settings.title')}
+          </h2>
+
+          <!-- The year bar lives outside the form: navigation rebuilds only
+               the form, so the year input keeps its focus. -->
+          <div class="history-date-bar" id="profile-year-bar">
+            <label for="hist-year">${I18n.t('settings.profileYear')}</label>
+            <button type="button" id="hist-prev" class="btn-secondary" title="${I18n.t('history.prevPoint')}" ${ctx.prevYear == null ? 'disabled' : ''}>◀</button>
+            <input type="number" id="hist-year" class="form-control" min="${EARLIEST_FISCAL_YEAR}" max="${currentYear}" step="1" value="${ctx.viewYear}" />
+            <button type="button" id="hist-next" class="btn-secondary" title="${I18n.t('history.nextPoint')}" ${ctx.nextYear == null ? 'disabled' : ''}>▶</button>
+            <span id="hist-point-meta">${this._renderYearMeta(ctx)}</span>
+          </div>
+
+          <form id="form-settings" class="help-modal-body"></form>
+
+        </div>
+      </div>
+    `;
+
+    this._renderForm(ctx);
+    this._bindShellEvents();
+  }
+
+  _resolveYearContext(year: number): ProfileYearContext {
+    const years = this.store.getTaxProfileYears();
+    const resolved = this.store.resolveTaxProfileForYear(year);
+    const latestYear = this.store.state.taxProfileYear;
+    return {
+      viewYear: year,
+      profile: resolved.profile,
+      recordedYear: resolved.recordedYear,
+      isCurrent: year === latestYear,
+      isRetro: year < latestYear,
+      unlocked: false,
+      isRecordedPoint: year === latestYear || this.store.hasTaxProfileHistoryEntry(year),
+      prevYear: [...years].reverse().find(y => y < year) ?? null,
+      nextYear: years.find(y => y > year) ?? null
+    };
+  }
+
+  /** Lock icon, badge + delete button for the viewed year — swapped in place
+   *  on navigation. Past years open locked: the explicit unlock gesture
+   *  prevents accidental retroactive writes. */
+  _renderYearMeta(ctx: ProfileYearContext): string {
+    const lockTitle = I18n.t(ctx.unlocked ? 'history.lockPoint' : 'history.unlockPoint');
+    const lockIcon = ctx.unlocked ? UNLOCK_ICON : LOCK_ICON;
+    const lockButton = ctx.isRetro ? `
+        <button type="button" id="hist-lock" class="btn-secondary" title="${lockTitle}">
+          ${lockIcon}
+        </button>` : '';
+    let badge: string;
+    if (ctx.isCurrent) {
+      badge = `<span class="history-point-badge current">${I18n.t('settings.currentProfile')}</span>`;
+    } else if (ctx.isRecordedPoint) {
+      badge = `<span class="history-point-badge existing">${I18n.t('history.existingPoint')}</span>`;
+    } else {
+      badge = `<span class="history-point-badge new">${I18n.t('settings.carriedOver', { year: String(ctx.recordedYear) })}</span>`;
+    }
+    // The latest point is the live current profile — only past recorded
+    // years can be deleted, once unlocked.
+    const deleteButton = ctx.isRecordedPoint && ctx.isRetro && ctx.unlocked ? `
+        <button type="button" id="hist-delete" class="btn-danger" title="${I18n.t('history.deletePoint')}">
+          ${TRASH_ICON}
+        </button>` : '';
+    return lockButton + badge + deleteButton;
+  }
+
+  /**
+   * In-place year navigation: updates the bar meta and rebuilds the form —
+   * the year input itself is static, so it keeps its focus.
+   */
+  _navigate(year: number): void {
+    const ctx = this._resolveYearContext(year);
+    this._ctx = ctx;
+    (this.container.querySelector('#hist-year') as HTMLInputElement).value = String(year);
+    (this.container.querySelector('#hist-point-meta') as HTMLElement).innerHTML = this._renderYearMeta(ctx);
+    (this.container.querySelector('#hist-prev') as HTMLButtonElement).disabled = ctx.prevYear == null;
+    (this.container.querySelector('#hist-next') as HTMLButtonElement).disabled = ctx.nextYear == null;
+    this._renderForm(ctx);
+  }
+
+  _renderForm(ctx: ProfileYearContext): void {
+    const form = this.container.querySelector('#form-settings') as HTMLFormElement;
+    form.innerHTML = this._formHtml(ctx);
+    this._bindFormEvents(ctx);
+  }
+
+  _formHtml(ctx: ProfileYearContext): string {
+    const profile = ctx.profile;
     const totalChildren = profile.household.childrenCount + profile.household.alternateChildrenCount;
-    const singleParentDisabled = profile.household.maritalStatus !== 'single' || totalChildren === 0;
+    const singleParentDisabled = profile.household.maritalStatus !== MaritalStatus.SINGLE || totalChildren === 0;
     const singleParentChecked = singleParentDisabled ? false : (profile.household.isSingleParent ?? false);
-    const caseLDisabled = profile.household.maritalStatus === 'married' || totalChildren > 0;
+    const caseLDisabled = MaritalStatus.isCouple(profile.household.maritalStatus) || totalChildren > 0;
     const caseLChecked = caseLDisabled ? false : (profile.household.caseL ?? false);
     const declarantCase = householdCase(profile.household, DECLARANT_CASE_OPTIONS[profile.household.maritalStatus]);
     const spouseCase = householdCase(profile.household, SPOUSE_CASE_OPTIONS[profile.household.maritalStatus]);
@@ -83,21 +208,34 @@ export class SettingsModalView {
         <li><b>G</b> : vous avez une pension de veuve de guerre.</li>
       </ul>`;
 
-    const fiscalSummary = TaxCalculator.computeFiscalMetrics(profile);
-    const parentsParts = profile.household.maritalStatus === 'married' ? 2 : 1;
+    const fiscalSummary = TaxCalculator.computeFiscalMetrics(profile, ctx.viewYear);
+    const parentsParts = MaritalStatus.isCouple(profile.household.maritalStatus) ? 2 : 1;
     const extraParts = fiscalSummary.parts - parentsParts;
-    const taxResult = TaxCalculator.computeFinalTax(profile.taxableIncome, profile.household.maritalStatus, extraParts, fiscalSummary.halfPartReductionCeiling);
+    const taxResult = TaxCalculator.computeFinalTax(profile.taxableIncome, profile.household.maritalStatus, extraParts, fiscalSummary.halfPartReductionCeiling, ctx.viewYear);
+    const locked = ctx.isRetro && !ctx.unlocked;
+    // Chained entry: saving without closing is offered only while a later
+    // year remains to fill in.
+    const saveStayButton = ctx.viewYear < new Date().getFullYear() ? `
+              <button type="button" id="btn-save-stay" class="btn-secondary">
+                ${I18n.t('actions.saveStay')}
+              </button>` : '';
+    const actionsHtml = locked ? `
+            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
+              <button type="button" id="btn-cancel-settings" class="btn-secondary">
+                ${I18n.t('form.close')}
+              </button>
+            </div>` : `
+            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
+              <button type="button" id="btn-cancel-settings" class="btn-secondary">
+                ${I18n.t('actions.cancel')}
+              </button>
+              ${saveStayButton}
+              <button type="submit" class="btn-primary">
+                ${I18n.t('actions.save')}
+              </button>
+            </div>`;
 
-    this.container.innerHTML = `
-      <div class="modal-overlay">
-        <div class="modal-content help-modal-content">
-
-          <h2 class="help-modal-header">
-            ⚙️ ${I18n.t('settings.title')}
-          </h2>
-
-          <form id="form-settings" class="help-modal-body">
-
+    return `
             <!-- SECTION 1 : Situation Familiale & Parts -->
             <section class="help-section">
               <h3 class="help-section-title">
@@ -110,9 +248,9 @@ export class SettingsModalView {
                     ${I18n.t('settings.maritalStatus')}
                   </label>
                   <select id="status-select" name="maritalStatus" class="form-control" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
-                    <option value="single" ${profile.household.maritalStatus === 'single' ? 'selected' : ''}>${I18n.t('settings.maritalStatusSingle')}</option>
-                    <option value="married" ${profile.household.maritalStatus === 'married' ? 'selected' : ''}>${I18n.t('settings.maritalStatusMarried')}</option>
-                    <option value="widowed" ${profile.household.maritalStatus === 'widowed' ? 'selected' : ''}>${I18n.t('settings.maritalStatusWidowed')}</option>
+                    <option value="${MaritalStatus.SINGLE}" ${profile.household.maritalStatus === MaritalStatus.SINGLE ? 'selected' : ''}>${I18n.t('settings.maritalStatusSingle')}</option>
+                    <option value="${MaritalStatus.MARRIED}" ${profile.household.maritalStatus === MaritalStatus.MARRIED ? 'selected' : ''}>${I18n.t('settings.maritalStatusMarried')}</option>
+                    <option value="${MaritalStatus.WIDOWED}" ${profile.household.maritalStatus === MaritalStatus.WIDOWED ? 'selected' : ''}>${I18n.t('settings.maritalStatusWidowed')}</option>
                   </select>
 
                   <div style="display: flex; align-items: center; gap: 0.3rem; margin-top: 0.6rem;">
@@ -128,7 +266,7 @@ export class SettingsModalView {
                   <label id="spouse-case-label" for="spouse-case-input" style="display: block; font-weight: bold; margin: 0.6rem 0 0.3rem;">
                     ${I18n.t('settings.spouseCase')}
                   </label>
-                  <select id="spouse-case-input" name="spouseCase" class="form-control" ${profile.household.maritalStatus === 'single' ? 'disabled' : ''} style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
+                  <select id="spouse-case-input" name="spouseCase" class="form-control" ${profile.household.maritalStatus === MaritalStatus.SINGLE ? 'disabled' : ''} style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);">
                     ${caseOptionsHtml(SPOUSE_CASE_OPTIONS[profile.household.maritalStatus], spouseCase)}
                   </select>
                 </div>
@@ -202,12 +340,14 @@ export class SettingsModalView {
                     ${I18n.t('settings.taxableIncome')}
                     ${HelpPopover.getHtml({ content: netIncomeHelp, label: '?', icon: true })}
                   </label>
-                  <input type="number" id="taxable-income-input" name="taxableIncome" step="100" min="0" value="${profile.taxableIncome}" class="form-control" style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
+                  <input type="number" id="taxable-income-input" name="taxableIncome" step="1" min="0" value="${profile.taxableIncome}" class="form-control" style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
                 </div>
                 <span style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-top: 0.3rem;">
                   ${I18n.t('settings.tmi')} : <span id="tmi-summary-display">${Math.round(fiscalSummary.tmi * 100)} %</span>
                   · ${I18n.t('settings.estimatedTax')} : <span id="final-tax-display">${taxResult.finalTax.toLocaleString('fr-FR')} €</span>
+                  ${HelpPopover.getHtml({ title: I18n.t('settings.estimatedTax'), content: I18n.t('settings.estimatedTaxHelp'), label: '?', icon: true })}
                 </span>
+                ${getUnvotedScheduleWarning(ctx.viewYear)}
               </div>
             </section>
 
@@ -226,44 +366,84 @@ export class SettingsModalView {
                     labelOn: I18n.t('settings.pfuEnabled'),
                     checked: profile.usePfu !== false
                   })}
-                  ${getPfuHelpPopover(profile, '?', false, true)}
+                  ${getPfuHelpPopover(profile, '?', false, true, ctx.viewYear)}
                 </div>
               </div>
             </section>
 
             <div style="text-align: right; margin-bottom: 1rem;">
-              ${getTaxRulesHelpPopover(I18n.t('settings.taxRules'))}
+              ${getTaxRulesHelpPopover(I18n.t('settings.taxRules'), ctx.viewYear)}
             </div>
 
-            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
-              <button type="button" id="btn-cancel-settings" class="btn-secondary">
-                ${I18n.t('actions.cancel')}
-              </button>
-              <button type="submit" class="btn-primary">
-                ${I18n.t('actions.save')}
-              </button>
-            </div>
-          </form>
-
-        </div>
-      </div>
+            ${actionsHtml}
     `;
-
-    this._bindEvents();
   }
 
-  _bindEvents(): void {
-    const form = this.container.querySelector('#form-settings') as HTMLFormElement;
-    const cancelBtn = this.container.querySelector('#btn-cancel-settings');
+  /** Locks every form control — retro years are read-only until unlocked. */
+  _applyLockedState(form: HTMLFormElement): void {
+    form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      'input, select, textarea'
+    ).forEach(el => {
+      if (el instanceof HTMLInputElement && el.closest('.toggle-switch')) {
+        ToggleSwitch.setEnabled(el, false);
+      } else {
+        el.disabled = true;
+      }
+    });
+  }
+
+  /** Shell-level bindings: overlay close and the year bar (delegated — the meta is rebuilt on navigation). */
+  _bindShellEvents(): void {
     const overlay = this.container.querySelector('.modal-overlay');
-
-    const close = (): void => {
-      this.container.innerHTML = '';
-    };
-
-    cancelBtn?.addEventListener('click', close);
     overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
+      if (e.target === overlay) this.container.innerHTML = '';
+    });
+
+    const bar = this.container.querySelector('#profile-year-bar') as HTMLElement;
+    bar.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      const ctx = this._ctx!;
+      if (target.closest('#hist-prev') && ctx.prevYear != null) {
+        this._navigate(ctx.prevYear);
+      } else if (target.closest('#hist-next') && ctx.nextYear != null) {
+        this._navigate(ctx.nextYear);
+      } else if (target.closest('#hist-lock')) {
+        ctx.unlocked = !ctx.unlocked;
+        (bar.querySelector('#hist-point-meta') as HTMLElement).innerHTML = this._renderYearMeta(ctx);
+        this._renderForm(ctx);
+      } else if (target.closest('#hist-delete')) {
+        const message = I18n.t('settings.confirmDeleteYear', { year: String(ctx.viewYear) });
+        if (await ConfirmDialog.ask(message, this.container)) {
+          this.store.deleteTaxProfileHistoryEntry(ctx.viewYear);
+          // The year no longer holds a point: it now carries over the
+          // previous recorded profile — the badge updates in place.
+          this._navigate(ctx.viewYear);
+        }
+      }
+    });
+    bar.addEventListener('change', (e) => {
+      const input = e.target as HTMLInputElement;
+      if (input.id !== 'hist-year') {
+        return;
+      }
+      const currentYear = new Date().getFullYear();
+      const parsed = Number.parseInt(input.value, 10);
+      const year = Number.isFinite(parsed)
+        ? Math.min(Math.max(parsed, EARLIEST_FISCAL_YEAR), currentYear)
+        : this._ctx!.viewYear;
+      if (year !== this._ctx!.viewYear) {
+        this._navigate(year);
+      } else {
+        input.value = String(year);
+      }
+    });
+  }
+
+  _bindFormEvents(ctx: ProfileYearContext): void {
+    const form = this.container.querySelector('#form-settings') as HTMLFormElement;
+
+    form.querySelector('#btn-cancel-settings')?.addEventListener('click', () => {
+      this.container.innerHTML = '';
     });
 
     const statusSelect = form.querySelector('#status-select') as HTMLSelectElement;
@@ -286,7 +466,7 @@ export class SettingsModalView {
     const finalTaxDisplay = form.querySelector('#final-tax-display');
 
     const updateSingleParent = (): void => {
-      const isSingle = statusSelect.value === 'single';
+      const isSingle = statusSelect.value === MaritalStatus.SINGLE;
       const children = Number.parseInt(childrenInput.value || '0', 10);
       const alternateChildren = Number.parseInt(alternateChildrenInput.value || '0', 10);
       const isActive = isSingle && (children + alternateChildren) > 0;
@@ -294,7 +474,7 @@ export class SettingsModalView {
       if (!isActive) {
         singleParentInput.checked = false;
       }
-      const isCaseLActive = statusSelect.value !== 'married' && (children + alternateChildren) === 0;
+      const isCaseLActive = !MaritalStatus.isCouple(statusSelect.value) && (children + alternateChildren) === 0;
       ToggleSwitch.setEnabled(caseLInput, isCaseLActive);
       if (!isCaseLActive) {
         caseLInput.checked = false;
@@ -365,11 +545,11 @@ export class SettingsModalView {
           caseF: spouseCaseInput.value === 'F'
         },
         taxableIncome
-      });
+      }, ctx.viewYear);
 
-      const parentsParts = statusSelect.value === 'married' ? 2 : 1;
+      const parentsParts = MaritalStatus.isCouple(statusSelect.value) ? 2 : 1;
       const extraParts = summary.parts - parentsParts;
-      const taxResult = TaxCalculator.computeFinalTax(taxableIncome, statusSelect.value as MaritalStatus, extraParts, summary.halfPartReductionCeiling);
+      const taxResult = TaxCalculator.computeFinalTax(taxableIncome, statusSelect.value as MaritalStatus, extraParts, summary.halfPartReductionCeiling, ctx.viewYear);
 
       if (partsDisplay) {
         partsDisplay.textContent = summary.parts.toLocaleString('fr-FR');
@@ -420,48 +600,73 @@ export class SettingsModalView {
     // Apply the initial disabled look for the spouse case select
     updateDisabilityCases();
     updateDisabledChildrenFields();
+    if (ctx.isRetro && !ctx.unlocked) {
+      this._applyLockedState(form);
+    }
 
-    form?.addEventListener('submit', (e) => {
+    // The <form> element outlives its content (only its innerHTML is rebuilt
+    // on year navigation): assigning onsubmit replaces the previous handler —
+    // addEventListener would stack one handler per visited year, each writing
+    // at its own captured year.
+    form.onsubmit = (e) => {
       e.preventDefault();
-      const formData = new FormData(form);
-      const taxableIncome = Number.parseFloat(formData.get('taxableIncome') as string || '0');
-      const maritalStatus = formData.get('maritalStatus') as MaritalStatus;
-      const childrenCount = Number.parseInt(formData.get('childrenCount') as string || '0', 10);
-      const alternateChildrenCount = Number.parseInt(formData.get('alternateChildrenCount') as string || '0', 10);
-      const disabledChildrenCount = Number.parseInt(formData.get('disabledChildrenCount') as string || '0', 10);
-      const disabledAlternateChildrenCount = Number.parseInt(formData.get('disabledAlternateChildrenCount') as string || '0', 10);
-      const totalChildren = childrenCount + alternateChildrenCount;
-      const isSingleParent = maritalStatus === 'single' && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
-      const caseL = maritalStatus !== 'married' && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
-      const declarantCaseValues: string[] = DECLARANT_CASE_OPTIONS[maritalStatus];
-      const spouseCaseValues: string[] = SPOUSE_CASE_OPTIONS[maritalStatus];
-      const declarantCaseValue = formData.get('declarantCase') as string;
-      const spouseCaseValue = formData.get('spouseCase') as string;
-      const declarantCase = declarantCaseValues.includes(declarantCaseValue) ? declarantCaseValue : '';
-      const spouseCase = spouseCaseValues.includes(spouseCaseValue) ? spouseCaseValue : '';
-      const usePfu = formData.get('usePfu') === 'on';
-
-      const profileData: TaxProfileInput = {
-        household: {
-          maritalStatus,
-          childrenCount,
-          alternateChildrenCount,
-          disabledChildrenCount,
-          disabledAlternateChildrenCount,
-          isSingleParent,
-          caseL,
-          caseP: declarantCase === 'P',
-          caseW: declarantCase === 'W',
-          caseG: declarantCase === 'G',
-          caseS: declarantCase === 'S',
-          caseF: spouseCase === 'F'
-        },
-        taxableIncome,
-        usePfu
-      };
-
-      this.store.updateTaxProfile(profileData);
-      close();
+      // A locked retro year must never write to the store.
+      if (ctx.isRetro && !ctx.unlocked) return;
+      this._save(ctx, true);
+    };
+    form.querySelector('#btn-save-stay')?.addEventListener('click', () => {
+      this._save(ctx, false);
     });
+  }
+
+  _save(ctx: ProfileYearContext, closeAfter: boolean): void {
+    const form = this.container.querySelector('#form-settings') as HTMLFormElement;
+    this.store.updateTaxProfile(this._collectProfileData(form), ctx.viewYear);
+    if (closeAfter) {
+      this.container.innerHTML = '';
+    } else {
+      // Chained entry: the following year opens prefilled from the point
+      // just recorded.
+      this._navigate(Math.min(ctx.viewYear + 1, new Date().getFullYear()));
+    }
+  }
+
+  _collectProfileData(form: HTMLFormElement): TaxProfileInput {
+    const formData = new FormData(form);
+    const taxableIncome = Number.parseFloat(formData.get('taxableIncome') as string || '0');
+    const maritalStatus = formData.get('maritalStatus') as MaritalStatus;
+    const childrenCount = Number.parseInt(formData.get('childrenCount') as string || '0', 10);
+    const alternateChildrenCount = Number.parseInt(formData.get('alternateChildrenCount') as string || '0', 10);
+    const disabledChildrenCount = Number.parseInt(formData.get('disabledChildrenCount') as string || '0', 10);
+    const disabledAlternateChildrenCount = Number.parseInt(formData.get('disabledAlternateChildrenCount') as string || '0', 10);
+    const totalChildren = childrenCount + alternateChildrenCount;
+    const isSingleParent = maritalStatus === MaritalStatus.SINGLE && totalChildren > 0 ? formData.get('isSingleParent') === 'on' : false;
+    const caseL = !MaritalStatus.isCouple(maritalStatus) && totalChildren === 0 ? formData.get('caseL') === 'on' : false;
+    const declarantCaseValues: string[] = DECLARANT_CASE_OPTIONS[maritalStatus];
+    const spouseCaseValues: string[] = SPOUSE_CASE_OPTIONS[maritalStatus];
+    const declarantCaseValue = formData.get('declarantCase') as string;
+    const spouseCaseValue = formData.get('spouseCase') as string;
+    const declarantCase = declarantCaseValues.includes(declarantCaseValue) ? declarantCaseValue : '';
+    const spouseCase = spouseCaseValues.includes(spouseCaseValue) ? spouseCaseValue : '';
+    const usePfu = formData.get('usePfu') === 'on';
+
+    return {
+      household: {
+        maritalStatus,
+        childrenCount,
+        alternateChildrenCount,
+        disabledChildrenCount,
+        disabledAlternateChildrenCount,
+        isSingleParent,
+        caseL,
+        caseP: declarantCase === 'P',
+        caseW: declarantCase === 'W',
+        caseG: declarantCase === 'G',
+        caseS: declarantCase === 'S',
+        caseF: spouseCase === 'F'
+      },
+      taxableIncome,
+      usePfu
+    };
   }
 }

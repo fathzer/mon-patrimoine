@@ -48,8 +48,8 @@ export class PerModule extends BasePlacement {
     return PerEditor;
   }
 
-  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile): string {
-    return getPerTaxExplanation(placement as PerModule, fiscalProfile);
+  static getTaxExplanation(placement: BasePlacement, fiscalProfile: FiscalProfile, now: Date = new Date()): string {
+    return getPerTaxExplanation(placement as PerModule, fiscalProfile, now);
   }
 
   grossValue: number;
@@ -76,6 +76,17 @@ export class PerModule extends BasePlacement {
     return {
       contributions,
       gain: rawGain == null ? undefined : Number(rawGain) || 0
+    };
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      grossValue: this.grossValue,
+      netValue: this.netValue,
+      knowsNetValue: this.knowsNetValue,
+      deducted: this.deducted,
+      nonDeducted: this.nonDeducted,
+      employeeSavings: this.employeeSavings
     };
   }
 

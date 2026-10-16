@@ -1,6 +1,26 @@
-export type MaritalStatus = 'single' | 'married' | 'widowed';
+/**
+ * Marital statuses of the tax household, modeled like a Java enum: the members
+ * are the serialized values and isCouple() plays the role of an enum method.
+ * The MaritalStatus type below is derived from the members, so both stay in sync.
+ */
+export const MaritalStatus = {
+  SINGLE: 'single',
+  MARRIED: 'married',
+  WIDOWED: 'widowed',
 
-const MARITAL_STATUSES: ReadonlySet<MaritalStatus> = new Set(['single', 'married', 'widowed']);
+  /**
+   * Whether the status designates a jointly-taxed couple (shared allowances,
+   * doubled ceilings, 2 quotient parts).
+   */
+  isCouple(status: string | undefined | null): boolean {
+    return status != null && COUPLE_MARITAL_STATUSES.has(status as MaritalStatus);
+  }
+} as const;
+
+export type MaritalStatus = Extract<(typeof MaritalStatus)[keyof typeof MaritalStatus], string>;
+
+const MARITAL_STATUSES: ReadonlySet<MaritalStatus> = new Set([MaritalStatus.SINGLE, MaritalStatus.MARRIED, MaritalStatus.WIDOWED]);
+const COUPLE_MARITAL_STATUSES: ReadonlySet<MaritalStatus> = new Set([MaritalStatus.MARRIED]);
 
 export interface HouseholdData {
   maritalStatus?: MaritalStatus;
@@ -34,7 +54,7 @@ export class Household {
   caseG: boolean;
 
   constructor(data: HouseholdData = {}) {
-    this.maritalStatus = data.maritalStatus ?? 'single';
+    this.maritalStatus = data.maritalStatus ?? MaritalStatus.SINGLE;
     this.childrenCount = data.childrenCount ?? 0;
     this.alternateChildrenCount = data.alternateChildrenCount ?? 0;
     this.disabledChildrenCount = data.disabledChildrenCount ?? 0;

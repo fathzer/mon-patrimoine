@@ -68,6 +68,22 @@
   background: var(--card-border);
 }
 
+/* Rows for placements with no state at the view date (closed or untracked). */
+.asset-row-inactive {
+  opacity: 0.45;
+}
+
+.tag-inactive {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+  border: 1px dashed var(--text-muted);
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
 .tax-help-btn {
   display: inline-flex;
   align-items: center;
@@ -88,6 +104,21 @@
 .tax-help-btn:hover {
   border-color: var(--accent-blue);
   color: var(--accent-blue);
+}
+
+/* The closed-placements toggle uses a shorter label on narrow screens. */
+.show-closed-label-short {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .show-closed-label-long {
+    display: none;
+  }
+
+  .show-closed-label-short {
+    display: inline;
+  }
 }
 
 /* Responsive cards for narrow screens */
@@ -202,18 +233,10 @@
   }
 }
 
+/* The add button lives at the bottom of the list; the toolbar keeps the
+   filters and the closed-placements toggle. */
 .asset-table-fab {
-  display: none;
-}
-
-@media (max-width: 520px) {
-  .toolbar-actions .btn-add-asset {
-    display: none;
-  }
-
-  .asset-table-fab {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--space-md) 0;
-  }
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-md) 0;
 }

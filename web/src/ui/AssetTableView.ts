@@ -3,6 +3,8 @@ import { UiState } from '../core/UiState.js';
 import type { SortLevel, SortField } from '../core/UiState.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
+import { ToggleSwitch } from './ToggleSwitch.js';
+import { getInflationDisplayWarning } from '../i18n/commonTaxExplanations.js';
 import type { AppStore, EvaluationEntry, GlobalSummary } from '../core/AppStore.js';
 import type { BasePlacement, Evaluation } from '../placements/BasePlacement.js';
 
@@ -36,6 +38,10 @@ export class AssetTableView {
   container: HTMLElement | null;
   summary: GlobalSummary | null;
   modalRoot: HTMLElement | null;
+  _showInactive: boolean;
+  _onToggleInactive: ((show: boolean) => void) | null;
+  /** Presentation-only inflation factor applied to displayed amounts. */
+  _displayFactor: number;
 
   constructor(store: AppStore, options: AssetTableOptions = {}) {
     this.store = store;
@@ -50,21 +56,33 @@ export class AssetTableView {
     this.container = null;
     this.summary = null;
     this.modalRoot = null;
+    this._showInactive = false;
+    this._onToggleInactive = null;
+    this._displayFactor = 1;
   }
 
   setContainer(container: HTMLElement): void {
     this.container = container;
   }
 
-  render(summary: GlobalSummary, modalRoot: HTMLElement): void {
+  render(summary: GlobalSummary, modalRoot: HTMLElement, showInactive = false, onToggleInactive: ((show: boolean) => void) | null = null): void {
     this._closePopup();
     this.summary = summary;
+    this._displayFactor = summary.priceLevelFactor ?? 1;
     this.modalRoot = modalRoot;
+    this._showInactive = showInactive;
+    this._onToggleInactive = onToggleInactive;
     this.container!.innerHTML = `
       <div class="toolbar">
         ${this._renderFilterBar(summary)}
         <div class="toolbar-actions">
-          <button class="btn-primary btn-add-asset" type="button">${I18n.t('actions.addAsset')}</button>
+          ${ToggleSwitch.create({
+            name: 'show-inactive',
+            id: 'show-inactive-toggle',
+            // Narrow screens swap in the short label via CSS.
+            label: `<span class="show-closed-label-long">${I18n.t('history.showClosed')}</span><span class="show-closed-label-short">${I18n.t('history.showClosedShort')}</span>`,
+            checked: showInactive
+          })}
         </div>
       </div>
 
@@ -82,7 +100,7 @@ export class AssetTableView {
             </tr>
           </thead>
           <tbody>
-            ${this._renderAssetRows(summary.evaluations!)}
+            ${this._renderAssetRows(summary.evaluations!, showInactive)}
           </tbody>
         </table>
       </section>
@@ -144,16 +162,28 @@ export class AssetTableView {
     return none ? [none, ...others] : others;
   }
 
-  _renderAssetRows(evaluations: EvaluationEntry[]): string {
-    const filtered = this._getFilteredEvaluations(evaluations);
+  /**
+   * Placements without a state at the summary's view date, derived as the set
+   * difference with `evaluations` — relies on the summary evaluating every
+   * placement that has a state there.
+   */
+  _inactivePlacements(evaluations: EvaluationEntry[]): BasePlacement[] {
+    const evaluatedIds = new Set(evaluations.map(e => e.instance.id));
+    return this.store.state.placements
+      .filter(p => !evaluatedIds.has(p.id) && this.matchesFilters(p));
+  }
 
-    if (!filtered || filtered.length === 0) {
+  _renderAssetRows(evaluations: EvaluationEntry[], showInactive = false): string {
+    const filtered = this._getFilteredEvaluations(evaluations);
+    const filteredInactive = showInactive ? this._inactivePlacements(evaluations) : [];
+
+    if ((!filtered || filtered.length === 0) && filteredInactive.length === 0) {
       return `<tr><td colspan="7" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
     }
 
     const sorted = this._sortEvaluations(filtered);
 
-    return sorted.map(({ instance, evaluation }) => {
+    const activeRows = sorted.map(({ instance, evaluation }) => {
       const institutionHtml = instance.institution
         ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
         : '';
@@ -176,7 +206,32 @@ export class AssetTableView {
         <td style="text-align: center;">${this._renderFiscalIcon(evaluation, instance)}</td>
       </tr>
     `;
-    }).join('');
+    });
+
+    const inactiveRows = filteredInactive.map((instance) => {
+      const institutionHtml = instance.institution
+        ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
+        : '';
+      const badge = instance.isClosedAt(this.summary?.asOfDate)
+        ? I18n.t('history.closedBadgeDate', { date: I18n.formatDate(instance.closedAt!) })
+        : I18n.t('history.notTracked');
+      return `
+      <tr class="asset-row asset-row-inactive" data-id="${instance.id}">
+        <td data-label="${this._escapeHtml(I18n.t('table.assetHeader'))}">
+          <div style="font-weight: 600;">${this._escapeHtml(instance.label)} <span class="tag-inactive">${badge}</span></div>
+          ${institutionHtml}
+        </td>
+        <td data-label="${this._escapeHtml(I18n.t('table.categoryHeader'))}"><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.grossHeader'))}" style="text-align: right;"></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.socialHeader'))}" style="text-align: right;"></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.taxHeader'))}" style="text-align: right;"></td>
+        <td data-label="${this._escapeHtml(I18n.t('table.netHeader'))}" style="text-align: right;"></td>
+        <td></td>
+      </tr>
+    `;
+    });
+
+    return [...activeRows, ...inactiveRows].join('');
   }
 
   _bindStaticEvents(): void {
@@ -185,6 +240,10 @@ export class AssetTableView {
         const placementModal = new PlacementModalView(this.modalRoot!, this.store);
         placementModal.show();
       });
+    });
+
+    this.container!.querySelector('#show-inactive-toggle')?.addEventListener('change', (e) => {
+      this._onToggleInactive?.((e.target as HTMLInputElement).checked);
     });
 
     this.container!.querySelector('#btn-filter-categories')?.addEventListener('click', (e) => {
@@ -227,10 +286,12 @@ export class AssetTableView {
       row.addEventListener('click', (e) => {
         const me = e as MouseEvent;
         if ((me.target as HTMLElement).closest('.tax-help-btn')) return;
-        const item = this.summary!.evaluations!.find(ev => ev.instance.id === row.dataset.id);
-        if (item) {
+        // Look up the live placement by id: in history mode the row's
+        // instance is a dated reconstruction without its history.
+        const placement = this.store.state.placements.find(p => p.id === row.dataset.id);
+        if (placement) {
           const placementModal = new PlacementModalView(this.modalRoot!, this.store);
-          placementModal.show(item.instance);
+          placementModal.show(placement, { viewDate: this.summary?.asOfDate ?? null });
         }
       });
     });
@@ -270,10 +331,25 @@ export class AssetTableView {
     this._applyFilters();
   }
 
+  /**
+   * Clears category and institution filters — called after a file import so
+   * stale filters cannot hide the freshly loaded data.
+   */
+  resetFilters(): void {
+    this.selectedCategories.clear();
+    this.selectedInstitutions.clear();
+    this._closePopup();
+    if (this.container && this.summary) {
+      this._applyFilters();
+    } else {
+      this._saveUiState();
+    }
+  }
+
   _applyFilters(): void {
     const tbody = this.container!.querySelector('tbody');
     if (tbody) {
-      tbody.innerHTML = this._renderAssetRows(this.summary!.evaluations!);
+      tbody.innerHTML = this._renderAssetRows(this.summary!.evaluations!, this._showInactive);
     }
     this._updateFilterButtons();
     this._saveUiState();
@@ -396,18 +472,33 @@ export class AssetTableView {
   }
 
   _showTaxExplanation(item: EvaluationEntry): void {
+    const asOfDate = this.summary?.asOfDate ?? null;
+    const profile = asOfDate ? this.store.getTaxProfileAt(asOfDate) : this.store.getTaxProfile();
+    // The reference date is the view date, not the instance's asOf (the
+    // resolved state may predate it): rates and age rules apply at it.
+    const now = asOfDate ? new Date(`${asOfDate}T12:00:00`) : new Date();
+    const title = asOfDate
+      ? I18n.t('taxExplanation.titleAt', { date: I18n.formatDate(asOfDate) })
+      : I18n.t('taxExplanation.title');
     let content: string;
     try {
-      content = PlacementFactory.getTaxExplanation(item.instance.type, item.instance, this.store.getTaxProfile());
+      content = PlacementFactory.getTaxExplanation(item.instance.type, item.instance, profile, now);
     } catch {
       content = '<p class="text-muted">Tax explanation is not available for this placement type yet.</p>';
     }
 
+    // When the asset list is displayed in current (inflation-adjusted) euros,
+    // warn that the explanation keeps the original nominal amounts.
+    const inflationAlert = this._displayFactor !== 1 && this.summary?.priceLevelBaseMonth
+      ? getInflationDisplayWarning(this.summary.priceLevelBaseMonth)
+      : '';
+
     this.modalRoot!.innerHTML = `
       <div class="modal-overlay">
         <div class="modal-content help-modal-content">
-          <h2>${I18n.t('taxExplanation.title')}</h2>
+          <h2>${title}</h2>
           <div class="help-modal-body">
+            ${inflationAlert}
             ${content}
           </div>
           <div class="modal-actions help-modal-footer">
@@ -441,13 +532,16 @@ export class AssetTableView {
   }
 
   _getFilteredEvaluations(evaluations: EvaluationEntry[] | undefined): EvaluationEntry[] {
-    return (evaluations || []).filter(({ instance }) => {
-      const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
-      const raw = (instance.institution || '').trim();
-      const instKey = raw || NO_INSTITUTION_KEY;
-      const instMatch = this.selectedInstitutions.size === 0 || this.selectedInstitutions.has(instKey);
-      return catMatch && instMatch;
-    });
+    return (evaluations || []).filter(({ instance }) => this.matchesFilters(instance));
+  }
+
+  /** Whether a placement passes the category/institution filters. */
+  matchesFilters(instance: BasePlacement): boolean {
+    const catMatch = this.selectedCategories.size === 0 || this.selectedCategories.has(instance.getCategory());
+    const raw = (instance.institution || '').trim();
+    const instKey = raw || NO_INSTITUTION_KEY;
+    const instMatch = this.selectedInstitutions.size === 0 || this.selectedInstitutions.has(instKey);
+    return catMatch && instMatch;
   }
 
   _getNetValue(evaluation: Evaluation): number {
@@ -564,7 +658,7 @@ export class AssetTableView {
   _applySort(): void {
     const tbody = this.container!.querySelector('tbody');
     if (tbody) {
-      tbody.innerHTML = this._renderAssetRows(this.summary!.evaluations!);
+      tbody.innerHTML = this._renderAssetRows(this.summary!.evaluations!, this._showInactive);
     }
     this._updateFilterButtons();
     this._updateSortButton();
@@ -632,7 +726,8 @@ export class AssetTableView {
     if (amount == null || amount === 0) {
       return '';
     }
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+    const displayed = this._displayFactor !== 1 ? amount * this._displayFactor : amount;
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(displayed);
   }
 
   _renderFiscalIcon(evaluation: Evaluation, instance: BasePlacement): string {

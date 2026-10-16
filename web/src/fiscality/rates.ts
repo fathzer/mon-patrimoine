@@ -281,12 +281,18 @@ const KNOWN_YEARS = Object.keys(FISCAL_RATES_BY_YEAR)
   .map(Number)
   .sort((a, b) => a - b);
 
+/** Earliest income year covered by the fiscal table — lower bound for dated views. */
+export const EARLIEST_FISCAL_YEAR = KNOWN_YEARS[0];
+
+/** `EARLIEST_FISCAL_YEAR` as an ISO date (YYYY-MM-DD), for date inputs' `min`. */
+export const EARLIEST_FISCAL_DATE = `${EARLIEST_FISCAL_YEAR}-01-01`;
+
 /**
- * Returns the income-tax parameters for the given income year.
- * Falls back to the latest known year <= incomeYear, or to the earliest
- * known year when incomeYear predates the table.
+ * The income year whose schedule actually applies to `incomeYear` — the
+ * latest known year not after it. Differs from `incomeYear` when the year's
+ * budget is not yet voted (the computation then reuses that voted year).
  */
-export function getFiscalRates(incomeYear: number = new Date().getFullYear()): YearlyFiscalRates {
+export function getVotedScheduleYear(incomeYear: number = new Date().getFullYear()): number {
   let year = KNOWN_YEARS[0];
   for (const knownYear of KNOWN_YEARS) {
     if (knownYear <= incomeYear) {
@@ -295,7 +301,16 @@ export function getFiscalRates(incomeYear: number = new Date().getFullYear()): Y
       break;
     }
   }
-  return FISCAL_RATES_BY_YEAR[year];
+  return year;
+}
+
+/**
+ * Returns the income-tax parameters for the given income year.
+ * Falls back to the latest known year <= incomeYear, or to the earliest
+ * known year when incomeYear predates the table.
+ */
+export function getFiscalRates(incomeYear: number = new Date().getFullYear()): YearlyFiscalRates {
+  return FISCAL_RATES_BY_YEAR[getVotedScheduleYear(incomeYear)];
 }
 
 /** Parameters for the current year — kept as a shortcut for existing callers. */

@@ -56,6 +56,14 @@ export class CustomModule extends BasePlacement {
     return this.category;
   }
 
+  override getEvolvingValues(): Record<string, unknown> {
+    return {
+      grossValue: this.grossValue,
+      socialCharges: this.socialCharges,
+      incomeTax: this.incomeTax
+    };
+  }
+
   override getEvaluation(_fiscalProfile: FiscalProfile, _now: Date = new Date()): Evaluation {
     const netValueBeforeIR = this.grossValue - this.socialCharges;
     return {
