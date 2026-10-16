@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Politique de Confidentialité - Mon Patrimoine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/legal.css">
+</head>
+<body class="dark-theme legal-page">
+    <main class="main-content">
+        <div class="auth-card">
+            <h1>Politique de Confidentialité</h1>
+            <p class="subtitle">Dernière mise à jour : Août 2026</p>
+
+            <div class="notice">
+                <p>Principe fondamental : Traitement 100 % local et souveraineté absolue des données.</p>
+            </div>
+
+            <h2>1. Absence de serveur tiers</h2>
+            <p>L'application <strong data-i18n="app.title">Mon Patrimoine</strong> est une application web s'exécutant intégralement dans votre navigateur web (architecture <em>Full Client-Side JavaScript</em>).</p>
+            <p><strong>Absolument aucune donnée</strong> saisie dans l'application, aucun identifiant, ni aucun jeton d'authentification ne transite ni n'est stocké sur un quelconque serveur tiers ou hébergeur intermédiaire.</p>
+
+            <h2>2. Intégration Google Drive</h2>
+            <p>Lorsque vous choisissez d'activer la synchronisation du stockage cloud via Google Drive :</p>
+            <ul>
+                <li>La connexion s'effectue directement et exclusivement entre votre navigateur et les serveurs sécurisés de Google via l'API officielle OAuth 2.0.</li>
+                <li>L'application demande uniquement les autorisations <code>drive.file</code> et <code>userinfo.email</code>, ce qui la limite strictement à la lecture et à l'écriture des fichiers qu'elle a elle-même créés et à la récupération de votre adresse email.</li>
+                <li>L'application n'a aucun accès au reste de votre Google Drive. Votre adresse email est utilisée uniquement pour vous reconnecter automatiquement à votre compte Google Drive.</li>
+                <li>Vos fichiers de données patrimoniales restent exclusivement dans votre propre espace de stockage Google Drive personnel.</li>
+            </ul>
+
+            <h2>3. Données personnelles et cookies</h2>
+            <p>L'application n'utilise aucun cookie publicitaire, aucun traceur d'audience ni aucun outil de télémétrie. Seul le stockage local de votre navigateur (<em>localStorage</em>) peut être utilisé de manière technique pour conserver vos préférences d'affichage ou vos jetons d'accès locaux afin d'assurer le fonctionnement de l'application.</p>
+
+            <footer>
+                <span data-i18n="app.title">Mon Patrimoine</span> — Application Client-Side respectueuse de votre vie privée.
+            </footer>
+        </div>
+    </main>
+    <script type="module" src="src/legal.js"></script>
+</body>
+</html>

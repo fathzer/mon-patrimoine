@@ -1,0 +1,66 @@
+import { I18n, ToggleSwitch } from '../../kit/v1/index.js';
+import { SavingsAccountBaseEditor } from '../savings_account/SavingsAccountBaseEditor.js';
+import type { BasePlacement } from '../../kit/v1/index.js';
+import type { HomeSavingsModule } from './module.js';
+
+const labels = {
+  homeSavingsType: 'Type d\'épargne logement',
+  pel: 'PEL',
+  cel: 'CEL'
+};
+
+export class HomeSavingsEditor extends SavingsAccountBaseEditor {
+  protected override renderBeforeInstitution(placement: BasePlacement | null): string {
+    const isCel = (placement as HomeSavingsModule)?.homeSavingsType === 'cel';
+    return `
+      <div class="form-group">
+        <label>${labels.homeSavingsType}</label>
+        ${ToggleSwitch.create({
+          name: 'homeSavingsType',
+          labelOff: labels.pel,
+          labelOn: labels.cel,
+          checked: isCel
+        })}
+      </div>
+    `;
+  }
+
+  protected override renderOpeningDate(placement: BasePlacement | null): string {
+    return `
+      <div class="form-group">
+        <label>${I18n.t('form.openingDate')}</label>
+        <input type="date" name="openingDate" class="form-control" value="${(placement as HomeSavingsModule)?.openingDate || ''}" required />
+      </div>
+    `;
+  }
+
+  protected override renderTaxExempt(_placement: BasePlacement | null): string {
+    return '';
+  }
+
+  protected override bindPlacementEvents(): void {
+    super.bindPlacementEvents();
+    const homeSavingsType = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]');
+    homeSavingsType?.addEventListener('change', () => this.notifyValidityChange());
+  }
+
+  protected override isPlacementValid(): boolean {
+    const currentValue = this.container.querySelector<HTMLInputElement>('input[name="currentValue"]');
+    const openingDate = this.container.querySelector<HTMLInputElement>('input[name="openingDate"]');
+    const currentValueValid = currentValue ? currentValue.checkValidity() : true;
+    const openingDateValid = openingDate ? openingDate.checkValidity() : true;
+    return currentValueValid && openingDateValid;
+  }
+
+  protected override collectData(): Record<string, unknown> {
+    const isCel = this.container.querySelector<HTMLInputElement>('input[name="homeSavingsType"]')?.checked ?? false;
+    return {
+      ...super.collectData(),
+      homeSavingsType: isCel ? 'cel' : 'pel',
+      openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '',
+      interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,
+      taxExempt: false,
+      promotionalInterest: 0
+    };
+  }
+}

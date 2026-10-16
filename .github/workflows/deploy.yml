@@ -1,0 +1,78 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - first
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies, test and compile TypeScript
+        working-directory: web
+        run: |
+          bun install
+          bun test
+          bun run build
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+
+          # Copy compiled JavaScript and source maps
+          cp -r web/dist/* _site/
+
+          # Copy static assets
+          cp web/favicon.svg _site/favicon.svg
+          cp -r web/css _site/css
+
+          # Copy legal pages
+          cp web/privacy.html _site/privacy.html
+          cp web/terms.html _site/terms.html
+
+          # Generate index.html with compiled entry point
+          sed 's|dist/main.js|main.js|g' web/index.html > _site/index.html
+
+          # Copy manifest.json
+          cp web/manifest.json _site/manifest.json
+
+          # Copy placements registry (read at runtime by PlacementFactory)
+          cp web/placements.json _site/placements.json
+
+          # Generate service worker with build hash
+          sed "s/BUILD_HASH/${{ github.sha }}/g" web/sw.template.js > _site/sw.js
+
+          touch _site/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,54 @@
+/* Summary banner totals and labels. */
+
+.totals-group {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  align-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-xl);
+  width: 100%;
+}
+
+.total-item {
+  margin-bottom: 0;
+  flex: 0 1 auto;
+}
+
+.total-item .label {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+}
+
+.total-item .value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-top: var(--space-xs);
+}
+
+.total-item .value.net {
+  color: var(--accent);
+}
+
+/* Filter switch container: layout-specific overrides on top of toggle-switch.
+   The toggle itself uses the shared .toggle-switch-* classes from
+   toggle-switch.css. */
+.summary-filter {
+  justify-content: flex-end;
+  margin-left: auto;
+  align-self: flex-end;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.summary-filter .toggle-switch-label {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+  .totals-group {
+    gap: var(--space-md);
+  }
+}

@@ -1,0 +1,196 @@
+/// <reference types="bun-types" />
+import { describe, it, expect } from "bun:test";
+import { BasePlacement } from "./BasePlacement.js";
+import type { PlacementData, Evaluation } from "./BasePlacement.js";
+import { Category } from "../core/Categories.js";
+import type { FiscalProfile, PlacementIncome } from "../fiscality/TaxCalculator.js";
+
+interface TestData extends PlacementData {
+  currentValue?: number;
+}
+
+class TestPlacement extends BasePlacement {
+  static getCategory() {
+    return Category.INVESTMENTS;
+  }
+
+  currentValue: number;
+
+  constructor(data: TestData) {
+    super({ ...data, type: 'test' });
+    this.currentValue = Number(data.currentValue) || 0;
+  }
+
+  override getEvolvingValues(): Record<string, unknown> {
+    return { currentValue: this.currentValue };
+  }
+
+  getEvaluation(_fiscalProfile: FiscalProfile, _now?: Date): Evaluation {
+    return {
+      grossValue: this.currentValue,
+      netValueBeforeIR: this.currentValue,
+      socialCharges: 0,
+      latentGain: 0,
+      imposition: 0
+    };
+  }
+
+  protected getTaxableIncomes(): PlacementIncome[] {
+    return [];
+  }
+
+  override toJSON(): TestData {
+    return { ...super.toJSON(), currentValue: this.currentValue };
+  }
+}
+
+const today = (): string => new Date().toISOString().split('T')[0];
+
+/** getDataAt typed back to the test module's data shape. */
+const dataAt = (p: TestPlacement, date: string): TestData | null => p.getDataAt(date) as TestData | null;
+
+describe("BasePlacement history", () => {
+  it("hydrates asOf/closedAt/history with defaults", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 100 });
+    expect(p.asOf).toBe(today());
+    expect(p.closedAt).toBeNull();
+    expect(p.history).toEqual([]);
+    expect(p.toJSON().asOf).toBe(today());
+  });
+
+  it("pushes the previous current state into history at its own asOf", () => {
+    const previous = new TestPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
+    const next = new TestPlacement({ id: "1", currentValue: 120 });
+    next.recordState(previous, "2025-02-01");
+
+    expect(next.asOf).toBe("2025-02-01");
+    expect(next.history).toEqual([{ date: "2025-01-10", values: { currentValue: 100 } }]);
+  });
+
+  it("skips recording when the evolving values did not change", () => {
+    const previous = new TestPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
+    const next = new TestPlacement({ id: "1", currentValue: 100 });
+    next.recordState(previous, "2025-02-01");
+
+    expect(next.history).toEqual([]);
+    expect(next.asOf).toBe("2025-02-01");
+  });
+
+  it("resolves getDataAt as a step function", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 120,
+      asOf: "2025-03-01",
+      history: [{ date: "2025-01-10", values: { currentValue: 100 } }]
+    });
+
+    expect(dataAt(p,"2025-01-09")).toBeNull();
+    expect(dataAt(p,"2025-01-10")!.currentValue).toBe(100);
+    expect(dataAt(p,"2025-02-15")!.currentValue).toBe(100);
+    expect(dataAt(p,"2025-03-01")!.currentValue).toBe(120);
+    expect(dataAt(p,"2030-12-31")!.currentValue).toBe(120);
+  });
+
+  it("returns the resolved state date as asOf and no history", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 120,
+      asOf: "2025-03-01",
+      history: [{ date: "2025-01-10", values: { currentValue: 100 } }]
+    });
+    const data = dataAt(p,"2025-02-01")!;
+    expect(data.asOf).toBe("2025-01-10");
+    expect(data.history).toBeUndefined();
+  });
+
+  it("returns null on and after closedAt", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 100,
+      asOf: "2025-01-10",
+      closedAt: "2025-06-30"
+    });
+    expect(dataAt(p,"2025-06-29")!.currentValue).toBe(100);
+    // A dated record is the end-of-day state: closed on the 30th means
+    // already gone on the evening of the 30th.
+    expect(dataAt(p,"2025-06-30")).toBeNull();
+    expect(dataAt(p,"2025-07-01")).toBeNull();
+  });
+
+  it("inserts a retroactive state without touching the current state", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 120, asOf: "2025-03-01" });
+    p.insertHistoryEntry("2025-01-15", { currentValue: 90 });
+
+    expect(p.currentValue).toBe(120);
+    expect(dataAt(p,"2025-01-15")!.currentValue).toBe(90);
+    expect(dataAt(p,"2025-03-01")!.currentValue).toBe(120);
+  });
+
+  it("deletes a recorded history entry but never the current state", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 120, asOf: "2025-03-01" });
+    p.insertHistoryEntry("2025-01-10", { currentValue: 80 });
+    p.insertHistoryEntry("2025-02-01", { currentValue: 90 });
+
+    expect(p.hasHistoryEntry("2025-02-01")).toBe(true);
+    expect(p.hasHistoryEntry("2025-03-01")).toBe(false);
+
+    p.deleteHistoryEntry("2025-02-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-03-01"]);
+    // The state at the deleted date now resolves to the previous entry.
+    expect(dataAt(p,"2025-02-01")!.currentValue).toBe(80);
+
+    // Deleting the current point is a no-op: asOf is not a history entry.
+    p.deleteHistoryEntry("2025-03-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-03-01"]);
+  });
+
+  it("rolls back to the previous recorded state when the current point is deleted", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 120,
+      asOf: "2025-03-01",
+      history: [
+        { date: "2025-01-10", values: { currentValue: 80 } },
+        { date: "2025-02-01", values: { currentValue: 100 } }
+      ]
+    });
+
+    expect(p.canDeleteCurrentState()).toBe(true);
+    expect(p.deleteCurrentState()).toBe(true);
+
+    expect(p.currentValue).toBe(100);
+    expect(p.asOf).toBe("2025-02-01");
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-02-01"]);
+    // The rolled-back state resolves as the new current point.
+    expect(dataAt(p, "2025-02-15")!.currentValue).toBe(100);
+  });
+
+  it("refuses to delete the current state of a single-point placement", () => {
+    const p = new TestPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
+    expect(p.canDeleteCurrentState()).toBe(false);
+    expect(p.deleteCurrentState()).toBe(false);
+    expect(p.asOf).toBe("2025-01-10");
+    expect(p.currentValue).toBe(100);
+  });
+
+  it("exposes every known date including the current asOf", () => {
+    const p = new TestPlacement({
+      id: "1",
+      currentValue: 120,
+      asOf: "2025-03-01",
+      history: [{ date: "2025-01-10", values: { currentValue: 100 } }]
+    });
+    expect(p.getHistoryDates()).toEqual(["2025-01-10", "2025-03-01"]);
+  });
+
+  it("stays history-inert when the module does not opt in", () => {
+    class InertPlacement extends TestPlacement {
+      override getEvolvingValues(): Record<string, unknown> {
+        return {};
+      }
+    }
+    const p = new InertPlacement({ id: "1", currentValue: 100, asOf: "2025-01-10" });
+    expect(dataAt(p,"2025-01-09")).toBeNull();
+    expect(dataAt(p,"2025-01-10")!.currentValue).toBe(100);
+  });
+});

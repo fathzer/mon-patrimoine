@@ -1,0 +1,62 @@
+/**
+ * Placement Kit v1 - Public API for placement modules.
+ *
+ * This barrel is the ONLY entry point that placement modules should import
+ * from. It exposes a stable, versioned contract:
+ * everything re-exported here is guaranteed to remain available (with compatible
+ * signatures) for the lifetime of v1. Anything NOT exported here is considered
+ * internal implementation and may change without notice.
+ *
+ * If a breaking change is needed, create a new version directory (e.g. v2/)
+ * and keep this one intact so existing modules continue to work.
+ */
+
+// --- Base classes and core types ---
+export { BasePlacement } from '../../BasePlacement.js';
+export type { PlacementData, Evaluation, PlacementEditorConstructor, PlacementModuleStatic, TaxExplanationProvider } from '../../BasePlacement.js';
+
+// --- Editor base classes ---
+export { BasePlacementEditor } from '../../../ui/BasePlacementEditor.js';
+
+// --- Categories ---
+export { Category, CategoryValues } from '../../../core/Categories.js';
+
+// --- I18n (shared labels only; placement-specific labels live in the module) ---
+export { I18n } from '../../../core/I18n.js';
+
+// --- AppStore (type only - passed to editors that need it) ---
+export type { AppStore } from '../../../core/AppStore.js';
+
+// --- Fiscal types ---
+export type { FiscalProfile, PlacementIncome } from '../../../fiscality/TaxCalculator.js';
+export { MaritalStatus } from '../../../fiscality/Household.js';
+export type { Household, HouseholdLike } from '../../../fiscality/Household.js';
+
+// --- Tax calculator ---
+export { TaxCalculator } from '../../../fiscality/TaxCalculator.js';
+
+// --- Fiscal rates ---
+export { SOCIAL_CONTRIBUTION_RATES, FISCAL_RATES, FISCAL_RATES_BY_YEAR, getFiscalRates, getVotedScheduleYear, getSocialContributionRate } from '../../../fiscality/rates.js';
+export type { TaxBracket, YearlyFiscalRates } from '../../../fiscality/rates.js';
+
+// --- Dated history ---
+export { compareDates, resolveAt, makeResolver, recordAt, deleteAt, thin, valuesEqual } from '../../../core/DatedHistory.js';
+export type { HistoryEntry, ThinPolicy } from '../../../core/DatedHistory.js';
+
+// --- Help popover ---
+export { HelpPopover } from '../../../ui/HelpPopover.js';
+export { ToggleSwitch } from '../../../ui/ToggleSwitch.js';
+
+// --- Shared tax explanation helpers ---
+export {
+  getPfuExplanation,
+  getPfuHelpPopover,
+  getTaxDisclaimer,
+  getLatentGainsHelpPopover,
+  getWarning,
+  getUnvotedScheduleWarning,
+  formatPercentage,
+  formatCurrency,
+  getTaxSection
+} from '../../../i18n/commonTaxExplanations.js';
+export type { PfuExplanationArgs } from '../../../i18n/commonTaxExplanations.js';

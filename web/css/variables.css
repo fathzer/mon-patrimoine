@@ -1,0 +1,64 @@
+/* Design tokens and theme variables for the mon-patrimoine application. */
+
+:root {
+  /* Color palette */
+  --color-bg: #0b0f17;
+  --color-surface: #151c28;
+  --color-surface-elevated: #1e293b;
+  --color-border: #232d3f;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-accent: #10b981;
+  --color-accent-blue: #3b82f6;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+
+  /* Semantic aliases (kept for backward compatibility) */
+  --bg-color: var(--color-bg);
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-border);
+  --hover-bg: var(--color-surface-elevated);
+  --text-main: var(--color-text-primary);
+  --text-muted: var(--color-text-secondary);
+  --accent: var(--color-accent);
+  --accent-blue: var(--color-accent-blue);
+  --danger: var(--color-danger);
+  --bg-main: var(--color-surface-elevated);
+
+  /* Typography */
+  --font-base: 'Inter', sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 0.95rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.1rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.75rem;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 2.5rem;
+
+  /* Layout */
+  --max-content-width: 1200px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-pill: 20px;
+
+  /* Effects */
+  --shadow-overlay: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.35);
+  --transition-fast: 0.15s;
+}

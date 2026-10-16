@@ -1,0 +1,61 @@
+/*
+ * Primary, secondary and danger buttons.
+ *
+ * The classes below are part of the Placement Kit (v1) and are guaranteed
+ * stable for placement modules. See MODULES.md for the full list.
+ *
+ * Kit classes: btn-primary, btn-secondary, btn-warning, btn-danger
+ */
+
+.btn-primary,
+.btn-secondary,
+.btn-warning,
+.btn-danger {
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1.2rem;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: var(--color-text-primary);
+}
+
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  background: #3b82f633;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-secondary:disabled,
+.btn-secondary[disabled],
+.btn-warning:disabled,
+.btn-warning[disabled],
+.btn-danger:disabled,
+.btn-danger[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(80%);
+}
+
+.btn-warning {
+  background: var(--color-warning);
+  color: var(--color-text-primary);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--color-text-primary);
+}
+
+.btn-secondary {
+  background: var(--card-border);
+  color: var(--text-main);
+}

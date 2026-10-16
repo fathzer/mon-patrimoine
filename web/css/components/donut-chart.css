@@ -1,0 +1,10 @@
+/* Donut chart used in the summary breakdown. */
+
+.donut-chart {
+  width: 100%;
+  height: auto;
+}
+
+.donut-segment {
+  cursor: pointer;
+}

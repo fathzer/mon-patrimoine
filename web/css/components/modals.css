@@ -1,0 +1,77 @@
+/* Modal overlay, content and actions. */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  width: 90%;
+  max-width: clamp(480px, 80vw, 900px);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.modal-actions button {
+  white-space: nowrap;
+}
+
+.modal-actions-left {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.modal-actions-divider {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .modal-actions-right {
+    order: 1;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+  }
+  .modal-actions-divider {
+    display: block;
+    order: 2;
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--card-border);
+    margin: 0;
+  }
+  .modal-actions-left {
+    order: 3;
+    width: 100%;
+  }
+  .modal-actions-left > button {
+    flex: 1;
+  }
+}

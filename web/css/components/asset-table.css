@@ -1,0 +1,250 @@
+/* Asset table, toolbar and row styling. */
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  flex-shrink: 0;
+  gap: var(--space-md);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.asset-table-container {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  flex: 1 1 0%;
+  min-height: 24rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.asset-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.asset-table th {
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.asset-table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.asset-table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.asset-table tbody tr:hover {
+  background: var(--hover-bg);
+}
+
+.tag-category {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  background: var(--card-border);
+}
+
+/* Rows for placements with no state at the view date (closed or untracked). */
+.asset-row-inactive {
+  opacity: 0.45;
+}
+
+.tag-inactive {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: normal;
+  border: 1px dashed var(--text-muted);
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
+.tax-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--text-muted);
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tax-help-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* The closed-placements toggle uses a shorter label on narrow screens. */
+.show-closed-label-short {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .show-closed-label-long {
+    display: none;
+  }
+
+  .show-closed-label-short {
+    display: inline;
+  }
+}
+
+/* Responsive cards for narrow screens */
+@media (max-width: 768px) {
+  .asset-table thead {
+    display: none;
+  }
+
+  .asset-table,
+  .asset-table tbody {
+    display: block;
+  }
+
+  .asset-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      "asset asset category"
+      "gross . net"
+      "social tax tax";
+    gap: var(--space-sm) var(--space-md);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+    padding: var(--space-md);
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .asset-table tr::before {
+    display: none;
+    content: '';
+    grid-column: social-start / tax-end;
+    grid-row: social-start / social-end;
+    border: 1px dashed var(--card-border);
+    border-radius: var(--radius-md);
+    margin: 0 calc(-1 * var(--space-xs));
+    z-index: 0;
+  }
+
+  .asset-table tr:has(td:nth-child(4):not(:empty))::before,
+  .asset-table tr:has(td:nth-child(5):not(:empty))::before {
+    display: block;
+  }
+
+  .asset-table td {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0;
+    border: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  .asset-table td:empty {
+    display: none;
+  }
+
+  .asset-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    margin-right: var(--space-sm);
+    flex-shrink: 0;
+  }
+
+  .asset-table td:nth-child(1) {
+    grid-area: asset;
+    display: block;
+    padding-top: 0;
+  }
+
+  .asset-table td:nth-child(1)::before {
+    display: none;
+  }
+
+  .asset-table td:nth-child(2) {
+    grid-area: category;
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+
+  .asset-table td:nth-child(2)::before {
+    display: none;
+  }
+
+  .asset-table td:nth-child(3) {
+    grid-area: gross;
+  }
+
+  .asset-table td:nth-child(4) {
+    grid-area: social;
+  }
+
+  .asset-table td:nth-child(5) {
+    grid-area: tax;
+    justify-content: flex-end;
+  }
+
+  .asset-table td:nth-child(6) {
+    grid-area: net;
+  }
+
+  .asset-table td:nth-child(7) {
+    display: none;
+  }
+
+  .asset-table td.tax-info-cell {
+    cursor: pointer;
+  }
+}
+
+/* The add button lives at the bottom of the list; the toolbar keeps the
+   filters and the closed-placements toggle. */
+.asset-table-fab {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-md) 0;
+}
+
+/* A placement name carrying a description gets a subtle hint that a
+   tooltip explains the asset (title attribute on hover). */
+.asset-table .has-description {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}

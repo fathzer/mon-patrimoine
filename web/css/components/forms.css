@@ -1,0 +1,104 @@
+/*
+ * Form controls and groups.
+ *
+ * The classes below are part of the Placement Kit (v1) and are guaranteed
+ * stable for placement modules. See PLACEMENTS.md for the full list.
+ *
+ * Kit classes: form-group, form-control, form-section
+ */
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.6rem;
+  background: var(--bg-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+}
+
+/* Textareas always span the form width (horizontal resizing is off) and
+   can only grow/shrink vertically, never below a single text line. */
+textarea.form-control {
+  resize: vertical;
+  min-width: 100%;
+  max-width: 100%;
+  min-height: calc(1.5em + 1.2rem);
+}
+
+.form-control:disabled {
+  background: var(--color-surface);
+  color: var(--text-muted);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+select.form-control {
+  background-color: var(--bg-main, #1e293b);
+  color: var(--text-main, #f8fafc);
+}
+
+select.form-control option {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+/*
+ * Framed section with the title displayed in the top border (fieldset/legend
+ * style). Used to group related fields in editors and sections in tax
+ * explanations.
+ */
+.form-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.form-section > legend {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  color: var(--text-main);
+  padding: 0 var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* Warning variant: same fieldset/legend layout as form-section, but with the
+   disclaimer red tint and a tighter legend spacing. */
+.form-section.warning-section {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.form-section.warning-section > legend {
+  font-size: var(--font-size-lg);
+  color: var(--accent-blue);
+  margin-bottom: 0;
+}
+
+.form-section.warning-section > p {
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.form-section.warning-section > p:last-child {
+  margin: 0;
+}

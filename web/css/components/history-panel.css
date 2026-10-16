@@ -1,0 +1,450 @@
+/* History panel: "view as of" date selector, closed-placements toggle and future chart. */
+
+.history-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  gap: var(--space-md);
+}
+
+.history-panel-header h3 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.history-panel-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.history-panel-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.history-panel-controls label {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.history-panel-controls input[type="date"] {
+  width: auto;
+}
+
+.history-panel-controls select.form-control {
+  width: auto;
+}
+
+/* Inflation group sticks to the right edge and stays on a single line.
+   On small screens it wraps below the date and aligns to the left. */
+.history-panel-inflation-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .history-panel-inflation-group {
+    margin-left: 0;
+  }
+}
+
+#history-chart {
+  margin-top: var(--space-md);
+}
+
+/* History chart: step lines for gross/net totals, hover cursor + tooltip. */
+
+.chart-periods {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xs);
+}
+
+.chart-period {
+  background: none;
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius-pill);
+  color: var(--accent-blue);
+  font-size: var(--font-size-xs);
+  padding: 0.15rem 0.7rem;
+  cursor: pointer;
+}
+
+.chart-period:hover:not(:disabled) {
+  background: #3b82f622;
+}
+
+.chart-period:disabled {
+  border-color: var(--card-border);
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chart-period.active {
+  background: var(--accent-blue);
+  color: var(--color-text-primary);
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.history-chart {
+  display: block;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+
+.chart-line {
+  stroke-width: 1.5;
+}
+
+.chart-gross {
+  stroke: var(--text-main);
+  opacity: 0.6;
+}
+
+.chart-net {
+  stroke: var(--accent);
+}
+
+.chart-grid {
+  stroke: var(--card-border);
+  stroke-width: 1;
+}
+
+.chart-grid-zero {
+  stroke: var(--text-muted);
+}
+
+.chart-axis {
+  stroke: var(--card-border);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-family: var(--font-base);
+}
+
+.chart-cursor {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+}
+
+.chart-selected {
+  stroke: var(--accent-blue);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.chart-selected-tick {
+  fill: var(--accent-blue);
+  pointer-events: none;
+}
+
+.chart-tooltip {
+  position: absolute;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.8rem;
+  color: var(--text-main);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+  box-shadow: var(--shadow-overlay);
+}
+
+.chart-tooltip-date {
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-xs);
+}
+
+.chart-legend {
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.chart-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.chart-gross-swatch {
+  background: var(--text-main);
+}
+
+.chart-net-swatch {
+  background: var(--accent);
+}
+
+/* History mode inside the placement modal: date navigation bar, point badge
+   and the "locked global fields" note. */
+
+.history-date-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.history-date-bar input[type="date"] {
+  width: auto;
+}
+
+.history-date-bar input[type="number"] {
+  width: 5.5rem;
+  text-align: center;
+}
+
+.history-date-bar button {
+  padding: 0.4rem 0.7rem;
+  line-height: 1;
+}
+
+/* The badge + delete button swap in place on date navigation — no layout slot. */
+#hist-point-meta {
+  display: contents;
+}
+
+.history-point-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+.history-point-badge.existing {
+  background: var(--card-border);
+  color: var(--text-main);
+}
+
+.history-point-badge.new {
+  border: 1px dashed var(--color-warning, #f59e0b);
+  color: var(--color-warning, #f59e0b);
+}
+
+.history-point-badge.current {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.history-locked-note {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-md);
+}
+
+/* --- Variations block (KPI chips + annual table) --- */
+
+.variations {
+  margin-top: var(--space-md);
+}
+
+.variations-summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-sm);
+  list-style: none;
+  user-select: none;
+}
+
+.variations-summary::-webkit-details-marker {
+  display: none;
+}
+
+.variations-summary::before {
+  content: '▸\00a0 ';
+}
+
+.variations[open] > .variations-summary::before {
+  content: '▾\00a0 ';
+}
+
+.kpi-grid {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.kpi {
+  background: var(--bg-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  min-width: 140px;
+  flex: 1;
+}
+
+.kpi-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.kpi-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.kpi-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.kpi-const {
+  color: var(--text-muted);
+}
+
+.delta-pos { color: var(--accent); }
+.delta-neg { color: var(--danger); }
+
+.variations-scroll {
+  overflow-x: auto;
+}
+
+.variations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  min-width: 420px;
+}
+
+.variations-table th,
+.variations-table td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: right;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.variations-table th {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xs);
+}
+
+.variations-table th:first-child,
+.variations-table td:first-child {
+  text-align: left;
+}
+
+.variations-foot {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* --- Chart annotations --- */
+
+.history-annotate-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  padding: var(--space-xs);
+}
+
+.history-annotate-btn:hover {
+  color: var(--accent-blue);
+}
+
+.annotation-editor {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.annotation-editor[hidden] {
+  display: none;
+}
+
+/* `hidden` alone loses against `display: flex` (mandatory mode hides the
+   year bar). */
+.history-date-bar[hidden] {
+  display: none;
+}
+
+/* Settings modal: the year bar already carries its own bottom margin —
+   drop the form body's top margin to avoid a double gap before the
+   first section. */
+#form-settings.help-modal-body {
+  margin-top: 0;
+}
+
+.annotation-editor-date {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.annotation-editor input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+  width: auto;
+}
+
+.chart-annotation {
+  fill: var(--color-warning);
+  stroke: var(--color-surface);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.chart-tooltip-sub {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.chart-tooltip-annotation-date {
+  color: var(--text-muted);
+}
+
+.chart-tooltip-annotation {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--card-border);
+  font-size: var(--font-size-xs);
+}
