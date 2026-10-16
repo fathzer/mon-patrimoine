@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { UiState } from '../core/UiState.js';
 import type { ChartPoint } from './HistoryChartView.js';
 import type { InflationIndex } from '../core/inflation.js';
 
@@ -49,8 +50,8 @@ const cagr = (from: number, to: number, years: number): number | null =>
  * series; constant-euro figures appear only when an inflation index is loaded.
  */
 export class HistoryVariationsView {
-  /** Open/closed state survives re-renders (filter or inflation changes). */
-  _open = true;
+  /** Open/closed state survives re-renders and page reloads (UiState). */
+  _open = UiState.load().historyVariationsOpen;
 
   render(container: HTMLElement, points: ChartPoint[], index: InflationIndex | null): void {
     if (points.length < 2) {
@@ -79,7 +80,10 @@ export class HistoryVariationsView {
         ${this._annualTable(points, constPts, first, last)}
       </details>`;
     const details = container.querySelector<HTMLDetailsElement>('.variations');
-    details?.addEventListener('toggle', () => { this._open = details.open; });
+    details?.addEventListener('toggle', () => {
+      this._open = details.open;
+      UiState.save({ historyVariationsOpen: details.open });
+    });
   }
 
   /**

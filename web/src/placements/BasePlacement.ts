@@ -190,10 +190,11 @@ export abstract class BasePlacement {
 
   /**
    * Whether the placement was already closed at `date` (default: today).
-   * The placement still exists on its closure date itself.
+   * A dated record is the end-of-day state, so the placement is already
+   * gone on its closure date itself.
    */
   isClosedAt(date: string = todayString()): boolean {
-    return this.closedAt != null && date > this.closedAt;
+    return this.closedAt != null && date >= this.closedAt;
   }
 
   /**

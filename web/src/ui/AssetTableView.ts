@@ -331,6 +331,21 @@ export class AssetTableView {
     this._applyFilters();
   }
 
+  /**
+   * Clears category and institution filters — called after a file import so
+   * stale filters cannot hide the freshly loaded data.
+   */
+  resetFilters(): void {
+    this.selectedCategories.clear();
+    this.selectedInstitutions.clear();
+    this._closePopup();
+    if (this.container && this.summary) {
+      this._applyFilters();
+    } else {
+      this._saveUiState();
+    }
+  }
+
   _applyFilters(): void {
     const tbody = this.container!.querySelector('tbody');
     if (tbody) {

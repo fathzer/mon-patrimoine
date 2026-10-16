@@ -458,13 +458,14 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   /**
    * The instance contributing to a summary: the live placement in the current
-   * view (same exclusion rule as before — closed only after `effectiveDate`),
-   * or a reconstruction of the state at `viewDate` in history mode. Null when
-   * the placement has no state at that date.
+   * view (same exclusion rule as history mode — closed from `effectiveDate`
+   * onward, the closure day included), or a reconstruction of the state at
+   * `viewDate` in history mode. Null when the placement has no state at
+   * that date.
    */
   _resolveInstanceAt(placement: BasePlacement, viewDate: string | null, effectiveDate: string): BasePlacement | null {
     if (viewDate == null) {
-      return placement.closedAt == null || placement.closedAt >= effectiveDate ? placement : null;
+      return placement.closedAt == null || placement.closedAt > effectiveDate ? placement : null;
     }
     const data = placement.getDataAt(effectiveDate);
     return data == null ? null : PlacementFactory.create(data);

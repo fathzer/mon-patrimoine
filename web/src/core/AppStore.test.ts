@@ -378,12 +378,14 @@ describe("AppStore getValueSeries (history chart)", () => {
       new TestPlacement({ id: "closed", currentValue: 10, asOf: "2024-01-01", closedAt: "2024-06-01" })
     );
 
-    const series = store.getValueSeries(["2024-03-01", "2025-06-01", "2026-01-01"]);
+    const series = store.getValueSeries(["2024-03-01", "2024-06-01", "2025-06-01", "2026-01-01"]);
     // p1 resolves to 50 (history), p2 has no state yet, closed still open.
     expect(series[0]).toEqual({ date: "2024-03-01", gross: 60, net: 60 });
-    // All three contribute their state at that date — except closed (closedAt < date).
-    expect(series[1]).toEqual({ date: "2025-06-01", gross: 140, net: 140 });
-    expect(series[2]).toEqual({ date: "2026-01-01", gross: 140, net: 140 });
+    // On its closure date itself the placement no longer contributes.
+    expect(series[1]).toEqual({ date: "2024-06-01", gross: 50, net: 50 });
+    // All three contribute their state at that date — except closed (closedAt <= date).
+    expect(series[2]).toEqual({ date: "2025-06-01", gross: 140, net: 140 });
+    expect(series[3]).toEqual({ date: "2026-01-01", gross: 140, net: 140 });
   });
 
   it("collectChartDates never samples before the earliest fiscal date", () => {

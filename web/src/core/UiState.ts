@@ -5,6 +5,7 @@ export interface UiStateData {
   breakdownVisible: boolean;
   filterTotals: boolean;
   historyVisible: boolean;
+  historyVariationsOpen: boolean;
   showClosedPlacements: boolean;
   /** Selected INSEE inflation series id, or null for "no inflation". */
   inflationSource: string | null;
@@ -32,6 +33,7 @@ export class UiState {
         breakdownVisible: typeof parsed.breakdownVisible === 'boolean' ? parsed.breakdownVisible : true,
         filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false,
         historyVisible: typeof parsed.historyVisible === 'boolean' ? parsed.historyVisible : false,
+        historyVariationsOpen: typeof parsed.historyVariationsOpen === 'boolean' ? parsed.historyVariationsOpen : true,
         showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false,
         inflationSource: typeof parsed.inflationSource === 'string' ? parsed.inflationSource : null
       };
@@ -57,6 +59,7 @@ export class UiState {
       breakdownVisible: true,
       filterTotals: false,
       historyVisible: false,
+      historyVariationsOpen: true,
       showClosedPlacements: false,
       inflationSource: null
     };

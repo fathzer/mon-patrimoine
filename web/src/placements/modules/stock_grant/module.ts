@@ -339,7 +339,7 @@ export class StockGrantModule extends BasePlacement {
    * Returns null when the placement was not tracked yet at that date.
    */
   override getDataAt(date: string): StockGrantModuleData | null {
-    if (this.closedAt != null && date > this.closedAt) {
+    if (this.isClosedAt(date)) {
       return null;
     }
     const knownDates = this.getHistoryDates();
@@ -395,7 +395,7 @@ export class StockGrantModule extends BasePlacement {
       )
     }));
     return dates.map(date => {
-      if (this.closedAt != null && date > this.closedAt) return null;
+      if (this.isClosedAt(date)) return null;
       if (firstKnown == null || date < firstKnown) return null;
       return {
         ...base,

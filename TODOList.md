@@ -23,6 +23,15 @@ Ce pourrait aussi être très utile pour la synchronisation ... qui serait un pl
 
 ## Storage Provider « démo » (Gist + provider local)
 Créer un Gist contenant un fichier `placements.json` imaginaire (jeu de données de démo) et un StorageProvider « démo » : charge le fichier du Gist, permet de bricoler en local, sauvegarde dans le localStorage (aucune donnée réelle ne quitte le navigateur). Sert de sandbox d'évaluation pour un nouvel utilisateur.
+**Fichiers déjà générés** (`bun scripts/make_demo_data.ts`) : `demo/placements-demo.json` (patrimoine réaliste : PEA versements épisodiques, PER mensuel défiscalisé, Livret A, compte clôturé/remplacé, attributions Safran 2021-2024, « Crédit d'impôts », profil marié→parent isolé, annotations) et `demo/placements-stress.json` (1 placement/module × ~800 relevés = densité max de `thin()`, profil fiscal blindé). Reste : publier le démo sur un Gist + écrire le provider.
+
+## Élagage de l'historique (`thin()`) — implémenté, non câblé
+**Idée** : borner la croissance de `placements.json` en dégradant la résolution des états anciens. `thin()` (dans `web/src/core/DatedHistory.ts`, déjà testée) retient : tout < ~1 an, 1 entrée/semaine jusqu'à 5 ans (slots 7/14/21/fin de mois), 1/quinzaine jusqu'à 10 ans (slots 15/fin de mois), 1/mois au-delà. Chaque slot garde l'entrée **la plus proche des deux côtés** (une saisie du 6/1 représentant fin décembre gagne le slot 31/12) ; la première entrée est toujours préservée. ~800 entrées/placement sur 20 ans. Non prioritaire : le merge-join (`getDataSeriesAt`) rend le graphe rapide même non élagué ; le thin sert surtout à borner la taille du fichier et l'affichage des dates.
+
+**Branchement proposé** : appeler `thin(this.history)` dans `BasePlacement.recordState()` après le `recordAt` (O(n), négligeable). Points d'attention :
+- **Pas de thin dans `insertHistoryEntry()`** : une correction rétroactive fraîche pourrait perdre son slot et être élaguée immédiatement (ou alors l'appeler en protégeant la nouvelle entrée).
+- `thin()` est **destructif** : les états élagués sont perdus à la sauvegarde — à valider avant activation.
+- `stock_grant` : surcharger pour élaguer aussi `priceHistory` et les `sharesHistory` de chaque ligne (mêmes helpers par dimension).
 
 ## TODO Curieux
 TODO préexistants (déjà dans le code avant mes changements — le linter les re-signe simplement parce que le fichier a été modifié). Ce ne sont pas des régressions :

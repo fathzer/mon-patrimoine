@@ -3,12 +3,13 @@ Une application web pour suivre son patrimoine financier et sa valeur nette (apr
 
 TRAVAIL EN COURS !!!! RIEN NE FONCTIONNE POUR L'INSTANT
 
-Cette application web en TypeScript permet de gérer (recenser) votre patrimoine. Son objectif final est de pouvoir calculer les valeurs brutes, mais aussi la valeur nette (après prélèvements sociaux et impôts sur le revenu) généralement absente des applications de suivi de patrimoine.
+Cette application web en TypeScript permet de gérer (recenser) votre patrimoine. Son objectif final est de pouvoir calculer les valeurs brutes, mais aussi la valeur nette (après prélèvements sociaux et impôts sur le revenu) généralement absente des applications de suivi de patrimoine, et dans suivre l'évolution de votre patrimoine dans le temps, en prenant également en compte l'inflation.
 Voici la structure globale :
 - L'application est modulaire, avec des fichiers css, des libellés, et des composants bien séparés.
 - Chaque type de placement (Compte courant, PEA, PER, PEE, Assurance vie, etc ...) fait l'objet d'un composant différent. Le système de modules de placement (plugins) est documenté dans [PLACEMENTS.md](PLACEMENTS.md).
 - Certaines données sont partagées par certains placements (prélèvement forfaitaire, CSG, par exemple). Elles font l'objet d'un module séparé éventuellement utilisé par les autres modules.
 - Il n'y a pas de connexion directe aux banques (ce serait trop ambitieux), tous les montants doivent pouvoir être saisis.
+- L'application garde l'historique daté de chaque placement afin de produire des graphes d'évolution brut/net (périodes 1M/6M/Année/1A/5A/10A/Max), un tableau de variations annuelles. Elle permet également d'ajouter des annotations pour mentionner des événements importants affectant le patrimoine (ex: Dons), d'effectuer des corrections rétroactives (une valeur saisie dans le passé peut être corrigée), et d'afficher en euros constants via les indices INSEE.
 - Les données sont stockées sous forme d'un simple fichier json dans le Cloud (les premiers fournisseurs disponibles seront Google Drive et pCloud). Des composants génériques (qui implémentent une même API) permettent l'authentification et la sauvegarde/relecture du fichier.
 
 ## Notes développeurs
@@ -34,6 +35,13 @@ Puis ouvrir http://localhost:5500 dans votre navigateur.
 cd web
 bun test
 ```
+
+### Données de démonstration
+
+`bun scripts/make_demo_data.ts` génère deux fichiers dans `demo/` :
+
+- `placements-demo.json` — un patrimoine fictif réaliste (PEA, PER, Livret A, comptes courants, attributions d'actions Safran 2021-2024, placement personnalisé « Crédit d'impôts », profil fiscal et annotations) ;
+- `placements-stress.json` — un placement de chaque type rempli à la densité maximale de la politique d'élagage (`thin()`), destiné aux tests de performance.
 
 ### Indice des prix à la consommation (INSEE)
 

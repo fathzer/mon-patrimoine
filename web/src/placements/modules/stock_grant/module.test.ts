@@ -267,6 +267,8 @@ describe("StockGrantModule history", () => {
   it("returns null before the earliest known date and after closedAt", () => {
     const p = makeModule({ closedAt: "2026-11-01" });
     expect(p.getDataAt("2020-01-01")).toBeNull();
+    // Closed on 2026-11-01: already gone on that day (end-of-day states).
+    expect(p.getDataAt("2026-11-01")).toBeNull();
     expect(p.getDataAt("2026-12-01")).toBeNull();
     expect(p.getDataAt("2026-10-15")).not.toBeNull();
   });

@@ -113,8 +113,8 @@ export class DashboardView {
     this._pageContent!.innerHTML = `
       <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
-      <section id="summary-history" class="summary-history"></section>
       <section id="summary-totals" class="summary-totals"></section>
+      <section id="summary-history" class="summary-history"></section>
       <section id="summary-breakdown" class="summary-breakdown"></section>
       <div id="assets-container"></div>
     `;
@@ -402,6 +402,7 @@ export class DashboardView {
       .then(rawData => {
         try {
           this.store.importData(JSON.parse(rawData));
+          this._assetTableView.resetFilters();
         } catch (error) {
           console.error('Import failed:', error);
           window.alert(I18n.t('alerts.importError'));

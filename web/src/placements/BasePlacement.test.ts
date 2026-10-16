@@ -103,14 +103,17 @@ describe("BasePlacement history", () => {
     expect(data.history).toBeUndefined();
   });
 
-  it("returns null after closedAt", () => {
+  it("returns null on and after closedAt", () => {
     const p = new TestPlacement({
       id: "1",
       currentValue: 100,
       asOf: "2025-01-10",
       closedAt: "2025-06-30"
     });
-    expect(dataAt(p,"2025-06-30")!.currentValue).toBe(100);
+    expect(dataAt(p,"2025-06-29")!.currentValue).toBe(100);
+    // A dated record is the end-of-day state: closed on the 30th means
+    // already gone on the evening of the 30th.
+    expect(dataAt(p,"2025-06-30")).toBeNull();
     expect(dataAt(p,"2025-07-01")).toBeNull();
   });
 
