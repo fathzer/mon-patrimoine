@@ -107,37 +107,48 @@ export class StockGrant {
     }
 
     const attributionDate = new Date(this.attributionDate);
-    const acquisitionDate = new Date(this.acquisitionDate);
 
     const FROM_2015_REFORM = new Date('2015-08-08');
     const FROM_2016_REFORM = new Date('2016-12-31');
-    const FROM_2018_REFORM = new Date('2018-01-01');
 
     // From 28/09/2012 to 07/08/2015: no abattement.
     if (attributionDate < FROM_2015_REFORM) {
       return acquisitionGain;
     }
 
-    // Detention-duration abattement (plus-values mobilières), from acquisitionDate.
-    const getDetentionAbattement = (): number => {
-      const yearsDetained = (now.getTime() - acquisitionDate.getTime()) / (365.25 * 24 * 3600 * 1000);
-      if (yearsDetained > 8) return DETENTION_ABATTEMENT_8Y;
-      if (yearsDetained > 2) return DETENTION_ABATTEMENT_2Y;
-      return 0;
-    };
-
     // From 08/08/2015 to 30/12/2016: abattement on the whole gain.
     if (attributionDate < FROM_2016_REFORM) {
-      return acquisitionGain * (1 - getDetentionAbattement());
+      return acquisitionGain * (1 - this._getDetentionAbattement(now));
     }
 
     // From 31/12/2016: abattement on the fraction below the threshold only.
     const belowThreshold = Math.max(0, Math.min(acquisitionGain, threshold));
     const aboveThreshold = Math.max(0, acquisitionGain - threshold);
-    const abattement = attributionDate < FROM_2018_REFORM
-      ? getDetentionAbattement()
+    return belowThreshold * (1 - this.getBelowThresholdAbattement(now)) + aboveThreshold;
+  }
+
+  /**
+   * Detention-duration abattement counted from the acquisition date:
+   * 65 % beyond 8 years, 50 % beyond 2 years, 0 otherwise.
+   */
+  _getDetentionAbattement(now: Date): number {
+    const yearsDetained = (now.getTime() - new Date(this.acquisitionDate).getTime()) / (365.25 * 24 * 3600 * 1000);
+    if (yearsDetained > 8) return DETENTION_ABATTEMENT_8Y;
+    if (yearsDetained > 2) return DETENTION_ABATTEMENT_2Y;
+    return 0;
+  }
+
+  /**
+   * Abattement rate applied to the below-threshold fraction of the
+   * acquisition gain: detention-duration abattement for 2016-2017
+   * attributions, the flat 50 % abattement from 2018. Ranks eligible
+   * grants when the 300 000 € threshold is allocated.
+   */
+  getBelowThresholdAbattement(now: Date): number {
+    const FROM_2018_REFORM = new Date('2018-01-01');
+    return new Date(this.attributionDate) < FROM_2018_REFORM
+      ? this._getDetentionAbattement(now)
       : UNIFORM_ABATTEMENT_FROM_2018;
-    return belowThreshold * (1 - abattement) + aboveThreshold;
   }
 
   /**
@@ -575,27 +586,41 @@ export class StockGrantModule extends BasePlacement {
   }
 
   /**
+   * Allocates the 300 000 € threshold across eligible grants by
+   * descending below-threshold abattement: each euro of threshold buys
+   * more tax relief on a 65 % grant than on a 50 % one, so exhausting
+   * the highest abattement first is the optimum. Social charges are
+   * indifferent to the split (every euro moved below the threshold swaps
+   * the same rates on every grant), so this ordering only optimizes the
+   * income tax base. Grants with equal abattement keep their declaration
+   * order (stable sort), which makes the allocation deterministic.
+   * @returns per-grant allocated threshold; absent grants get 0.
+   */
+  _allocateThreshold(currentPrice: number, now: Date): Map<StockGrant, number> {
+    const eligibleGrants = this.attributions
+      .filter(a => a.isEligibleFor300kThreshold())
+      .sort((a, b) => b.getBelowThresholdAbattement(now) - a.getBelowThresholdAbattement(now));
+    const thresholdMap = new Map<StockGrant, number>();
+    let remaining = StockGrantModule.THRESHOLD;
+    for (const grant of eligibleGrants) {
+      const allocated = Math.min(grant.getRealAcquisitionGain(currentPrice), remaining);
+      thresholdMap.set(grant, allocated);
+      remaining -= allocated;
+      if (remaining <= 0) break;
+    }
+    return thresholdMap;
+  }
+
+  /**
    * Computes the total social charges for all grants.
-   * Eligible grants (attribution from 31/12/2016) share the 300 000 € threshold
-   * proportionally to their real acquisition gain. Each grant then contributes
-   * its acquisition social charges (using the allocated threshold) plus its
-   * capital gain social charges.
+   * Eligible grants (attribution from 31/12/2016) share the 300 000 €
+   * threshold, allocated by descending abattement (see _allocateThreshold).
+   * Each grant then contributes its acquisition social charges (using the
+   * allocated threshold) plus its capital gain social charges.
    */
   getSocialCharges(now: Date = new Date()): number {
     const currentPrice = this.currentPrice;
-
-    const eligibleGrants = this.attributions.filter(a => a.isEligibleFor300kThreshold());
-    const totalEligibleGain = eligibleGrants.reduce(
-      (sum, a) => sum + a.getRealAcquisitionGain(currentPrice),
-      0
-    );
-
-    const thresholdMap = new Map<StockGrant, number>();
-    for (const grant of eligibleGrants) {
-      const gain = grant.getRealAcquisitionGain(currentPrice);
-      const share = totalEligibleGain > 0 ? gain / totalEligibleGain : 0;
-      thresholdMap.set(grant, share * StockGrantModule.THRESHOLD);
-    }
+    const thresholdMap = this._allocateThreshold(currentPrice, now);
 
     return this.attributions.reduce((sum, grant) => {
       const threshold = thresholdMap.get(grant) ?? 0;
@@ -607,25 +632,13 @@ export class StockGrantModule extends BasePlacement {
 
   /**
    * Computes the PlacementIncome[] for all grants, applying the 300 000 €
-   * threshold proportionally across eligible grants (same allocation as
-   * getSocialCharges). For each grant, includes both the acquisition income
-   * and the capital gain (plus-value) income.
+   * threshold by descending abattement across eligible grants (same
+   * allocation as getSocialCharges). For each grant, includes both the
+   * acquisition income and the capital gain (plus-value) income.
    */
   override getTaxableIncomes(fiscalProfile: FiscalProfile, now: Date = new Date()): PlacementIncome[] {
     const currentPrice = this.currentPrice;
-
-    const eligibleGrants = this.attributions.filter(a => a.isEligibleFor300kThreshold());
-    const totalEligibleGain = eligibleGrants.reduce(
-      (sum, a) => sum + a.getRealAcquisitionGain(currentPrice),
-      0
-    );
-
-    const thresholdMap = new Map<StockGrant, number>();
-    for (const grant of eligibleGrants) {
-      const gain = grant.getRealAcquisitionGain(currentPrice);
-      const share = totalEligibleGain > 0 ? gain / totalEligibleGain : 0;
-      thresholdMap.set(grant, share * StockGrantModule.THRESHOLD);
-    }
+    const thresholdMap = this._allocateThreshold(currentPrice, now);
 
     const incomes: PlacementIncome[] = [];
     for (const grant of this.attributions) {

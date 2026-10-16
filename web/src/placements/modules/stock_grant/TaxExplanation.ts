@@ -60,7 +60,7 @@ export class StockGrantTaxExplanation {
       <li><b>Du 31/12/2016 au 31/12/2017</b> : gain ≤ ${threshold} € — barème progressif avec les mêmes abattements ; fraction > ${threshold} € — barème progressif sans abattement.</li>
       <li><b>À partir du 01/01/2018</b> : gain ≤ ${threshold} € — barème progressif avec abattement unique de ${uniformAbattement} (sans condition de durée) ; fraction > ${threshold} € — barème progressif sans abattement.</li>
     </ul>
-    <p>Le seuil de ${threshold} € est réparti proportionnellement entre les attributions éligibles (à partir du 31/12/2016).</p>
+    <p>Le seuil de ${threshold} € s'apprécie par année de cession. Le calcul suppose une cession sur l'année en cours : il est épuisé en priorité sur les attributions éligibles (à partir du 31/12/2016) offrant le plus fort abattement — l'allocation qui minimise l'assiette imposable. Une cession étalée sur deux années permettrait de bénéficier deux fois du seuil.</p>
 
     ${getWarning('<p>Il existe une possibilité d\'abattement fixe de 500 000 € pour les dirigeants de PME partant à la retraite. Cette possibilité n\'est pas disponible dans l\'application.</p>')}
     ${getUnvotedScheduleWarning(now.getFullYear())}

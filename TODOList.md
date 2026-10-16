@@ -8,7 +8,8 @@ L'absence de `taxProfile` dans le fichier *est* le flag « profil jamais renseig
 ## Un truc pas mal serait d'avoir la valeur nette en mode fourmi ou cigale (le mode actuel)
 Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 
-## Dans le module "Actions gratuites", plutôt que répartir les plafonds entre les différentes attributions éligibles, il faudrait les épuiser dans l'ordre de l'abattement max, ça devrait donner l'optimum, et rien n'empêche la cigale de tout vider en deux ordres séparés d'une journée ou deux.
+## ~~Dans le module "Actions gratuites", plutôt que répartir les plafonds entre les différentes attributions éligibles, il faudrait les épuiser dans l'ordre de l'abattement max, ça devrait donner l'optimum, et rien n'empêche la cigale de tout vider en deux ordres séparés d'une journée ou deux.~~ ✅ Fait
+`StockGrantModule._allocateThreshold()` remplace la répartition proportionnelle : les attributions éligibles (≥ 31/12/2016) sont triées par abattement sous-seuil décroissant (`StockGrant.getBelowThresholdAbattement` — détention 50/65 % pour 2017, 50 % uniforme dès 2018) et le seuil de 300 k€ est épuisé sur chacune à tour de rôle, plafonné au gain d'acquisition. Glouton = optimal : chaque euro de seuil retranche `abattement` € d'assiette. Les prélèvements sociaux sont invariants à la répartition (même écart de taux sous/au-dessus du seuil pour tout euro déplacé) ; à égalité d'abattement, l'ordre de déclaration l'emporte (tri stable). `TaxExplanation` précise que le seuil s'apprécie par année de cession (étaler sur 2 années = 2 × 300 k€).
 
 ## Un truc pas mal serait d'avoir la possibilité de marquer les placements non mis à jour le jour courant et d'avoir une icône pour les identifier.
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.

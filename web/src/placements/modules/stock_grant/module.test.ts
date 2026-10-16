@@ -1,7 +1,10 @@
 /// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
-import { StockGrant, StockGrantModule } from "./module.js";
+import { StockGrant, StockGrantModule, SPECIAL_SOCIAL_RATE, EMPLOYER_CONTRIBUTION_RATE } from "./module.js";
 import type { StockGrantModuleData } from "./module.js";
+import type { FiscalProfile } from "../../../fiscality/TaxCalculator.js";
+import { Household } from "../../../fiscality/Household.js";
+import { getSocialContributionRate } from "../../kit/v1/index.js";
 
 const NOW = new Date("2024-01-01");
 
@@ -363,5 +366,78 @@ describe("StockGrantModule history", () => {
     expect(p2.priceHistory).toEqual([{ date: "2025-06-01", price: 80 }]);
     expect(p2.attributions[0].sharesHistory).toEqual([{ date: "2024-03-01", shares: 100 }]);
     expect(p2.attributions[0].sharesAsOf).toBe("2026-10-01");
+  });
+});
+
+describe("StockGrantModule 300k threshold allocation", () => {
+  const EVAL_NOW = new Date("2026-01-15");
+  const profile: FiscalProfile = {
+    household: new Household({ maritalStatus: 'single' }),
+    taxableIncome: 40000,
+    usePfu: true
+  };
+
+  // Acquisition price = current price (100): the whole value is an
+  // acquisition gain and the plus-value is 0 for every grant.
+  // Acquired > 8 years before EVAL_NOW: 65% detention abattement.
+  const grant65 = { attributionDate: "2016-12-31", acquisitionDate: "2017-01-02", acquisitionPrice: 100, numberOfShares: 2000 };  // gain 200 000
+  // Attribution from 2018: flat 50% abattement.
+  const grant50 = { attributionDate: "2020-06-01", acquisitionDate: "2022-06-01", acquisitionPrice: 100, numberOfShares: 3000 };  // gain 300 000
+
+  it("exhausts the threshold on the highest-abattement grant first", () => {
+    const p = makeModule({ currentPrice: 100, attributions: [grant50, grant65] });
+    // Greedy allocation: grant65 (65%) is fully below the threshold;
+    // grant50 (50%) gets the remaining 100 000 below, 200 000 above.
+    const incomes = p.getTaxableIncomes(profile, EVAL_NOW);
+    expect(incomes).toHaveLength(2);
+    expect(incomes[0].assietteImposition).toBe(100000 * 0.5 + 200000);
+    expect(incomes[1].assietteImposition).toBe(200000 * 0.35);
+    // A proportional split would leave 332 000 taxable instead of 320 000.
+    expect(incomes.reduce((s, i) => s + i.assietteImposition, 0)).toBe(320000);
+  });
+
+  it("leaves non-eligible grants out of the allocation", () => {
+    const p = makeModule({ currentPrice: 100, attributions: [
+      // Attribution 2015 (pre-31/12/2016): never eligible, fully taxed.
+      { attributionDate: "2015-06-01", acquisitionDate: "2017-06-01", acquisitionPrice: 100, numberOfShares: 2000 },
+      grant50
+    ]});
+    const incomes = p.getTaxableIncomes(profile, EVAL_NOW);
+    expect(incomes).toHaveLength(2);
+    expect(incomes[0].assietteImposition).toBe(200000);
+    // grant50 receives the full threshold: 300 000 below × 50%.
+    expect(incomes[1].assietteImposition).toBe(150000);
+  });
+
+  it("covers the whole gains when they fit under the threshold", () => {
+    const p = makeModule({ currentPrice: 100, attributions: [
+      { ...grant50, numberOfShares: 1000 },  // gain 100 000
+      { ...grant65, numberOfShares: 1500 }   // gain 150 000
+    ]});
+    const incomes = p.getTaxableIncomes(profile, EVAL_NOW);
+    expect(incomes[0].assietteImposition).toBe(50000);
+    expect(incomes[1].assietteImposition).toBe(52500);
+  });
+
+  it("is deterministic on equal abattement: declaration order wins", () => {
+    const p = makeModule({ currentPrice: 100, attributions: [
+      { attributionDate: "2020-01-01", acquisitionDate: "2022-01-01", acquisitionPrice: 100, numberOfShares: 2500 },
+      { attributionDate: "2021-01-01", acquisitionDate: "2023-01-01", acquisitionPrice: 100, numberOfShares: 2500 }
+    ]});
+    const map = p._allocateThreshold(100, EVAL_NOW);
+    expect(map.get(p.attributions[0])).toBe(250000);
+    expect(map.get(p.attributions[1])).toBe(50000);
+  });
+
+  it("keeps social charges identical whatever the split", () => {
+    const p = makeModule({ currentPrice: 100, attributions: [grant65, grant50] });
+    const socialRate = getSocialContributionRate(EVAL_NOW);
+    // Whichever grant is pushed below the threshold, 300 000 € end up at
+    // the standard rate and grant50's remaining 200 000 € at the special
+    // rate + the 10% employer contribution.
+    expect(p.getSocialCharges(EVAL_NOW)).toBeCloseTo(
+      300000 * socialRate + 200000 * (SPECIAL_SOCIAL_RATE + EMPLOYER_CONTRIBUTION_RATE),
+      6
+    );
   });
 });

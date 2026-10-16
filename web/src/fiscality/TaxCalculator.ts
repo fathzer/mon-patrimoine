@@ -54,23 +54,6 @@ export interface ChildrenImpact {
  */
 export class TaxCalculator {
   /**
-   * Computes global income tax across multiple incomes. Not implemented yet.
-   */
-  static calculateGobalTax(profile: FiscalProfile | undefined, ...incomes: PlacementIncome[]): number {
-    let tax = 0;
-
-    for (const income of incomes) {
-      const base = income?.assietteImposition ?? 0;
-      if (base <= 0) {
-        continue;
-      }
-      // TODO: implement per-income tax and aggregate it
-    }
-
-    return tax;
-  }
-
-  /**
    * Computes the tax impact and RNI delta for a single placement income.
    * @private
    */
@@ -137,42 +120,6 @@ export class TaxCalculator {
     }
 
     return Math.max(0, flatTax);
-  }
-
-  /**
-   * Computes tax for a specific placement income using the chosen tax mode.
-   */
-  static calculateTax(profile: FiscalProfile | undefined, income: PlacementIncome, incomeYear: number = new Date().getFullYear()): number {
-    const base = income?.assietteImposition ?? 0;
-    if (base <= 0) {
-      return 0;
-    }
-
-    const rates = getFiscalRates(incomeYear);
-    const eligiblePfu = income?.eligiblePfu ?? false;
-    const deductionRevenus = income?.deductionRevenus ?? 0;
-    const tauxSpecifique = income?.tauxSpecifique;
-
-    let taxableBase = base;
-    if (deductionRevenus > 0) {
-      const deduction = deductionRevenus * rates.PFU_CSG_REDUCTION_RATE;
-      taxableBase = Math.max(0, taxableBase - deduction);
-    }
-
-    let rate = -1;
-    if (eligiblePfu && profile?.usePfu && rates.PFU_AVAILABLE) {
-      rate = tauxSpecifique ?? rates.PFU_IR_RATE;
-    } else if (tauxSpecifique != null) {
-      rate = tauxSpecifique;
-    }
-
-    if (rate > 0) {
-      return Math.max(0, taxableBase * rate);
-    }
-    // TODO: A corriger (Tout est faux dans le cas hors PFU, en plus il doit manquer les déductions du revenu de la CSG déductible)
-
-    const { tmi } = this.computeFiscalMetrics(profile as FiscalProfile, incomeYear);
-    return taxableBase * tmi;
   }
 
   /**
