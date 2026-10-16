@@ -171,12 +171,23 @@ export class HistoryChartView {
     this._t0 = ts(visible[0].date);
     this._t1 = ts(visible.at(-1)!.date);
     if (this._t0 === this._t1) this._t1 += 86400000;
-    const yMax = Math.max(...visible.map(p => Math.max(p.gross, p.net)), 1) * 1.05;
+    // The y-axis spans the *visible* points' own [min, max] — a patrimoine
+    // can go negative, and a 0-bound axis flattens every gap once values
+    // grow. The range snaps to round steps so grid labels stay readable.
+    const vMin = Math.min(...visible.map(p => Math.min(p.gross, p.net)));
+    const vMax = Math.max(...visible.map(p => Math.max(p.gross, p.net)));
+    const vSpan = Math.max(vMax - vMin, Math.abs(vMax) * 0.02, 1);
+    const rawStep = vSpan / 4;
+    const stepMag = 10 ** Math.floor(Math.log10(rawStep));
+    const yStep = [1, 2, 5, 10].map(m => m * stepMag).find(s => s >= rawStep) ?? stepMag * 10;
+    let yMin = Math.floor(vMin / yStep) * yStep;
+    let yMax = Math.ceil(vMax / yStep) * yStep;
+    if (yMin === yMax) { yMin -= yStep; yMax += yStep; }
 
     const x = (date: string): number => PAD.left + ((ts(date) - this._t0) / (this._t1 - this._t0)) * innerW;
     this._x = x;
     this._axisY = PAD.top + innerH;
-    const y = (value: number): number => PAD.top + innerH - (value / yMax) * innerH;
+    const y = (value: number): number => PAD.top + innerH - ((value - yMin) / (yMax - yMin)) * innerH;
 
     // Step curve: each point reaches the previous ordinate at its abscissa.
     const stepPath = (get: (p: ChartPoint) => number): string => {
@@ -187,11 +198,17 @@ export class HistoryChartView {
       return d;
     };
 
-    const gridLines = [0.25, 0.5, 0.75, 1].map(r => {
-      const gy = (PAD.top + innerH - r * innerH).toFixed(1);
-      return `<line x1="${PAD.left}" y1="${gy}" x2="${width - PAD.right}" y2="${gy}" class="chart-grid" />
-        <text x="${PAD.left - 6}" y="${gy}" class="chart-axis-label" text-anchor="end" dominant-baseline="middle">${axisFmt.format(r * yMax)}</text>`;
-    }).join('');
+    const gridLines: string[] = [];
+    const nTicks = Math.round((yMax - yMin) / yStep);
+    for (let i = 0; i <= nTicks; i++) {
+      const t = yMin + i * yStep;
+      const gy = y(t).toFixed(1);
+      // The bottom tick coincides with the axis line; a straddled zero gets
+      // an emphasized gridline so negative stretches stay readable.
+      const line = i === 0 ? '' : `<line x1="${PAD.left}" y1="${gy}" x2="${width - PAD.right}" y2="${gy}" class="chart-grid${t === 0 ? ' chart-grid-zero' : ''}" />`;
+      gridLines.push(`${line}
+        <text x="${PAD.left - 6}" y="${gy}" class="chart-axis-label" text-anchor="end" dominant-baseline="middle">${axisFmt.format(t)}</text>`);
+    }
 
     // Ticks: the first point, today and January 1st of each covered year —
     // year-only labels; neighbours closer than minTickGap are dropped (the
@@ -258,7 +275,7 @@ export class HistoryChartView {
       <div class="chart-periods">${periodButtons}</div>
       <div class="chart-wrap">
         <svg class="history-chart" viewBox="0 0 ${width} ${CHART_HEIGHT}" width="100%" height="${CHART_HEIGHT}" role="img" aria-label="${I18n.t('history.chartTitle')}">
-          ${gridLines}
+          ${gridLines.join('')}
           <path d="${stepPath(p => p.gross)}" class="chart-line chart-gross" fill="none" />
           <path d="${stepPath(p => p.net)}" class="chart-line chart-net" fill="none" />
           ${selected}
