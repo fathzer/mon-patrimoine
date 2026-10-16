@@ -93,6 +93,28 @@ describe("AppStore tax profile history", () => {
     expect(payload.taxProfile).toEqual({ profile: profile(40000), year: currentYear });
   });
 
+  it("marks the profile as unconfigured when the payload omits it, until the first save", () => {
+    const store = makeStore();
+    store._hydrateState({ version: "1.2", placements: [] });
+    expect(store.state.profileConfigured).toBe(false);
+    // The flag is persisted by omission: the export has no taxProfile either.
+    expect(store.getExportPayload().taxProfile).toBeUndefined();
+
+    store.updateTaxProfile(profile(42000));
+    expect(store.state.profileConfigured).toBe(true);
+    expect(store.getExportPayload().taxProfile).not.toBeUndefined();
+  });
+
+  it("marks a file carrying a tax profile as configured", () => {
+    const store = makeStore();
+    store._hydrateState({
+      version: "1.2",
+      taxProfile: { profile: profile(40000), year: currentYear },
+      placements: []
+    });
+    expect(store.state.profileConfigured).toBe(true);
+  });
+
   it("hydrates a 1.1 dated history by folding dates into income years", () => {
     const store = makeStore();
     store._hydrateState({

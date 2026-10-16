@@ -1,6 +1,7 @@
 # TODO List
 
-## Refaire le parcours d'accueil pour forcer le renseignement du profi fiscal.
+## ~~Refaire le parcours d'accueil pour forcer le renseignement du profil fiscal.~~ ✅ Fait
+L'absence de `taxProfile` dans le fichier *est* le flag « profil jamais renseigné » : `_getDefaultData()` l'omet, `_hydrateState` pose `state.profileConfigured`, `updateTaxProfile` le lève (et `getExportPayload` ne réintroduit la clé qu'une fois le profil fourni). `DashboardView.render()` ouvre `SettingsModalView` en mode `mandatory` tant que le flag est faux — sans barre d'année ni « Fermer »/« Enregistrer sans fermer », ni fermeture par clic sur l'overlay : seul « Enregistrer » débloque. Les fichiers existants (profil présent) ne voient rien ; le mode démo non plus (le Gist a un profil).
 
 ## Prévoir une information sur les nouveautés ... probablement dans la barre d'outils
 
@@ -21,9 +22,9 @@ Ce pourrait aussi être très utile pour la synchronisation ... qui serait un pl
 ## ~~Annotations sur le graphe d'historique~~ ✅ Fait (étape 7)
 `state.annotations: { date, text }[]` persisté dans le payload ; bouton ✎ dans la carte Historique → éditeur inline à la date de vue ; losange ambre sur la courbe nette + texte dans le tooltip.
 
-## Storage Provider « démo » (Gist + provider local)
-Créer un Gist contenant un fichier `placements.json` imaginaire (jeu de données de démo) et un StorageProvider « démo » : charge le fichier du Gist, permet de bricoler en local, sauvegarde dans le localStorage (aucune donnée réelle ne quitte le navigateur). Sert de sandbox d'évaluation pour un nouvel utilisateur.
-**Fichiers déjà générés** (`bun scripts/make_demo_data.ts`) : `demo/placements-demo.json` (patrimoine réaliste : PEA versements épisodiques, PER mensuel défiscalisé, Livret A, compte clôturé/remplacé, attributions Safran 2021-2024, « Crédit d'impôts », profil marié→parent isolé, annotations) et `demo/placements-stress.json` (1 placement/module × ~800 relevés = densité max de `thin()`, profil fiscal blindé). Reste : publier le démo sur un Gist + écrire le provider.
+## ~~Storage Provider « démo »~~ ✅ Fait
+`DemoProvider` (`web/src/storage/DemoProvider.ts`) : `loadData()` fetch le Gist public (`raw/demo.json`), `saveData()` répond `true` sans rien écrire — les données vivent en mémoire, un reload repart du Gist (variante retenue : pas même de sauvegarde localStorage). `StorageProvider.isReadOnly()` pilote le bandeau orange « Mode démo — vos modifications ne sont pas sauvegardées » en haut d'écran. Entrée : bouton « ou tester Mon Patrimoine en mode démo » sous « Connexion » (`AppStore.loginDemo()` → `StorageManager.useProvider` + `init()` ; `logout()` restaure le provider Google Drive).
+**Fichiers** (`bun scripts/make_demo_data.ts`) : `demo/placements-demo.json` (patrimoine réaliste publié sur le Gist : PEA versements épisodiques + PEA FortunaBank clôturé en 2019 pour financer la maison du Morbihan, appart Boulogne présent dès 2019, PER mensuel défiscalisé, Livret A, compte clôturé/remplacé, attributions Safran 2021-2024, « Crédit d'impôts », profil marié 0→3 enfants, banques fictives, annotations) et `demo/placements-stress.json` (1 placement/module × ~800 relevés = densité max de `thin()`, profil fiscal blindé).
 
 ## Élagage de l'historique (`thin()`) — implémenté, non câblé
 **Idée** : borner la croissance de `placements.json` en dégradant la résolution des états anciens. `thin()` (dans `web/src/core/DatedHistory.ts`, déjà testée) retient : tout < ~1 an, 1 entrée/semaine jusqu'à 5 ans (slots 7/14/21/fin de mois), 1/quinzaine jusqu'à 10 ans (slots 15/fin de mois), 1/mois au-delà. Chaque slot garde l'entrée **la plus proche des deux côtés** (une saisie du 6/1 représentant fin décembre gagne le slot 31/12) ; la première entrée est toujours préservée. ~800 entrées/placement sur 20 ans. Non prioritaire : le merge-join (`getDataSeriesAt`) rend le graphe rapide même non élagué ; le thin sert surtout à borner la taille du fichier et l'affichage des dates.

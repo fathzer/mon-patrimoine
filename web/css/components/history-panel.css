@@ -221,7 +221,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-sm);
-  margin-bottom: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .history-date-bar input[type="date"] {
@@ -398,6 +398,19 @@
 
 .annotation-editor[hidden] {
   display: none;
+}
+
+/* `hidden` alone loses against `display: flex` (mandatory mode hides the
+   year bar). */
+.history-date-bar[hidden] {
+  display: none;
+}
+
+/* Settings modal: the year bar already carries its own bottom margin —
+   drop the form body's top margin to avoid a double gap before the
+   first section. */
+#form-settings.help-modal-body {
+  margin-top: 0;
 }
 
 .annotation-editor-date {

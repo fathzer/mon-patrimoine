@@ -75,13 +75,17 @@ export class SettingsModalView {
   container: HTMLElement;
   store: AppStore;
   _ctx: ProfileYearContext | null = null;
+  /** Onboarding mode: no close affordance, no year bar — the profile must
+   *  be saved once to unlock the dashboard. */
+  _mandatory = false;
 
   constructor(container: HTMLElement, store: AppStore) {
     this.container = container;
     this.store = store;
   }
 
-  show(viewYear?: number): void {
+  show(viewYear?: number, mandatory = false): void {
+    this._mandatory = mandatory;
     const ctx = this._resolveYearContext(viewYear ?? new Date().getFullYear());
     this._ctx = ctx;
     const currentYear = new Date().getFullYear();
@@ -92,12 +96,16 @@ export class SettingsModalView {
 
           <h2 class="help-modal-header">
             <span style="display: inline-block; vertical-align: -0.25rem; margin-right: 0.3rem;">${TAX_ICON}</span>
-            ${I18n.t('settings.title')}
+            ${I18n.t(mandatory ? 'settings.onboardingTitle' : 'settings.title')}
           </h2>
+          ${mandatory
+            ? `<p class="welcome-card-text">${I18n.t('settings.onboardingNote')}</p>`
+            : ''}
 
           <!-- The year bar lives outside the form: navigation rebuilds only
-               the form, so the year input keeps its focus. -->
-          <div class="history-date-bar" id="profile-year-bar">
+               the form, so the year input keeps its focus. Hidden in
+               mandatory mode: onboarding fills the current year only. -->
+          <div class="history-date-bar" id="profile-year-bar" ${mandatory ? 'hidden' : ''}>
             <label for="hist-year">${I18n.t('settings.profileYear')}</label>
             <button type="button" id="hist-prev" class="btn-secondary" title="${I18n.t('history.prevPoint')}" ${ctx.prevYear == null ? 'disabled' : ''}>◀</button>
             <input type="number" id="hist-year" class="form-control" min="${EARLIEST_FISCAL_YEAR}" max="${currentYear}" step="1" value="${ctx.viewYear}" />
@@ -219,7 +227,13 @@ export class SettingsModalView {
               <button type="button" id="btn-save-stay" class="btn-secondary">
                 ${I18n.t('actions.saveStay')}
               </button>` : '';
-    const actionsHtml = locked ? `
+    // Mandatory onboarding offers a single way out: saving the profile.
+    const actionsHtml = this._mandatory ? `
+            <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
+              <button type="submit" class="btn-primary">
+                ${I18n.t('actions.save')}
+              </button>
+            </div>` : locked ? `
             <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
               <button type="button" id="btn-cancel-settings" class="btn-secondary">
                 ${I18n.t('form.close')}
@@ -396,7 +410,9 @@ export class SettingsModalView {
   _bindShellEvents(): void {
     const overlay = this.container.querySelector('.modal-overlay');
     overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) this.container.innerHTML = '';
+      // Mandatory mode (first-run onboarding) has no escape: the profile
+      // must be saved once.
+      if (e.target === overlay && !this._mandatory) this.container.innerHTML = '';
     });
 
     const bar = this.container.querySelector('#profile-year-bar') as HTMLElement;

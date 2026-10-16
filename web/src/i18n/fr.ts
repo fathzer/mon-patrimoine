@@ -87,6 +87,8 @@ export const fr = {
   },
   settings: {
     title: "Profil fiscal",
+    onboardingTitle: "Bienvenue — votre profil fiscal",
+    onboardingNote: "Pour estimer la valeur nette de votre patrimoine, Mon Patrimoine a besoin de connaître votre situation fiscale (revenus, foyer). Ces informations sont modifiables à tout moment via la barre d'outils en haut de l'écran.",
     familySection: "Situation Familiale & Foyer Fiscal",
     maritalStatus: "Statut matrimonial",
     maritalStatusSingle: "Célibataire / Divorcé(e) / Séparé(e)",

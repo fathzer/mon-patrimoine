@@ -35,6 +35,9 @@ export class DashboardView {
   _pageContent: HTMLElement | null;
   _modalRoot: HTMLElement | null;
   _topBarView: TopBarView;
+  /** Set once the mandatory tax-profile onboarding has been opened — render()
+   *  fires on every state:changed and must not stack modals. */
+  _mandatoryProfileOpen: boolean;
 
   constructor(container: HTMLElement, store: AppStore) {
     this.container = container;
@@ -62,6 +65,7 @@ export class DashboardView {
     this._historyChartView = new HistoryChartView({ onPickDate: (date) => this._onChartDatePick(date) });
     this._variationsView = new HistoryVariationsView();
     this._layoutInitialized = false;
+    this._mandatoryProfileOpen = false;
     this._topBarContainer = null;
     this._pageContent = null;
     this._modalRoot = null;
@@ -129,6 +133,13 @@ export class DashboardView {
     this._renderAssetTable();
 
     this._bindAuthenticatedEvents();
+
+    // First-run onboarding: the file carries no tax profile yet — the
+    // mandatory settings form blocks the dashboard until it is saved once.
+    if (!this.store.state.profileConfigured && !this._mandatoryProfileOpen) {
+      this._mandatoryProfileOpen = true;
+      new SettingsModalView(this._modalRoot!, this.store).show(undefined, true);
+    }
   }
 
   _renderAssetTable(): void {

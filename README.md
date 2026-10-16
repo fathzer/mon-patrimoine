@@ -1,7 +1,5 @@
 # mon-patrimoine
-Une application web pour suivre son patrimoine financier et sa valeur nette (après CSG, impôts).
-
-TRAVAIL EN COURS !!!! RIEN NE FONCTIONNE POUR L'INSTANT
+Une application web pour suivre son patrimoine financier et sa valeur nette (après CSG, impôts) en tenant compte de l'impact de l'inflation.
 
 Cette application web en TypeScript permet de gérer (recenser) votre patrimoine. Son objectif final est de pouvoir calculer les valeurs brutes, mais aussi la valeur nette (après prélèvements sociaux et impôts sur le revenu) généralement absente des applications de suivi de patrimoine, et dans suivre l'évolution de votre patrimoine dans le temps, en prenant également en compte l'inflation.
 Voici la structure globale :
@@ -40,8 +38,10 @@ bun test
 
 `bun scripts/make_demo_data.ts` génère deux fichiers dans `demo/` :
 
-- `placements-demo.json` — un patrimoine fictif réaliste (PEA, PER, Livret A, comptes courants, attributions d'actions Safran 2021-2024, placement personnalisé « Crédit d'impôts », profil fiscal et annotations) ;
+- `placements-demo.json` — un patrimoine fictif réaliste (PEA, PER, Livret A, comptes courants, attributions d'actions Safran 2021-2024, immobilier, placement personnalisé « Crédit d'impôts », profil fiscal et annotations) ;
 - `placements-stress.json` — un placement de chaque type rempli à la densité maximale de la politique d'élagage (`thin()`), destiné aux tests de performance.
+
+Le premier est publié sur un Gist public et alimente le **mode démo** : le bouton « ou tester Mon Patrimoine en mode démo » de l'écran de connexion charge ces données via le `DemoProvider` (lecture seule — les modifications ne sont pas sauvegardées et sont perdues au rechargement, signalé par un bandeau en haut d'écran).
 
 ### Indice des prix à la consommation (INSEE)
 
