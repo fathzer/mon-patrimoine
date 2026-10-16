@@ -87,3 +87,18 @@ describe("SavingsAccount history", () => {
     expect(next.history).toEqual([]);
   });
 });
+
+describe("SavingsAccountModule taxable income contract", () => {
+  it("emits a PFU-eligible income on total interest when not exempt", () => {
+    const p = new SavingsAccountModule(makeData({ taxExempt: false }));
+    // interestAmount 20 + promotionalInterest 5.
+    expect(p.getTaxableIncomes(profile)).toEqual([
+      { assietteImposition: 25, eligiblePfu: true, deductionRevenus: 25 }
+    ]);
+  });
+
+  it("emits no income for an exempt account", () => {
+    const p = new SavingsAccountModule(makeData({ taxExempt: true }));
+    expect(p.getTaxableIncomes(profile)).toEqual([]);
+  });
+});

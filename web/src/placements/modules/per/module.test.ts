@@ -123,18 +123,20 @@ describe('PerModule - social charges', () => {
 });
 
 describe('PerModule - income tax', () => {
-  it('taxes deducted capital at barème (progressive) and gains at PFU', () => {
+  it('emits deducted capital at barème and PFU-eligible gains', () => {
     const per = new PerModule({
       grossValue: 5000,
       deducted: { contributions: 3000, gain: 1000 },
       nonDeducted: { contributions: 500, gain: 500 },
       employeeSavings: { contributions: 0, gain: 0 }
     });
-    // With PFU: deducted capital (3000) at barème, gains (1000 + 500) at PFU 12.8%.
-    const evalPfu = per.getEvaluation(PROFILE_PFU);
-    // PFU on gains: 1500 * 0.128 = 192
-    // Barème on 3000 capital with 0 taxable income: 3000 at 11% = 330
-    expect(evalPfu.imposition).toBe(192 + 330);
+    // Deducted capital (3000) has no flag: the calculator applies the
+    // progressive scale. Both gains are PFU-eligible and CSG-deductible.
+    expect(per.getTaxableIncomes(PROFILE_PFU)).toEqual([
+      { assietteImposition: 3000 },
+      { assietteImposition: 1000, eligiblePfu: true, deductionRevenus: 1000 },
+      { assietteImposition: 500, eligiblePfu: true, deductionRevenus: 500 }
+    ]);
   });
 
   it('exempts non-deducted capital from income tax', () => {
@@ -160,23 +162,21 @@ describe('PerModule - income tax', () => {
     });
     const incomes = per.getTaxableIncomes(PROFILE_PFU);
     expect(incomes).toHaveLength(0);
-    expect(per.getEvaluation(PROFILE_PFU).imposition).toBe(0);
   });
 
-  it('taxes gains at barème when PFU is not selected', () => {
+  it('still flags gains as PFU-eligible when the profile opts out of PFU', () => {
     const per = new PerModule({
       grossValue: 2000,
       deducted: { contributions: 0, gain: 1000 },
       nonDeducted: { contributions: 0, gain: 500 },
       employeeSavings: { contributions: 500, gain: 0 }
     });
-    // Without PFU: PFU-eligible gains go to barème at full base (no CSG deduction).
-    // modifiedRni = 20000 + 1000 + 500 = 21500
-    // Tax on 21500 (1 part): (21500 - 11600) * 0.11 = 1089
-    // Tax on 20000 (1 part): (20000 - 11600) * 0.11 = 924
-    // Delta = 1089 - 924 = 165
-    const evalBareme = per.getEvaluation(PROFILE_BAREME);
-    expect(evalBareme.imposition).toBeCloseTo(165, 2);
+    // The module emits the same PFU-eligible incomes whatever the profile:
+    // routing them to the barème is the calculator's job.
+    expect(per.getTaxableIncomes(PROFILE_BAREME)).toEqual([
+      { assietteImposition: 1000, eligiblePfu: true, deductionRevenus: 1000 },
+      { assietteImposition: 500, eligiblePfu: true, deductionRevenus: 500 }
+    ]);
   });
 });
 

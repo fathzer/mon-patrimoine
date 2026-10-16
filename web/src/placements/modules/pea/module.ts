@@ -82,7 +82,9 @@ export class PeaModule extends BasePlacement {
       return [];
     }
     const latentGain = this.getLatentGain();
-    return [{ assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain }];
+    return latentGain > 0
+      ? [{ assietteImposition: latentGain, eligiblePfu: true, deductionRevenus: latentGain }]
+      : [];
   }
 
   override getEvaluation(fiscalProfile: FiscalProfile, now: Date = new Date()): Evaluation {

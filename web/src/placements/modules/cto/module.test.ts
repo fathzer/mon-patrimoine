@@ -68,3 +68,18 @@ describe("Cto history", () => {
     expect(p.getEvaluation(profile, new Date("2026-10-01")).grossValue).toBe(51000);
   });
 });
+
+describe("CtoModule taxable income contract", () => {
+  it("emits a PFU-eligible income on the latent gain", () => {
+    const p = new CtoModule(makeData());
+    // Latent gain = 51 000 - 40 000 - 300 = 10 700 €.
+    expect(p.getTaxableIncomes(profile)).toEqual([
+      { assietteImposition: 10700, eligiblePfu: true, deductionRevenus: 10700 }
+    ]);
+  });
+
+  it("emits no income without a latent gain", () => {
+    const p = new CtoModule(makeData({ currentValue: 39000 }));
+    expect(p.getTaxableIncomes(profile)).toEqual([]);
+  });
+});

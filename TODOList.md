@@ -15,8 +15,9 @@ Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
 Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
 
-## Ajout de test case pour les calculs de prélèvements
-### Reprendre lifeInsuranceModule.test.js pour vérifier que le module est correctement appelé, plutôt que de tester directement l'impôt calculé
+## ~~Ajout de test case pour les calculs de prélèvements~~ ✅ Fait
+### ~~Reprendre lifeInsuranceModule.test.js pour vérifier que le module est correctement appelé, plutôt que de tester directement l'impôt calculé~~
+Les tests de module vérifient désormais le **contrat** `getTaxableIncomes()` (assiette, `eligiblePfu`, `tauxSpecifique`, `deductionRevenus`) plutôt que `evaluation.imposition` (impôt calculé par `TaxCalculator`, couvert par ses propres tests + les tests OpenFisca). Convertis : `life_insurance` (10 assertions) et `per` (3). Contrat ajouté pour les modules qui en manquaient : `pea` (exonération à 5 ans, borne incluse), `home_savings` (PEL >12 ans pré-2018 / CEL jamais / post-2018), `real_estate` (RP exonérée, abattement 6 %/an IR, exonération 22 ans), `cto` + `savings_account` (gains PFU, exonération Livret A), `checking_account`/`pee` (`[]` — exonérés). `custom` conserve sa fiscalité saisie à la main. Au passage : `pea` n'émet plus de revenu à assiette 0 (garde `> 0`, comme `cto`).
 
 ## Ajout d'autres StorageProvider (pCloud, One Drive, etc...)
 
@@ -34,13 +35,3 @@ Ce pourrait aussi être très utile pour la synchronisation ... qui serait un pl
 - **Pas de thin dans `insertHistoryEntry()`** : une correction rétroactive fraîche pourrait perdre son slot et être élaguée immédiatement (ou alors l'appeler en protégeant la nouvelle entrée).
 - `thin()` est **destructif** : les états élagués sont perdus à la sauvegarde — à valider avant activation.
 - `stock_grant` : surcharger pour élaguer aussi `priceHistory` et les `sharesHistory` de chaque ligne (mêmes helpers par dimension).
-
-## TODO Curieux
-TODO préexistants (déjà dans le code avant mes changements — le linter les re-signe simplement parce que le fichier a été modifié). Ce ne sont pas des régressions :
-
-Ligne 66 (calculateGobalTax) : méthode stub jamais implémentée ("implement per-income tax and aggregate it"). La compléter = implémenter le calcul d'impôt global — un vrai chantier, hors périmètre de l'étape 1.
-
-Ligne 173 (calculateTax) : TODO de l'auteur du code reconnaissant que le chemin hors-PFU de cette méthode est faux (tmi × base au lieu du différentiel barème comme calculatePlacementTax). Corriger = un vrai changement de comportement.
-Deux options : les laisser tels quels (ce sont des limitations documentées), ou — si tu veux — je peux traiter le second dans une passe séparée, car c'est un vrai bug latent (le premier est juste une fonctionnalité non implémentée). Ma recommandation : ne pas les mélanger à l'étape 1, éventuellement y revenir lors du travail sur la valeur nette historique où le chemin hors-PFU aura plus d'importance.
-
-Il faudrait commencer par vérifier si ces méthodes sont appelées dans le code.

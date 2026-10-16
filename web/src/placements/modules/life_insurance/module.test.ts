@@ -1,6 +1,12 @@
 /// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
-import { LifeInsuranceModule } from "./module.js";
+import {
+  LifeInsuranceModule,
+  PFU_BEFORE_8Y,
+  PFU_AFTER_8Y_PRE_2017,
+  PFU_AFTER_8Y_POST_2017_LOW,
+  PFU_AFTER_8Y_POST_2017_HIGH
+} from "./module.js";
 import { Household, type MaritalStatus } from "../../../fiscality/Household.js";
 import type { FiscalProfile } from "../../../fiscality/TaxCalculator.js";
 
@@ -38,7 +44,8 @@ describe("LifeInsuranceModule", () => {
     expect(evaluation.netValueBeforeIR).toBe(50000);
     expect(evaluation.socialCharges).toBe(0);
     expect(evaluation.latentGain).toBe(0);
-    expect(evaluation.imposition).toBe(0);
+    // No taxable income is emitted, so no tax can be computed.
+    expect(module.getTaxableIncomes(makeProfile(), NOW)).toEqual([]);
   });
 
   it("computes social charges only on the unit-linked share", () => {
@@ -67,23 +74,27 @@ describe("LifeInsuranceModule", () => {
 
     const totalGain = 20000;
     expect(evaluation.socialCharges).toBeCloseTo(totalGain * 0.172, 2);
-    expect(evaluation.imposition).toBeCloseTo(totalGain * 0.128, 2);
+    // A single income flagged PFU at the pre-8-year rate.
+    expect(module.getTaxableIncomes(makeProfile(), NOW)).toEqual([
+      { assietteImposition: totalGain, eligiblePfu: true, tauxSpecifique: PFU_BEFORE_8Y }
+    ]);
   });
 
-  it("uses the marginal tax rate when PFU is not selected before 8 years", () => {
+  it("emits a barème income when PFU is not selected before 8 years", () => {
     const module = new LifeInsuranceModule({
       currentValue: 70000,
       totalPremiums: 50000,
       euroFundsValue: 0,
       openingDate: "2020-01-01"
     });
-    const evaluation = module.getEvaluation(makeProfile({ usePfu: false }), NOW);
 
     const totalGain = 20000;
-    const deduction = totalGain * 0.068; // deductible CSG fraction on the UC gain
-    const expectedTax = (totalGain - deduction) * 0.30;
-    expect(evaluation.socialCharges).toBeCloseTo(totalGain * 0.172, 2);
-    expect(evaluation.imposition).toBeCloseTo(expectedTax, 2);
+    expect(module.getSocialCharges()).toBeCloseTo(totalGain * 0.172, 2);
+    // No eligiblePfu flag, no specific rate: the calculator applies the
+    // progressive scale; the UC share (100% here) is CSG-deductible.
+    expect(module.getTaxableIncomes(makeProfile({ usePfu: false }), NOW)).toEqual([
+      { assietteImposition: totalGain, deductionRevenus: totalGain }
+    ]);
   });
 
   it("exempts income tax when the gain is below the single allowance after 8 years", () => {
@@ -98,10 +109,11 @@ describe("LifeInsuranceModule", () => {
     const totalGain = 4000;
     expect(evaluation.latentGain).toBe(totalGain);
     expect(evaluation.socialCharges).toBeCloseTo(totalGain * 0.172, 2);
-    expect(evaluation.imposition).toBe(0);
+    // 4 000 € gain is under the 4 600 € single allowance: no income emitted.
+    expect(module.getTaxableIncomes(makeProfile(), NOW)).toEqual([]);
   });
 
-  it("applies the low post-8-year PFU rate for post-2017 premiums", () => {
+  it("emits the low post-8-year PFU tranche for post-2017 premiums", () => {
     const module = new LifeInsuranceModule({
       currentValue: 100000,
       totalPremiums: 50000,
@@ -113,10 +125,12 @@ describe("LifeInsuranceModule", () => {
     const totalGain = 50000;
     const taxableGain = totalGain - 4600;
     expect(evaluation.socialCharges).toBeCloseTo(totalGain * 0.172, 2);
-    expect(evaluation.imposition).toBeCloseTo(taxableGain * 0.075, 2);
+    expect(module.getTaxableIncomes(makeProfile(), NOW)).toEqual([
+      { assietteImposition: taxableGain, tauxSpecifique: PFU_AFTER_8Y_POST_2017_LOW }
+    ]);
   });
 
-  it("splits post-2017 taxation between low and high PFU rates when premiums exceed the threshold", () => {
+  it("splits post-2017 taxation between low and high PFU tranches when premiums exceed the threshold", () => {
     const module = new LifeInsuranceModule({
       currentValue: 300000,
       totalPremiums: 200000,
@@ -127,15 +141,17 @@ describe("LifeInsuranceModule", () => {
 
     const totalGain = 100000;
     const taxableGain = totalGain - 4600;
-    const firstFraction = 150000 / 200000; // 0.75
-    const postGainFirst = taxableGain * firstFraction;
-    const postGainRest = taxableGain - postGainFirst;
-    const expectedTax = postGainFirst * 0.075 + postGainRest * 0.128;
-    expect(evaluation.imposition).toBeCloseTo(expectedTax, 2);
+    const lowBase = taxableGain * 150000 / 200000;
+    const incomes = module.getTaxableIncomes(makeProfile(), NOW);
+    expect(incomes).toHaveLength(2);
+    expect(incomes[0].assietteImposition).toBeCloseTo(lowBase, 2);
+    expect(incomes[0].tauxSpecifique).toBe(PFU_AFTER_8Y_POST_2017_LOW);
+    expect(incomes[1].assietteImposition).toBeCloseTo(taxableGain - lowBase, 2);
+    expect(incomes[1].tauxSpecifique).toBe(PFU_AFTER_8Y_POST_2017_HIGH);
     expect(evaluation.socialCharges).toBeCloseTo(totalGain * 0.172, 2);
   });
 
-  it("applies the favourable 7.5% rate to pre-2017 premium share", () => {
+  it("emits the favourable 7.5% tranche for the pre-2017 premium share", () => {
     const module = new LifeInsuranceModule({
       currentValue: 170000,
       totalPremiums: 100000,
@@ -143,32 +159,30 @@ describe("LifeInsuranceModule", () => {
       euroFundsValue: 0,
       openingDate: "2015-01-01"
     });
-    const evaluation = module.getEvaluation(makeProfile(), NOW);
 
-    const totalGain = 70000;
-    const taxableGain = totalGain - 4600;
-    const preShare = 0.4;
-    const postShare = 0.6;
-    const preTaxable = taxableGain * preShare;
-    const postTaxable = taxableGain * postShare;
-    const expectedTax = preTaxable * 0.075 + postTaxable * 0.075;
-    expect(evaluation.imposition).toBeCloseTo(expectedTax, 2);
+    const taxableGain = 70000 - 4600;
+    const incomes = module.getTaxableIncomes(makeProfile(), NOW);
+    expect(incomes).toHaveLength(2);
+    // pre-2017 share (40%) at the favourable rate, post-2017 rest at the low rate.
+    expect(incomes[0].assietteImposition).toBeCloseTo(taxableGain * 0.4, 2);
+    expect(incomes[0].tauxSpecifique).toBe(PFU_AFTER_8Y_PRE_2017);
+    expect(incomes[1].assietteImposition).toBeCloseTo(taxableGain * 0.6, 2);
+    expect(incomes[1].tauxSpecifique).toBe(PFU_AFTER_8Y_POST_2017_LOW);
   });
 
-  it("uses the marginal tax rate after 8 years when PFU is not selected", () => {
+  it("emits a barème income after 8 years when PFU is not selected", () => {
     const module = new LifeInsuranceModule({
       currentValue: 100000,
       totalPremiums: 50000,
       euroFundsValue: 0,
       openingDate: "2010-01-01"
     });
-    const evaluation = module.getEvaluation(makeProfile({ usePfu: false }), NOW);
 
-    const totalGain = 50000;
-    const taxableGain = totalGain - 4600;
-    const deduction = taxableGain * 0.068;
-    const expectedTax = (taxableGain - deduction) * 0.30;
-    expect(evaluation.imposition).toBeCloseTo(expectedTax, 2);
+    const taxableGain = 50000 - 4600;
+    // 100% UC share: the whole taxable gain is CSG-deductible.
+    expect(module.getTaxableIncomes(makeProfile({ usePfu: false }), NOW)).toEqual([
+      { assietteImposition: taxableGain, deductionRevenus: taxableGain }
+    ]);
   });
 
   it("doubles the allowance for a couple", () => {
@@ -178,11 +192,11 @@ describe("LifeInsuranceModule", () => {
       euroFundsValue: 0,
       openingDate: "2010-01-01"
     });
-    const evaluation = module.getEvaluation(makeProfile({ maritalStatus: "married" }), NOW);
 
-    const totalGain = 20000;
-    const taxableGain = totalGain - 9200;
-    expect(evaluation.imposition).toBeCloseTo(taxableGain * 0.075, 2);
+    const taxableGain = 20000 - 9200;
+    expect(module.getTaxableIncomes(makeProfile({ maritalStatus: "married" }), NOW)).toEqual([
+      { assietteImposition: taxableGain, tauxSpecifique: PFU_AFTER_8Y_POST_2017_LOW }
+    ]);
   });
 
   it("ignores pre-2017 premiums for contracts opened after the reform", () => {
@@ -195,7 +209,9 @@ describe("LifeInsuranceModule", () => {
     });
 
     expect(module.pre2017Premiums).toBe(0);
-    const evaluation = module.getEvaluation(makeProfile(), NOW);
-    expect(evaluation.imposition).toBeCloseTo(10000 * 0.128, 2);
+    // < 8 years: a single pre-8-year PFU income on the whole 10 000 € gain.
+    expect(module.getTaxableIncomes(makeProfile(), NOW)).toEqual([
+      { assietteImposition: 10000, eligiblePfu: true, tauxSpecifique: PFU_BEFORE_8Y }
+    ]);
   });
 });
