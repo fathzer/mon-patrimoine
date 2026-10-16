@@ -7,6 +7,8 @@ export interface CustomData extends PlacementData {
   socialCharges?: number;
   incomeTax?: number;
   category?: Category;
+  /** Free-form note explaining what this placement is. */
+  description?: string;
 }
 
 /**
@@ -39,6 +41,7 @@ export class CustomModule extends BasePlacement {
   socialCharges: number;
   incomeTax: number;
   category: Category;
+  description: string;
 
   constructor(data: CustomData) {
     super({ ...data, type: 'custom' });
@@ -46,6 +49,7 @@ export class CustomModule extends BasePlacement {
     this.socialCharges = Number(data.socialCharges) || 0;
     this.incomeTax = Number(data.incomeTax) || 0;
     this.category = data.category ?? Category.OTHER;
+    this.description = data.description || '';
   }
 
   /**
@@ -86,7 +90,8 @@ export class CustomModule extends BasePlacement {
       grossValue: this.grossValue,
       socialCharges: this.socialCharges,
       incomeTax: this.incomeTax,
-      category: this.category
+      category: this.category,
+      description: this.description || undefined
     };
   }
 }

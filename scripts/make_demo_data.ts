@@ -317,6 +317,7 @@ function buildCreditImpot(): Record<string, unknown> {
   return {
     id: 'custom-1', type: 'custom', label: 'Crédit d\'impôts', institution: 'DGFiP',
     category: 'other',
+    description: "Cet actif matérialise une créance d'impôt : de l'impôt payé en trop ou en avance, qui sera récupéré en remboursement ou en réduction d'impôt. Par exemple, certains revenus exceptionnels (prime de départ à la retraite taxée au quotient) ne rentrent pas bien dans le modèle du revenu imposable : le crédit associé compense la dette fiscale correspondante, comme si elle était déjà payée. Il couvre aussi les trop-perçus de prélèvement à la source et les crédits d'impôt non encore déclarés",
     grossValue: history.at(-1)!.values.grossValue, socialCharges: 0, incomeTax: 0,
     asOf: DEMO_TODAY, history: history.slice(0, -1)
   };

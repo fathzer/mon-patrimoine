@@ -240,3 +240,11 @@
   justify-content: flex-end;
   padding: var(--space-md) 0;
 }
+
+/* A placement name carrying a description gets a subtle hint that a
+   tooltip explains the asset (title attribute on hover). */
+.asset-table .has-description {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}

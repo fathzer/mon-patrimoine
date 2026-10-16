@@ -187,6 +187,7 @@ export class AssetTableView {
       const institutionHtml = instance.institution
         ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
         : '';
+      const description = (instance as { description?: string }).description;
       const gross = this._formatCurrency(evaluation.grossValue);
       const social = this._formatCurrency(evaluation.socialCharges);
       const tax = this._formatCurrency(evaluation.imposition);
@@ -195,7 +196,7 @@ export class AssetTableView {
       return `
       <tr class="asset-row" data-id="${instance.id}">
         <td data-label="${this._escapeHtml(I18n.t('table.assetHeader'))}">
-          <div style="font-weight: 600;">${this._escapeHtml(instance.label)}</div>
+          <div style="font-weight: 600;"${description ? ` title="${this._escapeHtml(description)}" class="has-description"` : ''}>${this._escapeHtml(instance.label)}</div>
           ${institutionHtml}
         </td>
         <td data-label="${this._escapeHtml(I18n.t('table.categoryHeader'))}"><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>
@@ -212,13 +213,14 @@ export class AssetTableView {
       const institutionHtml = instance.institution
         ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${this._escapeHtml(instance.institution)}</div>`
         : '';
+      const description = (instance as { description?: string }).description;
       const badge = instance.isClosedAt(this.summary?.asOfDate)
         ? I18n.t('history.closedBadgeDate', { date: I18n.formatDate(instance.closedAt!) })
         : I18n.t('history.notTracked');
       return `
       <tr class="asset-row asset-row-inactive" data-id="${instance.id}">
         <td data-label="${this._escapeHtml(I18n.t('table.assetHeader'))}">
-          <div style="font-weight: 600;">${this._escapeHtml(instance.label)} <span class="tag-inactive">${badge}</span></div>
+          <div style="font-weight: 600;"${description ? ` title="${this._escapeHtml(description)}" class="has-description"` : ''}>${this._escapeHtml(instance.label)} <span class="tag-inactive">${badge}</span></div>
           ${institutionHtml}
         </td>
         <td data-label="${this._escapeHtml(I18n.t('table.categoryHeader'))}"><span class="tag-category">${I18n.t(`categories.${instance.getCategory()}`)}</span></td>

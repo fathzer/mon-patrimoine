@@ -5,10 +5,14 @@ import type { CustomModule } from './module.js';
 const labels = {
   institution: 'Établissement (facultatif)',
   category: 'Catégorie',
+  description: 'Description (facultatif)',
   grossValue: 'Valeur brute (€)',
   socialCharges: 'Prélèvements sociaux (€)',
   incomeTax: 'Impôt sur le revenu (€)'
 };
+
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export class CustomEditor extends BasePlacementEditor {
   /** The base renders a mandatory institution field; ours is optional. */
@@ -36,6 +40,10 @@ export class CustomEditor extends BasePlacementEditor {
         </select>
       </div>
       <div class="form-group">
+        <label>${labels.description}</label>
+        <textarea name="description" class="form-control" rows="2">${escapeHtml(p?.description || '')}</textarea>
+      </div>
+      <div class="form-group">
         <label>${labels.grossValue}</label>
         <input type="number" step="0.01" name="grossValue" class="form-control" value="${p?.grossValue || 0}" required />
       </div>
@@ -51,7 +59,7 @@ export class CustomEditor extends BasePlacementEditor {
   }
 
   protected override bindPlacementEvents(): void {
-    (['grossValue', 'socialCharges', 'incomeTax', 'category'] as const).forEach(name => {
+    (['grossValue', 'socialCharges', 'incomeTax', 'category', 'description'] as const).forEach(name => {
       const input = this.container.querySelector<HTMLElement>(`[name="${name}"]`);
       input?.addEventListener('input', () => this.notifyValidityChange());
       input?.addEventListener('change', () => this.notifyValidityChange());
@@ -69,7 +77,8 @@ export class CustomEditor extends BasePlacementEditor {
       grossValue: Number(this.container.querySelector<HTMLInputElement>('input[name="grossValue"]')?.value) || 0,
       socialCharges: Number(this.container.querySelector<HTMLInputElement>('input[name="socialCharges"]')?.value) || 0,
       incomeTax: Number(this.container.querySelector<HTMLInputElement>('input[name="incomeTax"]')?.value) || 0,
-      category: categoryValue || Category.OTHER
+      category: categoryValue || Category.OTHER,
+      description: this.container.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value.trim() || undefined
     };
   }
 }

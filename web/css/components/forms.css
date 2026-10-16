@@ -30,6 +30,15 @@
   font-size: var(--font-size-base);
 }
 
+/* Textareas always span the form width (horizontal resizing is off) and
+   can only grow/shrink vertically, never below a single text line. */
+textarea.form-control {
+  resize: vertical;
+  min-width: 100%;
+  max-width: 100%;
+  min-height: calc(1.5em + 1.2rem);
+}
+
 .form-control:disabled {
   background: var(--color-surface);
   color: var(--text-muted);
