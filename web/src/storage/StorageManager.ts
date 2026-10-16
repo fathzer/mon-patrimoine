@@ -3,9 +3,22 @@ import type { StorageProvider, StorageConfig, StorageStatus } from './StoragePro
 
 export class StorageManager {
   currentProvider: StorageProvider;
+  _defaultProvider: StorageProvider;
 
   constructor(config: StorageConfig = {}) {
-    this.currentProvider = new GoogleDriveProvider(config.googleClientId as string);
+    this._defaultProvider = new GoogleDriveProvider(config.googleClientId as string);
+    this.currentProvider = this._defaultProvider;
+  }
+
+  /** Swaps the active provider (e.g. entering demo mode). */
+  useProvider(provider: StorageProvider): void {
+    this.currentProvider = provider;
+  }
+
+  /** Back to the regular provider — e.g. after a demo-mode logout, so the
+   *  next "Connexion" targets the user's real storage again. */
+  restoreDefaultProvider(): void {
+    this.currentProvider = this._defaultProvider;
   }
 
   async initialize(): Promise<boolean> {

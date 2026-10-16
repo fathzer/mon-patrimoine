@@ -19,6 +19,16 @@ body {
   overflow: hidden;
 }
 
+/* Demo-mode warning strip on top of the screen. */
+.demo-banner {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-warning);
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
 .top-bar {
   display: flex;
   justify-content: space-between;

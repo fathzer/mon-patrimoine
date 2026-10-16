@@ -5,7 +5,11 @@ export const fr = {
   },
   auth: {
     loginBtn: "Connexion",
-    logoutBtn: "Déconnexion"
+    logoutBtn: "Déconnexion",
+    demoBtn: "ou tester Mon Patrimoine en mode démo"
+  },
+  demo: {
+    banner: "Mode démo — vos modifications ne sont pas sauvegardées"
   },
   summary: {
     totalGross: "Patrimoine Brut",

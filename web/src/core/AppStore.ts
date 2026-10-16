@@ -6,6 +6,7 @@ import { PlacementFactory } from '../placements/PlacementFactory.js';
 import type { BasePlacement, PlacementData, Evaluation } from '../placements/BasePlacement.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
 import type { StorageManager } from '../storage/StorageManager.js';
+import { DemoProvider } from '../storage/DemoProvider.js';
 
 export interface EvaluationEntry {
   instance: BasePlacement;
@@ -182,8 +183,20 @@ export class AppStore extends EventBus<AppStoreEvents> {
     if (ok) await this.init();
   }
 
+  /**
+   * Enters demo mode: swaps in the read-only Gist-backed provider, then
+   * runs the regular init flow. Nothing is persisted; a page reload
+   * restores the demo data.
+   */
+  async loginDemo(): Promise<void> {
+    this.storageManager.useProvider(new DemoProvider());
+    await this.init();
+  }
+
   async logout(): Promise<void> {
     await this.storageManager.disconnect();
+    // Leaving demo mode must not leak its provider into the next login.
+    this.storageManager.restoreDefaultProvider();
     this.state.isAuthenticated = false;
     this.state.placements = [];
     this.emit('state:changed', this.getGlobalSummary());

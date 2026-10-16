@@ -50,6 +50,9 @@ export function getWelcomeHtml(): string {
         <button id="btn-login" class="btn-primary" style="width:100%; padding: 0.8rem;">
           ${I18n.t('auth.loginBtn')}
         </button>
+        <button id="btn-demo" class="btn-secondary" style="width:100%; padding: 0.8rem; margin-top: 0.6rem;">
+          ${I18n.t('auth.demoBtn')}
+        </button>
         <div class="welcome-card">
           <div class="welcome-card-header">
             <div class="welcome-card-icon">🚫</div>

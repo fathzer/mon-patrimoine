@@ -76,6 +76,7 @@ export class DashboardView {
 
   _initLayout(): void {
     this.container.innerHTML = `
+      <div id="demo-banner" class="demo-banner" hidden>${I18n.t('demo.banner')}</div>
       <header id="top-bar" class="top-bar"></header>
       <main id="page-content" class="main-content"></main>
       <div id="modal-root"></div>
@@ -101,6 +102,9 @@ export class DashboardView {
   render(summary: GlobalSummary): void {
     if (!summary) return;
     if (!this._layoutInitialized) this._initLayout();
+
+    this.container.querySelector<HTMLElement>('#demo-banner')!.hidden =
+      !summary.isAuthenticated || !this.store.storageManager.currentProvider.isReadOnly();
 
     this._topBarView.render(summary.isAuthenticated, this._breakdownVisible, this._historyVisible);
 
@@ -361,6 +365,7 @@ export class DashboardView {
     this._pageContent!.innerHTML = getWelcomeHtml();
 
     this._pageContent!.querySelector('#btn-login')?.addEventListener('click', () => this.store.login());
+    this._pageContent!.querySelector('#btn-demo')?.addEventListener('click', () => this.store.loginDemo());
     this._pageContent!.querySelector('#btn-auth-help')?.addEventListener('click', () => {
       const helpModal = new HelpModalView(this._pageContent!.querySelector('#auth-modal-root') as HTMLElement, this.store.storageManager);
       helpModal.show();

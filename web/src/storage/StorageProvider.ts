@@ -25,4 +25,10 @@ export abstract class StorageProvider {
    * (account, file path...), or null when it is unknown.
    */
   getDataLocation(): Promise<string | null> { return Promise.resolve(null); }
+
+  /**
+   * Whether this provider silently drops saves (demo mode): the UI warns
+   * the user that changes live in memory only.
+   */
+  isReadOnly(): boolean { return false; }
 }
