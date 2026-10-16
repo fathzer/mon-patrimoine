@@ -1,4 +1,12 @@
 # mon-patrimoine
+
+[![Deploy to GitHub Pages](https://github.com/fathzer/mon-patrimoine/actions/workflows/deploy.yml/badge.svg)](https://github.com/fathzer/mon-patrimoine/actions/workflows/deploy.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun](https://img.shields.io/badge/Bun-%23000000?logo=bun&logoColor=white)](https://bun.sh/)
+[![Live app](https://img.shields.io/badge/Live%20app-GitHub%20Pages-success?logo=github)](https://fathzer.github.io/mon-patrimoine/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fathzer/mon-patrimoine)
+
 Une application web (Desktop et mobile) pour suivre son patrimoine financier et sa valeur nette (après CSG, impôts) en tenant compte de l'impact de l'inflation.
 
 Cette application web en TypeScript permet de gérer (recenser) votre patrimoine. Son objectif final est de pouvoir calculer les valeurs brutes, mais aussi la valeur nette (après prélèvements sociaux et impôts sur le revenu) généralement absente des applications de suivi de patrimoine, et dans suivre l'évolution de votre patrimoine dans le temps, en prenant également en compte l'inflation.

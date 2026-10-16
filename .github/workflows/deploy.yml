@@ -29,10 +29,11 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Install dependencies and compile TypeScript
+      - name: Install dependencies, test and compile TypeScript
         working-directory: web
         run: |
           bun install
+          bun test
           bun run build
 
       - name: Prepare site
