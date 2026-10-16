@@ -6,7 +6,9 @@ export const fr = {
   auth: {
     loginBtn: "Connexion",
     logoutBtn: "Déconnexion",
-    demoBtn: "ou tester Mon Patrimoine en mode démo"
+    demoBtn: "ou tester Mon Patrimoine en mode démo",
+    waiting: "En attente de connexion...",
+    popupWarning: "La connexion à votre espace de stockage s'effectue dans une fenêtre pop-up. Si rien ne s'ouvre, vérifiez que votre navigateur n'a pas bloqué les pop-up pour ce site."
   },
   demo: {
     banner: "Mode démo — vos modifications ne sont pas sauvegardées"

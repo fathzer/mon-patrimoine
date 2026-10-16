@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - first
   workflow_dispatch:
 
 permissions:
@@ -51,8 +50,10 @@ jobs:
           cp web/privacy.html _site/privacy.html
           cp web/terms.html _site/terms.html
 
-          # Generate index.html with compiled entry point
+          # Generate landing and app pages with compiled entry point
           sed 's|dist/main.js|main.js|g' web/index.html > _site/index.html
+          mkdir -p _site/app
+          sed 's|dist/main.js|main.js|g' web/app/index.html > _site/app/index.html
 
           # Copy manifest.json
           cp web/manifest.json _site/manifest.json
