@@ -30,6 +30,29 @@
   margin: 0;
 }
 
+/* Shared login block: the landing uses links (plain navigation to /app/),
+   the in-app reconnection card uses buttons wired to the store. */
+.landing-login {
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.landing-login p {
+  margin: 0 0 1.5rem 0;
+}
+
+.landing-login a,
+.landing-login button {
+  display: block;
+  width: 100%;
+  padding: 0.8rem;
+  text-decoration: none;
+}
+
+.landing-login :is(a, button) + :is(a, button) {
+  margin-top: 0.6rem;
+}
+
 .welcome-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

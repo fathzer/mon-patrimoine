@@ -2,7 +2,7 @@
   "name": "Mon Patrimoine",
   "short_name": "Mon Patrimoine",
   "description": "Suivi de vos placements et calcul de leurs valeurs nettes estimées.",
-  "start_url": ".",
+  "start_url": "./app/",
   "scope": ".",
   "display": "standalone",
   "background_color": "#0b0f17",

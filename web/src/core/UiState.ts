@@ -9,6 +9,8 @@ export interface UiStateData {
   showClosedPlacements: boolean;
   /** Selected INSEE inflation series id, or null for "no inflation". */
   inflationSource: string | null;
+  /** Kind of session active on last render — lets a reload skip the landing before the auth check resolves. */
+  lastSession: 'account' | 'demo' | null;
 }
 
 export type SortField = 'name' | 'institution' | 'category' | 'grossValue' | 'netValue';
@@ -35,7 +37,8 @@ export class UiState {
         historyVisible: typeof parsed.historyVisible === 'boolean' ? parsed.historyVisible : false,
         historyVariationsOpen: typeof parsed.historyVariationsOpen === 'boolean' ? parsed.historyVariationsOpen : true,
         showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false,
-        inflationSource: typeof parsed.inflationSource === 'string' ? parsed.inflationSource : null
+        inflationSource: typeof parsed.inflationSource === 'string' ? parsed.inflationSource : null,
+        lastSession: parsed.lastSession === 'account' || parsed.lastSession === 'demo' ? parsed.lastSession : null
       };
     } catch {
       return this._default();
@@ -61,7 +64,8 @@ export class UiState {
       historyVisible: false,
       historyVariationsOpen: true,
       showClosedPlacements: false,
-      inflationSource: null
+      inflationSource: null,
+      lastSession: null
     };
   }
 }

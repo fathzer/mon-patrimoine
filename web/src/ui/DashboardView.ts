@@ -1,7 +1,6 @@
 import { I18n } from '../core/I18n.js';
 import { UiState } from '../core/UiState.js';
 import { todayString } from '../core/DatedHistory.js';
-import { getWelcomeHtml } from '../i18n/welcome.js';
 import { TopBarView } from './TopBarView.js';
 import { SettingsModalView } from './SettingsModalView.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
@@ -10,7 +9,7 @@ import { AssetTableView } from './AssetTableView.js';
 import { HistoryPanelView } from './HistoryPanelView.js';
 import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
 import { HistoryVariationsView } from './HistoryVariationsView.js';
-import { HelpModalView } from './HelpModalView.js';
+import { getWarning } from '../i18n/commonTaxExplanations.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
 
@@ -113,7 +112,7 @@ export class DashboardView {
     this._topBarView.render(summary.isAuthenticated, this._breakdownVisible, this._historyVisible);
 
     if (!summary.isAuthenticated) {
-      this._renderAuthScreen();
+      this._renderConnectingCard();
       return;
     }
 
@@ -140,6 +139,19 @@ export class DashboardView {
       this._mandatoryProfileOpen = true;
       new SettingsModalView(this._modalRoot!, this.store).show(undefined, true);
     }
+  }
+
+  /** Shown while the OAuth flow launched by ?connect is in flight — the
+   *  landing page is the only place with real connect/demo buttons. */
+  _renderConnectingCard(): void {
+    this._pageContent!.innerHTML = `
+      <div class="auth-card">
+        <div class="landing-login">
+          <p class="text-muted">${I18n.t('auth.waiting')}</p>
+        </div>
+        ${getWarning(`<p>${I18n.t('auth.popupWarning')}</p>`)}
+      </div>
+    `;
   }
 
   _renderAssetTable(): void {
@@ -370,17 +382,6 @@ export class DashboardView {
     UiState.save({ showClosedPlacements: showClosed });
     if (!this._summary) return;
     this._renderAssetTable();
-  }
-
-  _renderAuthScreen(): void {
-    this._pageContent!.innerHTML = getWelcomeHtml();
-
-    this._pageContent!.querySelector('#btn-login')?.addEventListener('click', () => this.store.login());
-    this._pageContent!.querySelector('#btn-demo')?.addEventListener('click', () => this.store.loginDemo());
-    this._pageContent!.querySelector('#btn-auth-help')?.addEventListener('click', () => {
-      const helpModal = new HelpModalView(this._pageContent!.querySelector('#auth-modal-root') as HTMLElement, this.store.storageManager);
-      helpModal.show();
-    });
   }
 
   _bindAuthenticatedEvents(): void {

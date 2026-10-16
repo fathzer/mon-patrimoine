@@ -1,0 +1,50 @@
+/* Welcome/landing section of index.html (the static markup in #landing-root). */
+
+/* margin:auto (not justify-content on the scrolling .main-content) so the
+   shell is vertically centered when it fits yet remains fully scrollable
+   when it overflows. */
+.landing-shell {
+  width: 100%;
+  margin: auto;
+}
+
+.landing-hero {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.landing-logo {
+  width: 4rem;
+  height: 4rem;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+.landing-hero h1 {
+  margin: 0;
+  font-size: 2.25rem;
+  color: var(--accent);
+}
+
+.landing-tagline {
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  margin: var(--space-sm) auto var(--space-lg) auto;
+  max-width: 40rem;
+  line-height: 1.5;
+}
+
+.landing-footer {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--card-border);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.landing-footer a {
+  color: var(--accent);
+  text-decoration: none;
+  margin: 0 var(--space-sm);
+}
