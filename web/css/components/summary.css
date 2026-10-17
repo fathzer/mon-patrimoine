@@ -28,7 +28,7 @@
 }
 
 .total-item .value.net {
-  color: var(--accent);
+  color: var(--color-net);
 }
 
 /* Filter switch container: layout-specific overrides on top of toggle-switch.

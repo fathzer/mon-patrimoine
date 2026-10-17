@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { UiState } from '../core/UiState.js';
 import { todayString } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { bindDatedInput } from './datedInput.js';
@@ -104,7 +105,12 @@ export class HistoryPanelView {
         <button type="button" class="btn-danger" data-action="annotation-delete" hidden>${I18n.t('history.annotationDelete')}</button>
         <button type="button" class="btn-secondary" data-action="annotation-cancel">${I18n.t('history.annotationCancel')}</button>
       </div>
-      <div id="history-chart"></div>
+      <details id="chart-details" class="variations"${UiState.load().historyChartOpen ? ' open' : ''}>
+        <summary class="variations-summary">${I18n.t('history.chartTitle')}
+          (<span class="val-gross">${I18n.t('history.varGross')}</span> /
+          <span class="val-net">${I18n.t('history.varNet')}</span>)</summary>
+        <div id="history-chart"></div>
+      </details>
       <div id="history-variations"></div>
     `;
 
@@ -147,6 +153,12 @@ export class HistoryPanelView {
     inflationSelect?.addEventListener('change', () => {
       HelpPopover.hide();
       this._onInflationSourceChange(inflationSelect!.value || null);
+    });
+
+    // Fold/unfold of the chart block survives re-renders and reloads.
+    const chartDetails = this.container!.querySelector<HTMLDetailsElement>('#chart-details');
+    chartDetails?.addEventListener('toggle', () => {
+      UiState.save({ historyChartOpen: chartDetails.open });
     });
 
     this.container!.querySelector('#history-annotate')?.addEventListener('click', () => {

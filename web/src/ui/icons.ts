@@ -19,8 +19,8 @@ export const TAX_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" heig
 
 /** Circled question mark. */
 export const HELP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-  <circle cx="12" cy="12" r="9" stroke="var(--accent)" stroke-width="2" fill="none"/>
-  <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="var(--accent)" font-size="13" font-family="Inter, sans-serif">?</text>
+  <circle cx="12" cy="12" r="9" stroke="var(--color-action)" stroke-width="2" fill="none"/>
+  <text x="12" y="12" text-anchor="middle" dominant-baseline="central" fill="var(--color-action)" font-size="13" font-family="Inter, sans-serif">?</text>
 </svg>`;
 
 /** Closed padlock — shown on read-only historical points. */

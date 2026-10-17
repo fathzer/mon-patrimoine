@@ -102,8 +102,8 @@
 }
 
 .tax-help-btn:hover {
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
+  border-color: var(--color-action);
+  color: var(--color-action);
 }
 
 /* The closed-placements toggle uses a shorter label on narrow screens. */

@@ -12,7 +12,7 @@ const signedPercent = new Intl.NumberFormat('fr-FR', {
 const shortDateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 const YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
 const ts = (d: string) => Date.parse(d + 'T00:00:00Z');
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const esc = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 
 const shiftMonths = (iso: string, months: number): string => {
   const [y, m, d] = iso.split('-').map(Number);
@@ -26,28 +26,32 @@ const valueAt = (points: ChartPoint[], date: string): ChartPoint | null => {
   return i >= 0 ? points[i] : null;
 };
 
-const deltaCls = (v: number) => (v > 0 ? 'delta-pos' : v < 0 ? 'delta-neg' : '');
+const deltaCls = (v: number): string => {
+  if (v > 0) return 'delta-pos';
+  if (v < 0) return 'delta-neg';
+  return '';
+};
 
-const fmtDelta = (v: number, base: number): string =>
-  base > 0 ? `${signedCurrency.format(v)}&nbsp;·&nbsp;${signedPercent.format(v / base)}` : '—';
-
-/** Delta cell: nominal figure plus a constant-euro sub-line when given. */
-const fmtDeltaCell = (v: number, base: number, cv: number | null, cbase: number | null): string => {
-  if (cv === null || cbase === null) return fmtDelta(v, base);
-  const constPart = cbase > 0
-    ? `${signedCurrency.format(cv)}&nbsp;·&nbsp;${signedPercent.format(cv / cbase)}`
-    : '—';
-  return `${fmtDelta(v, base)}<br><span class="kpi-const">${constPart} ${esc(I18n.t('history.varConstEuros'))}</span>`;
+/** One series line: amount in the series color, percent in the delta color. */
+const varLine = (v: number, base: number, kind: 'gross' | 'net'): string => {
+  if (base <= 0) return `<div class="var-line"><span class="val-${kind}">—</span></div>`;
+  return `<div class="var-line"><span class="val-${kind}">${signedCurrency.format(v)}</span>` +
+    `&nbsp;<span class="${deltaCls(v)}">${signedPercent.format(v / base)}</span></div>`;
 };
 
 const cagr = (from: number, to: number, years: number): number | null =>
   from > 0 && years > 0.25 ? Math.pow(to / from, 1 / years) - 1 : null;
 
+const grossNetHint = (): string =>
+  `<span class="var-hint"><span class="val-gross">${esc(I18n.t('history.varGross'))}</span>` +
+  ` / <span class="val-net">${esc(I18n.t('history.varNet'))}</span></span>`;
+
 /**
  * Variation block under the history chart: KPI chips (since start / YTD / last
- * 12 months) plus a per-calendar-year table (nominal and constant-euro deltas,
- * net annualized average since each year). Always computed on the full nominal
- * series; constant-euro figures appear only when an inflation index is loaded.
+ * 12 months) plus a per-calendar-year table. Every figure comes as a gross/net
+ * pair — gross keeps the default text color, net uses --color-net — while
+ * green/red percentages carry the delta sign. When an inflation index is
+ * loaded, the whole block switches to constant euros (noted in the title).
  */
 export class HistoryVariationsView {
   /** Open/closed state survives re-renders and page reloads (UiState). */
@@ -58,26 +62,30 @@ export class HistoryVariationsView {
       container.innerHTML = '';
       return;
     }
-    const first = points[0];
-    const last = points.at(-1)!;
-    const constPts = index
+    const series = index
       ? points.map(p => {
           const f = index.factorFor(p.date);
           return { date: p.date, gross: p.gross * f, net: p.net * f };
         })
-      : null;
+      : points;
+    const first = series[0];
+    const last = series.at(-1)!;
 
     const chips = [
-      this._chip(I18n.t('history.varSinceStart'), first, last, constPts?.[0] ?? null, constPts?.at(-1) ?? null, true),
-      this._periodChip(I18n.t('history.varYtd'), `${Number(last.date.slice(0, 4))}-01-01`, points, constPts, true),
-      this._periodChip(I18n.t('history.var1Y'), shiftMonths(last.date, -12), points, constPts)
+      this._chip(I18n.t('history.varSinceStart'), first, last, true),
+      this._periodChip(I18n.t('history.varYtd'), `${Number(last.date.slice(0, 4))}-01-01`, series, true),
+      this._periodChip(I18n.t('history.var1Y'), shiftMonths(last.date, -12), series)
     ].filter(c => c !== '');
 
+    const constNote = index
+      ? `<span class="variations-const-note"> — ${esc(I18n.t('history.varConstEuros'))}</span>`
+      : '';
     container.innerHTML = `
       <details class="variations"${this._open ? ' open' : ''}>
-        <summary class="variations-summary">${esc(I18n.t('history.variationsTitle'))}</summary>
+        <summary class="variations-summary">${esc(I18n.t('history.variationsTitle'))}
+          (${grossNetHint()})${constNote}</summary>
         <div class="kpi-grid">${chips.join('')}</div>
-        ${this._annualTable(points, constPts, first, last)}
+        ${this._annualTable(series, first, last)}
       </details>`;
     const details = container.querySelector<HTMLDetailsElement>('.variations');
     details?.addEventListener('toggle', () => {
@@ -91,37 +99,35 @@ export class HistoryVariationsView {
    * `withCagr` annualizes the delta (YTD — meaningless under ~3 months,
    * guarded by the cagr() floor).
    */
-  _periodChip(label: string, start: string, points: ChartPoint[], constPts: ChartPoint[] | null, withCagr = false): string {
+  _periodChip(label: string, start: string, points: ChartPoint[], withCagr = false): string {
     const a = valueAt(points, start);
     const last = points.at(-1)!;
     if (!a || a.date >= last.date) return '';
-    return this._chip(label, a, last, constPts ? valueAt(constPts, start) : null, constPts?.at(-1) ?? null, withCagr);
+    return this._chip(label, a, last, withCagr);
   }
 
-  _chip(label: string, a: ChartPoint, b: ChartPoint, ca: ChartPoint | null, cb: ChartPoint | null, withCagr: boolean): string {
-    const d = b.net - a.net;
+  _chip(label: string, a: ChartPoint, b: ChartPoint, withCagr: boolean): string {
     const years = (ts(b.date) - ts(a.date)) / YEAR_MS;
-    const parts = [a.net > 0 ? signedPercent.format(d / a.net) : ''];
-    const c = withCagr ? cagr(a.net, b.net, years) : null;
-    if (c !== null) parts.push(signedPercent.format(c) + I18n.t('history.varPerYear'));
-    let constLine = '';
-    if (ca && cb) {
-      const dc = cb.net - ca.net;
-      const cc = withCagr ? cagr(ca.net, cb.net, years) : null;
-      const ccPart = cc !== null ? ` · ${signedPercent.format(cc)}${I18n.t('history.varPerYear')}` : '';
-      constLine = `<div class="kpi-sub ${deltaCls(dc)}">${esc(I18n.t('history.varConstEuros'))} : ${
-        ca.net > 0 ? `${signedCurrency.format(dc)}&nbsp;(${signedPercent.format(dc / ca.net)}${ccPart})` : '—'
-      }</div>`;
-    }
+    const col = (kind: 'gross' | 'net'): string => {
+      const av = a[kind];
+      const bv = b[kind];
+      const d = bv - av;
+      const parts: string[] = [];
+      if (av > 0) parts.push(signedPercent.format(d / av));
+      const c = withCagr ? cagr(av, bv, years) : null;
+      if (c !== null) parts.push(signedPercent.format(c) + I18n.t('history.varPerYear'));
+      return `<div class="kpi-col">
+        <div class="kpi-value val-${kind}">${av > 0 ? signedCurrency.format(d) : '—'}</div>
+        <div class="kpi-sub ${deltaCls(d)}">${parts.join('&nbsp;·&nbsp;') || '—'}</div>
+      </div>`;
+    };
     return `<div class="kpi">
       <div class="kpi-label">${esc(label)}</div>
-      <div class="kpi-value ${deltaCls(d)}">${a.net > 0 ? signedCurrency.format(d) : '—'}</div>
-      <div class="kpi-sub ${deltaCls(d)}">${parts.join('&nbsp;·&nbsp;')}</div>
-      ${constLine}
+      <div class="kpi-pair">${col('gross')}${col('net')}</div>
     </div>`;
   }
 
-  _annualTable(points: ChartPoint[], constPts: ChartPoint[] | null, first: ChartPoint, last: ChartPoint): string {
+  _annualTable(points: ChartPoint[], first: ChartPoint, last: ChartPoint): string {
     const firstYear = Number(first.date.slice(0, 4));
     const lastYear = Number(last.date.slice(0, 4));
     const rows: string[] = [];
@@ -137,36 +143,29 @@ export class HistoryVariationsView {
       if (start > jan1) partial = true;
       const base = valueAt(points, start) ?? first;
       const e = valueAt(points, end) ?? last;
-      const dGross = e.gross - base.gross;
-      const dNet = e.net - base.net;
-      const cb = constPts ? valueAt(constPts, start) ?? constPts[0] : null;
-      const ce = constPts ? valueAt(constPts, end) ?? constPts.at(-1)! : null;
       const years = (ts(last.date) - ts(start)) / YEAR_MS;
-      const avg = cagr(base.net, last.net, years);
-      const avgEur = years > 0.25 ? (last.net - base.net) / years : null;
-      let avgCell = '—';
-      if (avg !== null && avgEur !== null) {
-        let avgTxt = `${signedPercent.format(avg)}${I18n.t('history.varPerYear')}<br>${signedCurrency.format(avgEur)}${I18n.t('history.varPerYear')}`;
-        if (constPts) {
-          const cc = cagr(valueAt(constPts, start)?.net ?? constPts[0].net, constPts.at(-1)!.net, years);
-          if (cc !== null) avgTxt += `<br><span class="kpi-const">${signedPercent.format(cc)}${I18n.t('history.varPerYear')} ${esc(I18n.t('history.varConstEuros'))}</span>`;
-        }
-        avgCell = `<span class="${deltaCls(last.net - base.net)}">${avgTxt}</span>`;
-      }
+      const avgCell = (kind: 'gross' | 'net'): string => {
+        const avg = cagr(base[kind], last[kind], years);
+        const avgEur = years > 0.25 ? (last[kind] - base[kind]) / years : null;
+        if (avg === null || avgEur === null) return `<div class="var-line">—</div>`;
+        return `<div class="var-line"><span class="val-${kind}">${
+          signedCurrency.format(avgEur)}${I18n.t('history.varPerYear')}</span>&nbsp;·&nbsp;<span class="${deltaCls(last[kind] - base[kind])}">${
+          signedPercent.format(avg)}${I18n.t('history.varPerYear')}</span></div>`;
+      };
       const range = I18n.t('history.varRange', {
         from: shortDateFmt.format(ts(start)),
         to: shortDateFmt.format(ts(end))
       });
       rows.push(`<tr title="${esc(range)}"><td>${y}${start > jan1 ? ' *' : ''}</td>
-        <td class="${deltaCls(dGross)}">${fmtDeltaCell(dGross, base.gross, ce && cb ? ce.gross - cb.gross : null, cb?.gross ?? null)}</td>
-        <td class="${deltaCls(dNet)}">${fmtDeltaCell(dNet, base.net, ce && cb ? ce.net - cb.net : null, cb?.net ?? null)}</td>
-        <td>${avgCell}</td></tr>`);
+        <td>${varLine(e.gross - base.gross, base.gross, 'gross')}${varLine(e.net - base.net, base.net, 'net')}</td>
+        <td>${avgCell('gross')}${avgCell('net')}</td></tr>`);
     }
     if (!rows.length) return '';
     const foot = partial ? `<p class="variations-foot">${esc(I18n.t('history.varPartialYear', { date: shortDateFmt.format(ts(first.date)) }))}</p>` : '';
     return `<div class="variations-scroll"><table class="variations-table">
-      <thead><tr><th>${esc(I18n.t('history.varYear'))}</th><th>${esc(I18n.t('history.varGross'))}</th>
-        <th>${esc(I18n.t('history.varNet'))}</th><th>${esc(I18n.t('history.varAvgSince'))}</th></tr></thead>
+      <thead><tr><th>${esc(I18n.t('history.varYear'))}</th>
+        <th>${esc(I18n.t('history.varDelta'))}</th>
+        <th>${esc(I18n.t('history.varAvgSince'))}</th></tr></thead>
       <tbody>${rows.join('')}</tbody>
     </table></div>${foot}`;
   }

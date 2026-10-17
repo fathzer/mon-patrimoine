@@ -55,7 +55,7 @@
 }
 
 .toggle-switch .toggle-switch-track input:checked + .toggle-switch-slider {
-  background: var(--accent-blue);
+  background: var(--color-action);
 }
 
 .toggle-switch .toggle-switch-track input:checked + .toggle-switch-slider::before {

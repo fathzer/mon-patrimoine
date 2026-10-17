@@ -20,9 +20,9 @@
 }
 
 .filter-btn.active {
-  background: var(--accent-blue);
+  background: var(--color-action);
   color: var(--color-text-primary);
-  border-color: var(--accent-blue);
+  border-color: var(--color-action);
 }
 
 .filter-summaries .filter-btn {
@@ -32,8 +32,8 @@
 }
 
 .filter-summaries .filter-btn.active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
+  background: var(--color-action);
+  border-color: var(--color-action);
   color: var(--color-text-primary);
 }
 

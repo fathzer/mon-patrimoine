@@ -77,16 +77,16 @@
 
 .chart-period {
   background: none;
-  border: 1px solid var(--accent-blue);
+  border: 1px solid var(--color-action);
   border-radius: var(--radius-pill);
-  color: var(--accent-blue);
+  color: var(--color-action);
   font-size: var(--font-size-xs);
   padding: 0.15rem 0.7rem;
   cursor: pointer;
 }
 
 .chart-period:hover:not(:disabled) {
-  background: #3b82f622;
+  background: rgba(217, 119, 6, 0.15);
 }
 
 .chart-period:disabled {
@@ -97,7 +97,7 @@
 }
 
 .chart-period.active {
-  background: var(--accent-blue);
+  background: var(--color-action);
   color: var(--color-text-primary);
 }
 
@@ -121,7 +121,7 @@
 }
 
 .chart-net {
-  stroke: var(--accent);
+  stroke: var(--color-net);
 }
 
 .chart-grid {
@@ -152,14 +152,14 @@
 }
 
 .chart-selected {
-  stroke: var(--accent-blue);
+  stroke: var(--color-action);
   stroke-width: 1;
   stroke-dasharray: 4 3;
   pointer-events: none;
 }
 
 .chart-selected-tick {
-  fill: var(--accent-blue);
+  fill: var(--color-action);
   pointer-events: none;
 }
 
@@ -210,7 +210,7 @@
 }
 
 .chart-net-swatch {
-  background: var(--accent);
+  background: var(--color-net);
 }
 
 /* History mode inside the placement modal: date navigation bar, point badge
@@ -311,7 +311,7 @@
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
-  min-width: 140px;
+  min-width: 220px;
   flex: 1;
 }
 
@@ -321,6 +321,14 @@
   margin-bottom: var(--space-xs);
 }
 
+/* Gross/net pair inside a chip: same left/right order as the summary
+   totals — gross (plain text color) first, net (--color-net) second. */
+.kpi-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 var(--space-md);
+}
+
 .kpi-value {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
@@ -328,15 +336,25 @@
 
 .kpi-sub {
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
 }
 
-.kpi-const {
-  color: var(--text-muted);
-}
+/* Series colors: gross keeps the default text color, net gets its own
+   blue. The semantic green/red stay reserved for positive/negative deltas. */
+.val-gross { color: var(--text-main); }
+.val-net { color: var(--color-net); }
 
 .delta-pos { color: var(--accent); }
 .delta-neg { color: var(--danger); }
+
+.variations-const-note {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-normal);
+}
+
+.var-hint {
+  font-weight: var(--font-weight-normal);
+  text-transform: none;
+}
 
 .variations-scroll {
   overflow-x: auto;
@@ -352,8 +370,14 @@
 .variations-table th,
 .variations-table td {
   padding: var(--space-xs) var(--space-sm);
-  text-align: right;
   border-bottom: 1px solid var(--card-border);
+}
+
+/* Data columns hold stacked gross/net lines — centered reads better than
+   right-aligned, and matches the centered headers on narrow screens. */
+.variations-table th:not(:first-child),
+.variations-table td:not(:first-child) {
+  text-align: center;
 }
 
 .variations-table th {
@@ -385,7 +409,7 @@
 }
 
 .history-annotate-btn:hover {
-  color: var(--accent-blue);
+  color: var(--color-action);
 }
 
 .annotation-editor {

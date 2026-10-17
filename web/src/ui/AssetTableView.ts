@@ -203,7 +203,7 @@ export class AssetTableView {
         <td data-label="${this._escapeHtml(I18n.t('table.grossHeader'))}" style="text-align: right;">${gross ? `<strong>${gross}</strong>` : ''}</td>
         <td class="tax-info-cell" data-label="${this._escapeHtml(I18n.t('table.socialHeader'))}" style="text-align: right;">${social}</td>
         <td class="tax-info-cell" data-label="${this._escapeHtml(I18n.t('table.taxHeader'))}" style="text-align: right;">${tax}</td>
-        <td data-label="${this._escapeHtml(I18n.t('table.netHeader'))}" style="text-align: right; color: var(--accent);">${net ? `<strong>${net}</strong>` : ''}</td>
+        <td data-label="${this._escapeHtml(I18n.t('table.netHeader'))}" style="text-align: right; color: var(--color-net);">${net ? `<strong>${net}</strong>` : ''}</td>
         <td style="text-align: center;">${this._renderFiscalIcon(evaluation, instance)}</td>
       </tr>
     `;

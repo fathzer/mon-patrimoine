@@ -6,6 +6,8 @@ export interface UiStateData {
   filterTotals: boolean;
   historyVisible: boolean;
   historyVariationsOpen: boolean;
+  /** Whether the history chart block is unfolded (persisted). */
+  historyChartOpen: boolean;
   showClosedPlacements: boolean;
   /** Selected INSEE inflation series id, or null for "no inflation". */
   inflationSource: string | null;
@@ -36,6 +38,7 @@ export class UiState {
         filterTotals: typeof parsed.filterTotals === 'boolean' ? parsed.filterTotals : false,
         historyVisible: typeof parsed.historyVisible === 'boolean' ? parsed.historyVisible : false,
         historyVariationsOpen: typeof parsed.historyVariationsOpen === 'boolean' ? parsed.historyVariationsOpen : true,
+        historyChartOpen: typeof parsed.historyChartOpen === 'boolean' ? parsed.historyChartOpen : true,
         showClosedPlacements: typeof parsed.showClosedPlacements === 'boolean' ? parsed.showClosedPlacements : false,
         inflationSource: typeof parsed.inflationSource === 'string' ? parsed.inflationSource : null,
         lastSession: parsed.lastSession === 'account' || parsed.lastSession === 'demo' ? parsed.lastSession : null
@@ -63,6 +66,7 @@ export class UiState {
       filterTotals: false,
       historyVisible: false,
       historyVariationsOpen: true,
+      historyChartOpen: true,
       showClosedPlacements: false,
       inflationSource: null,
       lastSession: null

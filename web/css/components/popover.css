@@ -2,7 +2,7 @@
 
 .help-popover {
   display: inline;
-  color: var(--accent-blue);
+  color: var(--color-action);
   text-decoration: underline;
   cursor: pointer;
   outline: none;
@@ -14,7 +14,7 @@
   justify-content: center;
   width: 0.85rem;
   height: 0.85rem;
-  border: 1px solid var(--accent-blue);
+  border: 1px solid var(--color-action);
   border-radius: 50%;
   font-size: 0.6rem;
   font-weight: var(--font-weight-semibold);
@@ -30,7 +30,7 @@
 
 .help-popover:focus-visible {
   text-decoration: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3);
   border-radius: 2px;
 }
 
@@ -43,7 +43,7 @@
   max-height: 80vh;
   overflow: auto;
   background: var(--card-bg);
-  border: 2px solid var(--accent-blue);
+  border: 2px solid var(--color-action);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   color: var(--text-main);
@@ -55,7 +55,7 @@
 .help-popover-card-title {
   font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-sm);
-  color: var(--accent-blue);
+  color: var(--color-action);
 }
 
 .help-popover-card-body p {
