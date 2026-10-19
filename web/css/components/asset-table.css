@@ -60,6 +60,19 @@
   background: var(--hover-bg);
 }
 
+/* The placement has a recorded point at the displayed history date. */
+.asset-table tbody tr.recorded-at td {
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.asset-table tbody tr.recorded-at:hover td {
+  background: var(--hover-bg);
+}
+
+.asset-table tbody tr.recorded-at td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--color-action);
+}
+
 .tag-category {
   display: inline-block;
   padding: 0.25rem 0.6rem;
@@ -90,10 +103,10 @@
   justify-content: center;
   width: 1.1rem;
   height: 1.1rem;
-  border: 1px solid var(--text-muted);
+  border: 1px solid var(--color-action);
   border-radius: 50%;
   background: none;
-  color: var(--text-muted);
+  color: var(--color-action);
   font-size: 0.75rem;
   font-weight: var(--font-weight-semibold);
   line-height: 1;
@@ -102,8 +115,7 @@
 }
 
 .tax-help-btn:hover {
-  border-color: var(--color-action);
-  color: var(--color-action);
+  background: rgba(217, 119, 6, 0.12);
 }
 
 /* The closed-placements toggle uses a shorter label on narrow screens. */

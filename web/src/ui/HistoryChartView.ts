@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { compareDates } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
+import { commentIcon } from './icons.js';
 import type { ChartAnnotation } from '../core/AppStore.js';
 
 export interface ChartPoint {
@@ -16,6 +17,7 @@ interface HistoryChartOptions {
 /** Minimal contract the chart needs from a placement to collect sample dates. */
 interface DatedPlacement {
   getHistoryDates(): string[];
+  closedAt?: string | null;
 }
 
 const CHART_HEIGHT = 200;
@@ -33,7 +35,7 @@ const fullDateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 's
 
 const ts = (date: string): number => Date.parse(date);
 const dateString = (t: number): string => new Date(t).toISOString().slice(0, 10);
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const esc = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 
 /**
  * Collects the dates at which the chart samples the history: every recorded
@@ -48,32 +50,55 @@ export function collectChartDates(placements: readonly DatedPlacement[], today: 
   const set = new Set<string>();
   let hasPreFiscalPoints = false;
   for (const p of placements) {
-    for (const d of p.getHistoryDates()) {
-      if (d < EARLIEST_FISCAL_DATE) {
-        hasPreFiscalPoints = true;
-      } else {
-        set.add(d);
-      }
-    }
+    hasPreFiscalPoints = collectPlacementDates(p, set, today) || hasPreFiscalPoints;
   }
   if (hasPreFiscalPoints) set.add(EARLIEST_FISCAL_DATE);
   set.add(today);
-  let dates = [...set].sort(compareDates);
-  if (dates.length > 1) {
-    const first = Number(dates[0].slice(0, 4));
-    const last = Number(dates.at(-1)!.slice(0, 4));
-    for (let y = first + 1; y <= last; y++) {
-      const jan1 = `${y}-01-01`;
-      if (jan1 > dates[0] && jan1 < dates.at(-1)!) set.add(jan1);
+  addYearBoundaries(set);
+  return thinSamples([...set].sort(compareDates), today);
+}
+
+/**
+ * Adds a placement's recorded dates (points and closure) to `set`; returns
+ * whether it had points predating the fiscal coverage.
+ */
+function collectPlacementDates(p: DatedPlacement, set: Set<string>, today: string): boolean {
+  let preFiscal = false;
+  for (const d of p.getHistoryDates()) {
+    if (d < EARLIEST_FISCAL_DATE) {
+      preFiscal = true;
+    } else {
+      set.add(d);
     }
-    dates = [...set].sort(compareDates);
   }
-  if (dates.length > MAX_SAMPLES) {
-    const stride = Math.ceil(dates.length / MAX_SAMPLES);
-    dates = dates.filter((_, i) => i % stride === 0);
-    if (dates.at(-1) !== today) dates.push(today);
+  // The closure date is a recorded event too: the step must drop exactly
+  // there, not at the next unrelated sample.
+  if (p.closedAt != null && p.closedAt >= EARLIEST_FISCAL_DATE && p.closedAt <= today) {
+    set.add(p.closedAt);
   }
-  return dates;
+  return preFiscal;
+}
+
+/**
+ * Adds January 1st of each covered year to the sample set — fiscal-year
+ * changes can move net values between recorded points.
+ */
+function addYearBoundaries(set: Set<string>): void {
+  const dates = [...set].sort(compareDates);
+  if (dates.length < 2) return;
+  for (let y = Number(dates[0].slice(0, 4)) + 1; y <= Number(dates.at(-1)!.slice(0, 4)); y++) {
+    const jan1 = `${y}-01-01`;
+    if (jan1 > dates[0] && jan1 < dates.at(-1)!) set.add(jan1);
+  }
+}
+
+/** Stride-picks samples beyond MAX_SAMPLES, always keeping `today`. */
+function thinSamples(dates: string[], today: string): string[] {
+  if (dates.length <= MAX_SAMPLES) return dates;
+  const stride = Math.ceil(dates.length / MAX_SAMPLES);
+  const thinned = dates.filter((_, i) => i % stride === 0);
+  if (thinned.at(-1) !== today) thinned.push(today);
+  return thinned;
 }
 
 /**
@@ -205,42 +230,13 @@ export class HistoryChartView {
       const gy = y(t).toFixed(1);
       // The bottom tick coincides with the axis line; a straddled zero gets
       // an emphasized gridline so negative stretches stay readable.
-      const line = i === 0 ? '' : `<line x1="${PAD.left}" y1="${gy}" x2="${width - PAD.right}" y2="${gy}" class="chart-grid${t === 0 ? ' chart-grid-zero' : ''}" />`;
+      const zeroCls = t === 0 ? ' chart-grid-zero' : '';
+      const line = i === 0 ? '' : `<line x1="${PAD.left}" y1="${gy}" x2="${width - PAD.right}" y2="${gy}" class="chart-grid${zeroCls}" />`;
       gridLines.push(`${line}
         <text x="${PAD.left - 6}" y="${gy}" class="chart-axis-label" text-anchor="end" dominant-baseline="middle">${axisFmt.format(t)}</text>`);
     }
 
-    // Ticks: the first point, today and January 1st of each covered year —
-    // year-only labels; neighbours closer than minTickGap are dropped (the
-    // final "today" tick always wins over a crowding January 1st).
-    const minTickGap = 44;
-    const firstDate = visible[0].date;
-    const lastDate = visible.at(-1)!.date;
-    const candidates: string[] = [firstDate];
-    for (let y = Number(firstDate.slice(0, 4)) + 1; y <= Number(lastDate.slice(0, 4)); y++) {
-      candidates.push(`${y}-01-01`);
-    }
-    candidates.push(lastDate);
-    const kept: { d: string; tx: number }[] = [];
-    for (const d of [...new Set(candidates)].sort(compareDates)) {
-      const tx = x(d);
-      const isLast = d === lastDate;
-      if (kept.length && tx - kept.at(-1)!.tx < minTickGap) {
-        if (!isLast) continue;
-        kept.pop();
-      }
-      kept.push({ d, tx });
-    }
-    // Edge labels get finer granularity on short ranges — bare "2026" labels
-    // (or worse, a duplicated "oct. 2026") are unhelpful there.
-    const spanDays = (this._t1 - this._t0) / 86400000;
-    const edgeFmt = spanDays < 120 ? dayMonthFmt : spanDays < 548 ? monthYearFmt : yearFmt;
-    const xTicks = kept.map(({ d, tx }) => {
-      const anchor = d === firstDate ? 'start' : d === lastDate ? 'end' : 'middle';
-      const isEdge = d === firstDate || d === lastDate;
-      const fmt = isEdge ? edgeFmt : yearFmt;
-      return `<text x="${tx.toFixed(1)}" y="${CHART_HEIGHT - 8}" class="chart-axis-label" text-anchor="${anchor}">${fmt.format(ts(d))}</text>`;
-    }).join('');
+    const xTicks = this._xTicks(x, visible[0].date, visible.at(-1)!.date);
 
     // Selected view date: a dotted vertical line plus a tick hanging under the
     // x-axis so the position stays visible even where curves overlap the line.
@@ -261,15 +257,7 @@ export class HistoryChartView {
         return `<polygon class="chart-annotation" points="${ax.toFixed(1)},${(ay - 4.5).toFixed(1)} ${(ax + 4.5).toFixed(1)},${ay.toFixed(1)} ${ax.toFixed(1)},${(ay + 4.5).toFixed(1)} ${(ax - 4.5).toFixed(1)},${ay.toFixed(1)}" />`;
       }).join('');
 
-    // A period button is only useful when data exists before its window
-    // start — otherwise the slice would just duplicate Max.
-    const fullFirst = this._fullPoints[0].date;
-    const fullLast = this._fullPoints.at(-1)!.date;
-    const periodButtons = CHART_PERIODS.map(p => {
-      const start = p === 'MAX' ? null : this._periodStart(p);
-      const disabled = start != null && (start <= fullFirst || start >= fullLast);
-      return `<button type="button" class="chart-period${p === this._period ? ' active' : ''}" data-period="${p}"${disabled ? ' disabled' : ''}>${I18n.t(`history.period${p === 'MAX' ? 'Max' : p}`)}</button>`;
-    }).join('');
+    const periodButtons = this._periodButtons();
 
     container.innerHTML = `
       <div class="chart-periods">${periodButtons}</div>
@@ -304,6 +292,66 @@ export class HistoryChartView {
 
     this._bindChart(container, width);
     this._updateSelectedMarker();
+  }
+
+  /**
+   * X-axis tick labels: the first point, today and January 1st of each
+   * covered year — year-only labels; neighbours closer than minTickGap are
+   * dropped (the final "today" tick always wins over a crowding January
+   * 1st). Edge labels get finer granularity on short ranges — bare "2026"
+   * labels (or worse, a duplicated "oct. 2026") are unhelpful there.
+   */
+  _xTicks(x: (date: string) => number, firstDate: string, lastDate: string): string {
+    const minTickGap = 44;
+    const candidates: string[] = [firstDate];
+    for (let y = Number(firstDate.slice(0, 4)) + 1; y <= Number(lastDate.slice(0, 4)); y++) {
+      candidates.push(`${y}-01-01`);
+    }
+    candidates.push(lastDate);
+    const kept: { d: string; tx: number }[] = [];
+    for (const d of [...new Set(candidates)].sort(compareDates)) {
+      const tx = x(d);
+      const isLast = d === lastDate;
+      if (kept.length && tx - kept.at(-1)!.tx < minTickGap) {
+        if (!isLast) continue;
+        kept.pop();
+      }
+      kept.push({ d, tx });
+    }
+    const spanDays = (this._t1 - this._t0) / 86400000;
+    let edgeFmt = yearFmt;
+    if (spanDays < 120) {
+      edgeFmt = dayMonthFmt;
+    } else if (spanDays < 548) {
+      edgeFmt = monthYearFmt;
+    }
+    return kept.map(({ d, tx }) => {
+      let anchor = 'middle';
+      if (d === firstDate) {
+        anchor = 'start';
+      } else if (d === lastDate) {
+        anchor = 'end';
+      }
+      const fmt = (d === firstDate || d === lastDate) ? edgeFmt : yearFmt;
+      return `<text x="${tx.toFixed(1)}" y="${CHART_HEIGHT - 8}" class="chart-axis-label" text-anchor="${anchor}">${fmt.format(ts(d))}</text>`;
+    }).join('');
+  }
+
+  /**
+   * Period selector buttons. A button is only useful when data exists
+   * before its window start — otherwise the slice would just duplicate Max.
+   */
+  _periodButtons(): string {
+    const fullFirst = this._fullPoints[0].date;
+    const fullLast = this._fullPoints.at(-1)!.date;
+    return CHART_PERIODS.map(p => {
+      const start = p === 'MAX' ? null : this._periodStart(p);
+      const disabled = start != null && (start <= fullFirst || start >= fullLast);
+      const activeCls = p === this._period ? ' active' : '';
+      const disabledAttr = disabled ? ' disabled' : '';
+      const label = I18n.t(`history.period${p === 'MAX' ? 'Max' : p}`);
+      return `<button type="button" class="chart-period${activeCls}" data-period="${p}"${disabledAttr}>${label}</button>`;
+    }).join('');
   }
 
   /** Moves/hides the selection marker without re-rendering the whole SVG. */
@@ -396,7 +444,7 @@ export class HistoryChartView {
       const lastDate = this._points.at(-1)!.date;
       const annos = this._annotations
         .filter(a => a.date >= this._points[0].date && a.date <= lastDate && Math.abs(this._x(a.date) - svgX) < 10)
-        .map(a => `<div class="chart-tooltip-annotation">💬 <span class="chart-tooltip-annotation-date">${fullDateFmt.format(ts(a.date))}</span> — ${esc(a.text)}</div>`)
+        .map(a => `<div class="chart-tooltip-annotation">${commentIcon(true, 11)} <span class="chart-tooltip-annotation-date">${fullDateFmt.format(ts(a.date))}</span> — ${esc(a.text)}</div>`)
         .join('');
       // Title = exact cursor date (what a click would pick); the data date is
       // shown too when the displayed state comes from an earlier record.

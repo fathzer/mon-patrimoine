@@ -40,6 +40,12 @@
   width: auto;
 }
 
+/* The shared nav input bar carries a modal top margin — drop it inside
+   the panel controls row. */
+.history-panel-controls .history-date-bar {
+  margin-top: 0;
+}
+
 .history-panel-controls select.form-control {
   width: auto;
 }
@@ -408,6 +414,10 @@
   padding: var(--space-xs);
 }
 
+.history-annotate-btn.has-annotation {
+  color: var(--color-action);
+}
+
 .history-annotate-btn:hover {
   color: var(--color-action);
 }
@@ -471,4 +481,11 @@
   padding-top: var(--space-xs);
   border-top: 1px solid var(--card-border);
   font-size: var(--font-size-xs);
+}
+
+/* The comment icon echoes the amber of the diamond markers on the curve. */
+.chart-tooltip-annotation svg {
+  color: var(--color-warning);
+  vertical-align: -0.15em;
+  margin-right: 0.15rem;
 }

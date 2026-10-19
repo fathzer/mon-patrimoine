@@ -150,6 +150,7 @@ export const fr = {
     lockPoint: "Verrouiller la modification de ce point",
     prevPoint: "Point précédent",
     nextPoint: "Point suivant",
+    recordedPoint: "Un état de cet actif est enregistré à cette date",
     deletePoint: "Supprimer ce point",
     confirmDeletePoint: "Supprimer l'état enregistré au {date} ? À cette date, l'actif reprendra l'état connu précédent.",
     lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (nom, établissement, dates de contrat…) se modifient à la date du jour.",

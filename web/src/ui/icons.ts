@@ -35,5 +35,28 @@ export const UNLOCK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="15" h
   <path d="M8 11 V7 a4 4 0 0 1 7.8 -1.3"/>
 </svg>`;
 
+const BUBBLE_PATH = 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z';
+/** The bubble's "..." — filled dots for the outline variant. */
+const COMMENT_DOTS = '<circle cx="8" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1" fill="currentColor" stroke="none"/>';
+/** The same dots as even-odd subpaths — genuine holes pierced through the
+ *  filled variant, transparent whatever the backdrop. */
+const COMMENT_DOT_HOLES = 'M7 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z M15 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z';
+
+/**
+ * Speech bubble — annotation/comment markers everywhere (panel button,
+ * chart tooltip). The outline variant carries filled dots; the filled one
+ * (a comment exists) pierces them through — the fill must not inherit the
+ * stroke, which would paint the tiny holes shut, so the outer outline is
+ * drawn by a second, fill-less path. `currentColor` driven.
+ */
+export function commentIcon(filled = false, size = 16): string {
+  const body = filled
+    ? `<path fill="currentColor" stroke="none" fill-rule="evenodd" d="${BUBBLE_PATH} ${COMMENT_DOT_HOLES}"/><path fill="none" d="${BUBBLE_PATH}"/>`
+    : `<path d="${BUBBLE_PATH}"/>${COMMENT_DOTS}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  ${body}
+</svg>`;
+}
+
 /** Trash can — point/entry deletion in the date and year bars. */
 export const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;

@@ -1,9 +1,36 @@
 /// <reference types="bun-types" />
 import { describe, it, expect } from "bun:test";
-import { resolveAt, recordAt, thin, valuesEqual } from "./DatedHistory.js";
+import { resolveAt, recordAt, thin, valuesEqual, sortedUniqueDates, dateNeighbours } from "./DatedHistory.js";
 import type { HistoryEntry } from "./DatedHistory.js";
 
 const entry = (date: string, v: number = 0): HistoryEntry => ({ date, values: { v } });
+
+describe("sortedUniqueDates", () => {
+  it("merges single dates and arrays, dedupes and sorts ascending", () => {
+    expect(sortedUniqueDates("2025-06-01", ["2025-01-01", "2025-06-01"], ["2025-03-01"]))
+      .toEqual(["2025-01-01", "2025-03-01", "2025-06-01"]);
+  });
+
+  it("skips null and undefined sources", () => {
+    expect(sortedUniqueDates(null, undefined, "2025-01-01")).toEqual(["2025-01-01"]);
+    expect(sortedUniqueDates()).toEqual([]);
+  });
+});
+
+describe("dateNeighbours", () => {
+  const dates = ["2025-01-01", "2025-03-01", "2025-06-01"];
+
+  it("returns the closest recorded dates around the current one", () => {
+    expect(dateNeighbours(dates, "2025-02-15")).toEqual({ prev: "2025-01-01", next: "2025-03-01" });
+    expect(dateNeighbours(dates, "2025-03-01")).toEqual({ prev: "2025-01-01", next: "2025-06-01" });
+  });
+
+  it("returns null at the edges", () => {
+    expect(dateNeighbours(dates, "2025-01-01")).toEqual({ prev: null, next: "2025-03-01" });
+    expect(dateNeighbours(dates, "2025-06-01")).toEqual({ prev: "2025-03-01", next: null });
+    expect(dateNeighbours([], "2025-01-01")).toEqual({ prev: null, next: null });
+  });
+});
 
 describe("resolveAt", () => {
   const entries = [entry("2025-01-01", 1), entry("2025-03-01", 2), entry("2025-06-01", 3)];

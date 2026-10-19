@@ -42,6 +42,10 @@ export class AssetTableView {
   _onToggleInactive: ((show: boolean) => void) | null;
   /** Presentation-only inflation factor applied to displayed amounts. */
   _displayFactor: number;
+  /** History view date — null means the live/current view (no row marking). */
+  _viewDate: string | null;
+  /** Placement ids holding a recorded point at `_viewDate` (null in live view). */
+  _pointIds: Set<string> | null;
 
   constructor(store: AppStore, options: AssetTableOptions = {}) {
     this.store = store;
@@ -58,6 +62,8 @@ export class AssetTableView {
     this.modalRoot = null;
     this._showInactive = false;
     this._onToggleInactive = null;
+    this._viewDate = null;
+    this._pointIds = null;
     this._displayFactor = 1;
   }
 
@@ -175,7 +181,10 @@ export class AssetTableView {
 
   _renderAssetRows(evaluations: EvaluationEntry[], showInactive = false): string {
     const filtered = this._getFilteredEvaluations(evaluations);
-    const filteredInactive = showInactive ? this._inactivePlacements(evaluations) : [];
+    // Placements closed exactly on the viewed date always show as inactive
+    // rows — the closure is the event that day, even without the toggle.
+    const filteredInactive = this._inactivePlacements(evaluations)
+      .filter(p => showInactive || (this._viewDate != null && p.closedAt === this._viewDate));
 
     if ((!filtered || filtered.length === 0) && filteredInactive.length === 0) {
       return `<tr><td colspan="7" style="text-align:center;" class="text-muted">Aucun actif trouvé</td></tr>`;
@@ -193,8 +202,9 @@ export class AssetTableView {
       const tax = this._formatCurrency(evaluation.imposition);
       const net = this._formatCurrency(this._getNetValue(evaluation));
 
+      const recorded = this._pointIds?.has(instance.id) ?? false;
       return `
-      <tr class="asset-row" data-id="${instance.id}">
+      <tr class="asset-row${recorded ? ' recorded-at' : ''}" data-id="${instance.id}"${recorded ? ` title="${I18n.t('history.recordedPoint')}"` : ''}>
         <td data-label="${this._escapeHtml(I18n.t('table.assetHeader'))}">
           <div style="font-weight: 600;"${description ? ` title="${this._escapeHtml(description)}" class="has-description"` : ''}>${this._escapeHtml(instance.label)}</div>
           ${institutionHtml}
@@ -217,8 +227,9 @@ export class AssetTableView {
       const badge = instance.isClosedAt(this.summary?.asOfDate)
         ? I18n.t('history.closedBadgeDate', { date: I18n.formatDate(instance.closedAt!) })
         : I18n.t('history.notTracked');
+      const recorded = this._pointIds?.has(instance.id) ?? false;
       return `
-      <tr class="asset-row asset-row-inactive" data-id="${instance.id}">
+      <tr class="asset-row asset-row-inactive${recorded ? ' recorded-at' : ''}" data-id="${instance.id}"${recorded ? ` title="${I18n.t('history.recordedPoint')}"` : ''}>
         <td data-label="${this._escapeHtml(I18n.t('table.assetHeader'))}">
           <div style="font-weight: 600;"${description ? ` title="${this._escapeHtml(description)}" class="has-description"` : ''}>${this._escapeHtml(instance.label)} <span class="tag-inactive">${badge}</span></div>
           ${institutionHtml}
@@ -535,6 +546,20 @@ export class AssetTableView {
 
   _getFilteredEvaluations(evaluations: EvaluationEntry[] | undefined): EvaluationEntry[] {
     return (evaluations || []).filter(({ instance }) => this.matchesFilters(instance));
+  }
+
+  /**
+   * Sets the history view date: rows of placements with a recorded point
+   * (asOf or history entry) at that date get the `recorded-at` tint.
+   * Passing null restores the live view — no marking.
+   */
+  setViewDate(date: string | null): void {
+    this._viewDate = date;
+    this._pointIds = date == null ? null : new Set(
+      this.store.state.placements
+        .filter(p => p.getHistoryDates().includes(date) || p.closedAt === date)
+        .map(p => p.id)
+    );
   }
 
   /** Whether a placement passes the category/institution filters. */

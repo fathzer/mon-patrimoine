@@ -1,6 +1,6 @@
 import { I18n } from '../core/I18n.js';
 import { UiState } from '../core/UiState.js';
-import { todayString } from '../core/DatedHistory.js';
+import { todayString, sortedUniqueDates } from '../core/DatedHistory.js';
 import { TopBarView } from './TopBarView.js';
 import { SettingsModalView } from './SettingsModalView.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
@@ -59,7 +59,8 @@ export class DashboardView {
       getInflationState: () => this._inflation,
       getAnnotations: () => this.store.state.annotations,
       onAnnotationSave: (date, text) => this.store.setAnnotation(date, text),
-      onAnnotationDelete: (date) => this.store.removeAnnotation(date)
+      onAnnotationDelete: (date) => this.store.removeAnnotation(date),
+      getNavDates: () => this._navigableDates()
     });
     this._historyChartView = new HistoryChartView({ onPickDate: (date) => this._onChartDatePick(date) });
     this._variationsView = new HistoryVariationsView();
@@ -155,6 +156,8 @@ export class DashboardView {
   }
 
   _renderAssetTable(): void {
+    // Rows of placements recorded at the viewed date get the tint marker.
+    this._assetTableView.setViewDate(this._historyDate);
     this._assetTableView.render(
       this._viewSummary(),
       this._modalRoot!,
@@ -364,6 +367,19 @@ export class DashboardView {
     this._renderSummary();
     this._renderAssetTable();
     this._ensureInflationIndexLoaded();
+  }
+
+  /**
+   * Dates the history ◀/▶ arrows cycle through: every recorded placement
+   * point (asOf and history entries), every closure date, every
+   * annotation, and today.
+   */
+  _navigableDates(): string[] {
+    return sortedUniqueDates(
+      todayString(),
+      this.store.state.annotations.map(a => a.date),
+      ...this.store.state.placements.flatMap(p => [p.getHistoryDates(), p.closedAt])
+    );
   }
 
   _onHistoryDateChange(date: string | null): void {

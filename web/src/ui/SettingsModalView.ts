@@ -6,6 +6,7 @@ import { getPfuHelpPopover, getUnvotedScheduleWarning } from '../i18n/commonTaxE
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
+import { navInputBar, bindNavInput } from './navInput.js';
 import { TAX_ICON, LOCK_ICON, UNLOCK_ICON, TRASH_ICON } from './icons.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
@@ -66,9 +67,6 @@ interface ProfileYearContext {
   unlocked: boolean;
   /** An explicit profile point is recorded at `viewYear`. */
   isRecordedPoint: boolean;
-  /** Recorded years immediately before/after `viewYear` (◀/▶ navigation). */
-  prevYear: number | null;
-  nextYear: number | null;
 }
 
 export class SettingsModalView {
@@ -78,6 +76,8 @@ export class SettingsModalView {
   /** Onboarding mode: no close affordance, no year bar — the profile must
    *  be saved once to unlock the dashboard. */
   _mandatory = false;
+  /** Re-syncs the ◀/▶ disabled state after programmatic year changes. */
+  _refreshNav: (() => void) | null = null;
 
   constructor(container: HTMLElement, store: AppStore) {
     this.container = container;
@@ -105,13 +105,17 @@ export class SettingsModalView {
           <!-- The year bar lives outside the form: navigation rebuilds only
                the form, so the year input keeps its focus. Hidden in
                mandatory mode: onboarding fills the current year only. -->
-          <div class="history-date-bar" id="profile-year-bar" ${mandatory ? 'hidden' : ''}>
-            <label for="hist-year">${I18n.t('settings.profileYear')}</label>
-            <button type="button" id="hist-prev" class="btn-secondary" title="${I18n.t('history.prevPoint')}" ${ctx.prevYear == null ? 'disabled' : ''}>◀</button>
-            <input type="number" id="hist-year" class="form-control" min="${EARLIEST_FISCAL_YEAR}" max="${currentYear}" step="1" value="${ctx.viewYear}" />
-            <button type="button" id="hist-next" class="btn-secondary" title="${I18n.t('history.nextPoint')}" ${ctx.nextYear == null ? 'disabled' : ''}>▶</button>
-            <span id="hist-point-meta">${this._renderYearMeta(ctx)}</span>
-          </div>
+          ${navInputBar({
+            barId: 'profile-year-bar',
+            hidden: mandatory,
+            label: I18n.t('settings.profileYear'),
+            prevId: 'hist-prev', inputId: 'hist-year', nextId: 'hist-next',
+            inputType: 'number',
+            inputAttrs: `min="${EARLIEST_FISCAL_YEAR}" max="${currentYear}" step="1"`,
+            value: ctx.viewYear,
+            prevTitle: I18n.t('history.prevPoint'), nextTitle: I18n.t('history.nextPoint'),
+            metaId: 'hist-point-meta', metaHtml: this._renderYearMeta(ctx)
+          })}
 
           <form id="form-settings" class="help-modal-body"></form>
 
@@ -124,7 +128,6 @@ export class SettingsModalView {
   }
 
   _resolveYearContext(year: number): ProfileYearContext {
-    const years = this.store.getTaxProfileYears();
     const resolved = this.store.resolveTaxProfileForYear(year);
     const latestYear = this.store.state.taxProfileYear;
     return {
@@ -134,9 +137,7 @@ export class SettingsModalView {
       isCurrent: year === latestYear,
       isRetro: year < latestYear,
       unlocked: false,
-      isRecordedPoint: year === latestYear || this.store.hasTaxProfileHistoryEntry(year),
-      prevYear: [...years].reverse().find(y => y < year) ?? null,
-      nextYear: years.find(y => y > year) ?? null
+      isRecordedPoint: year === latestYear || this.store.hasTaxProfileHistoryEntry(year)
     };
   }
 
@@ -176,8 +177,7 @@ export class SettingsModalView {
     this._ctx = ctx;
     (this.container.querySelector('#hist-year') as HTMLInputElement).value = String(year);
     (this.container.querySelector('#hist-point-meta') as HTMLElement).innerHTML = this._renderYearMeta(ctx);
-    (this.container.querySelector('#hist-prev') as HTMLButtonElement).disabled = ctx.prevYear == null;
-    (this.container.querySelector('#hist-next') as HTMLButtonElement).disabled = ctx.nextYear == null;
+    this._refreshNav?.();
     this._renderForm(ctx);
   }
 
@@ -228,17 +228,23 @@ export class SettingsModalView {
                 ${I18n.t('actions.saveStay')}
               </button>` : '';
     // Mandatory onboarding offers a single way out: saving the profile.
-    const actionsHtml = this._mandatory ? `
+    let actionsHtml: string;
+    if (this._mandatory) {
+      actionsHtml = `
             <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
               <button type="submit" class="btn-primary">
                 ${I18n.t('actions.save')}
               </button>
-            </div>` : locked ? `
+            </div>`;
+    } else if (locked) {
+      actionsHtml = `
             <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
               <button type="button" id="btn-cancel-settings" class="btn-secondary">
                 ${I18n.t('form.close')}
               </button>
-            </div>` : `
+            </div>`;
+    } else {
+      actionsHtml = `
             <div class="modal-actions help-modal-footer" style="gap: 0.5rem;">
               <button type="button" id="btn-cancel-settings" class="btn-secondary">
                 ${I18n.t('actions.cancel')}
@@ -248,6 +254,7 @@ export class SettingsModalView {
                 ${I18n.t('actions.save')}
               </button>
             </div>`;
+    }
 
     return `
             <!-- SECTION 1 : Situation Familiale & Parts -->
@@ -416,14 +423,27 @@ export class SettingsModalView {
     });
 
     const bar = this.container.querySelector('#profile-year-bar') as HTMLElement;
+
+    // ◀/▶ cycle through the recorded profile years (current year included).
+    const yearInput = bar.querySelector('#hist-year') as HTMLInputElement;
+    this._refreshNav = bindNavInput<number>(yearInput,
+      bar.querySelector('#hist-prev') as HTMLButtonElement,
+      bar.querySelector('#hist-next') as HTMLButtonElement, {
+        getItems: () => this.store.getTaxProfileYears(),
+        parse: (raw) => {
+          if (raw.trim() === '') return null;
+          const y = Number(raw);
+          return Number.isInteger(y) ? y : null;
+        },
+        compare: (a, b) => a - b,
+        fallback: () => this._ctx?.viewYear ?? new Date().getFullYear(),
+        onNavigate: (year) => this._navigate(year)
+      });
+
     bar.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       const ctx = this._ctx!;
-      if (target.closest('#hist-prev') && ctx.prevYear != null) {
-        this._navigate(ctx.prevYear);
-      } else if (target.closest('#hist-next') && ctx.nextYear != null) {
-        this._navigate(ctx.nextYear);
-      } else if (target.closest('#hist-lock')) {
+      if (target.closest('#hist-lock')) {
         ctx.unlocked = !ctx.unlocked;
         (bar.querySelector('#hist-point-meta') as HTMLElement).innerHTML = this._renderYearMeta(ctx);
         this._renderForm(ctx);

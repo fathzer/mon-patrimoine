@@ -1,9 +1,11 @@
 import { I18n } from '../core/I18n.js';
 import { UiState } from '../core/UiState.js';
-import { todayString } from '../core/DatedHistory.js';
+import { todayString, compareDates } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { bindDatedInput } from './datedInput.js';
+import { navInputBar, bindNavInput } from './navInput.js';
 import { HelpPopover } from './HelpPopover.js';
+import { commentIcon } from './icons.js';
 import { INFLATION_SERIES_IDS, INFLATION_SERIES_LABELS, NO_INFLATION_UI_STATE, type InflationUiState } from '../core/inflation.js';
 import type { ChartAnnotation } from '../core/AppStore.js';
 
@@ -17,6 +19,9 @@ interface HistoryPanelOptions {
   getAnnotations?: () => ChartAnnotation[];
   onAnnotationSave?: (date: string, text: string) => void;
   onAnnotationDelete?: (date: string) => void;
+  /** Pulls the sorted navigable dates for the ◀/▶ arrows (recorded
+   *  placement points, annotations and today — evaluated lazily). */
+  getNavDates?: () => string[];
 }
 
 /**
@@ -38,6 +43,9 @@ export class HistoryPanelView {
   _getAnnotations: () => ChartAnnotation[];
   _onAnnotationSave: (date: string, text: string) => void;
   _onAnnotationDelete: (date: string) => void;
+  _getNavDates: () => string[];
+  /** Re-syncs the ◀/▶ disabled state after programmatic date changes. */
+  _refreshNav: (() => void) | null;
 
   constructor(container: HTMLElement | null, options: HistoryPanelOptions = {}) {
     this.container = container;
@@ -49,6 +57,8 @@ export class HistoryPanelView {
     this._getAnnotations = options.getAnnotations || (() => []);
     this._onAnnotationSave = options.onAnnotationSave || (() => {});
     this._onAnnotationDelete = options.onAnnotationDelete || (() => {});
+    this._getNavDates = options.getNavDates || (() => [todayString()]);
+    this._refreshNav = null;
   }
 
   setContainer(container: HTMLElement): void {
@@ -60,6 +70,21 @@ export class HistoryPanelView {
     this._date = date;
     const input = this.container?.querySelector('#history-date') as HTMLInputElement | null;
     if (input) input.value = date ?? '';
+    this._refreshNav?.();
+    this._refreshAnnotateBtn();
+  }
+
+  /**
+   * Reflects the comment state at the current target date on the annotate
+   * button: filled icon + the comment text as tooltip when one exists.
+   */
+  _refreshAnnotateBtn(): void {
+    const btn = this.container?.querySelector('#history-annotate') as HTMLButtonElement | null;
+    if (!btn) return;
+    const existing = this._getAnnotations().find(a => a.date === this._annotationDate());
+    btn.innerHTML = commentIcon(!!existing);
+    btn.classList.toggle('has-annotation', !!existing);
+    btn.title = existing ? existing.text : I18n.t('history.annotateTitle');
   }
 
   /** Refreshes the inflation selector value from the owner state. */
@@ -82,9 +107,14 @@ export class HistoryPanelView {
         <button class="history-panel-close" type="button" data-action="close">&times;</button>
       </div>
       <div class="history-panel-controls">
-        <label for="history-date">${I18n.t('history.viewAtDate')}</label>
-        <input type="date" id="history-date" class="form-control" value="${this._date ?? ''}" />
-        <button id="history-annotate" class="history-annotate-btn" type="button" title="${I18n.t('history.annotateTitle')}">✎</button>
+        ${navInputBar({
+          label: I18n.t('history.viewAtDate'),
+          prevId: 'history-prev', inputId: 'history-date', nextId: 'history-next',
+          inputType: 'date',
+          value: this._date ?? '',
+          prevTitle: I18n.t('history.prevPoint'), nextTitle: I18n.t('history.nextPoint')
+        })}
+        <button id="history-annotate" class="history-annotate-btn" type="button" title="${I18n.t('history.annotateTitle')}">${commentIcon()}</button>
         <span class="history-panel-inflation-group">
           <label for="inflation-source">${I18n.t('history.inflationLabel')}</label>
           <select id="inflation-source" class="form-control">
@@ -146,8 +176,29 @@ export class HistoryPanelView {
       bindDatedInput(dateInput, EARLIEST_FISCAL_DATE, todayString, (value) => {
         this._date = value || null;
         this._onDateChange(this._date);
+        this._refreshNav?.();
+        this._refreshAnnotateBtn();
+      });
+
+      // ◀/▶ cycle through the recorded dates (placement points, annotations,
+      // today). Navigating also moves the annotation editor's target date,
+      // which follows `this._date`.
+      const prevBtn = this.container!.querySelector('#history-prev') as HTMLButtonElement;
+      const nextBtn = this.container!.querySelector('#history-next') as HTMLButtonElement;
+      this._refreshNav = bindNavInput<string>(dateInput, prevBtn, nextBtn, {
+        getItems: this._getNavDates,
+        parse: (raw) => raw || null,
+        compare: compareDates,
+        onNavigate: (date) => {
+          dateInput.value = date;
+          this._date = date;
+          this._onDateChange(this._date);
+          this._refreshNav?.();
+          this._refreshAnnotateBtn();
+        }
       });
     }
+    this._refreshAnnotateBtn();
 
     const inflationSelect = this.container!.querySelector('#inflation-source') as HTMLSelectElement | null;
     inflationSelect?.addEventListener('change', () => {
@@ -172,10 +223,12 @@ export class HistoryPanelView {
       const input = editor.querySelector('#annotation-text') as HTMLInputElement;
       this._onAnnotationSave(this._annotationDate(), input.value);
       editor.hidden = true;
+      this._refreshAnnotateBtn();
     });
     editor.querySelector('[data-action="annotation-delete"]')?.addEventListener('click', () => {
       this._onAnnotationDelete(this._annotationDate());
       editor.hidden = true;
+      this._refreshAnnotateBtn();
     });
   }
 
