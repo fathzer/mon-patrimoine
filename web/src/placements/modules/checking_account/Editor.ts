@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, amountInputAttrs } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { CheckingAccountModule } from './module.js';
 
@@ -12,11 +12,11 @@ export class CheckingAccountEditor extends BasePlacementEditor {
     return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.cardBalance}</label>
-        <input type="number" step="0.01" name="cardBalance" class="form-control" value="${p?.cardBalance || 0}" />
+        <input ${amountInputAttrs()} name="cardBalance" class="form-control" value="${p?.cardBalance || 0}" />
       </div>
     `;
   }
@@ -35,8 +35,8 @@ export class CheckingAccountEditor extends BasePlacementEditor {
 
   protected override collectData(): Record<string, unknown> {
     return {
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
-      cardBalance: Number(this.container.querySelector<HTMLInputElement>('input[name="cardBalance"]')?.value) || 0
+      currentValue: this.readAmount('currentValue') || 0,
+      cardBalance: this.readAmount('cardBalance') || 0
     };
   }
 }

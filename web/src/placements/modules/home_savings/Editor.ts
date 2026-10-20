@@ -58,7 +58,7 @@ export class HomeSavingsEditor extends SavingsAccountBaseEditor {
       ...super.collectData(),
       homeSavingsType: isCel ? 'cel' : 'pel',
       openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '',
-      interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,
+      interestAmount: this.readAmount('interestAmount') || 0,
       taxExempt: false,
       promotionalInterest: 0
     };

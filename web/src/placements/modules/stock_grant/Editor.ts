@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, amountInputAttrs, evalFormula } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { StockGrantModule, StockGrantData } from './module.js';
 
@@ -23,7 +23,7 @@ export class StockGrantEditor extends BasePlacementEditor {
       </div>
       <div class="form-group">
         <label>${labels.currentPrice}</label>
-        <input type="number" step="0.01" name="currentPrice" class="form-control" value="${p?.currentPrice || 0}" required />
+        <input ${amountInputAttrs()} name="currentPrice" class="form-control" value="${p?.currentPrice || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.attributions}</label>
@@ -59,7 +59,7 @@ export class StockGrantEditor extends BasePlacementEditor {
           <input type="number" step="1" min="0" class="attribution-shares form-control" data-evolving value="${attribution?.numberOfShares || 0}" required style="width: 100%;" />
         </td>
         <td>
-          <input type="number" step="0.01" class="attribution-price form-control" value="${attribution?.acquisitionPrice || 0}" style="width: 100%;" />
+          <input ${amountInputAttrs()} class="attribution-price form-control" value="${attribution?.acquisitionPrice || 0}" style="width: 100%;" />
         </td>
         <td style="text-align: right;">
           <button type="button" class="btn-remove-attribution btn-danger" style="padding: 0.25rem 0.5rem;">&times;</button>
@@ -114,13 +114,13 @@ export class StockGrantEditor extends BasePlacementEditor {
     const attributions = Array.from(this.container.querySelectorAll<HTMLElement>('.attribution-row')).map(row => ({
       attributionDate: row.querySelector<HTMLInputElement>('.attribution-date')?.value || '',
       acquisitionDate: row.querySelector<HTMLInputElement>('.attribution-acquisition-date')?.value || '',
-      acquisitionPrice: Number(row.querySelector<HTMLInputElement>('.attribution-price')?.value) || 0,
+      acquisitionPrice: evalFormula(row.querySelector<HTMLInputElement>('.attribution-price')?.value ?? '') || 0,
       numberOfShares: Number(row.querySelector<HTMLInputElement>('.attribution-shares')?.value) || 0
     }));
 
     return {
       stockName: this.container.querySelector<HTMLInputElement>('input[name="stockName"]')?.value || '',
-      currentPrice: Number(this.container.querySelector<HTMLInputElement>('input[name="currentPrice"]')?.value) || 0,
+      currentPrice: this.readAmount('currentPrice') || 0,
       attributions
     };
   }

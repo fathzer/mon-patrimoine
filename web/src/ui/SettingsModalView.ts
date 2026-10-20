@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { evalFormula } from '../core/Formula.js';
 import { TaxCalculator } from '../fiscality/TaxCalculator.js';
 import { EARLIEST_FISCAL_YEAR } from '../fiscality/rates.js';
 import { getTaxRulesHelpPopover } from '../i18n/TaxExplanation.js';
@@ -361,7 +362,7 @@ export class SettingsModalView {
                     ${I18n.t('settings.taxableIncome')}
                     ${HelpPopover.getHtml({ content: netIncomeHelp, label: '?', icon: true })}
                   </label>
-                  <input type="number" id="taxable-income-input" name="taxableIncome" step="1" min="0" value="${profile.taxableIncome}" class="form-control" style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
+                  <input type="text" inputmode="decimal" data-amount id="taxable-income-input" name="taxableIncome" title="${I18n.t('form.amountHint')}" value="${profile.taxableIncome}" class="form-control" style="flex: 1; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border);" />
                 </div>
                 <span style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-top: 0.3rem;">
                   ${I18n.t('settings.tmi')} : <span id="tmi-summary-display">${Math.round(fiscalSummary.tmi * 100)} %</span>
@@ -564,7 +565,7 @@ export class SettingsModalView {
     };
 
     const updateFiscalSummary = (): void => {
-      const taxableIncome = Number.parseFloat(taxableIncomeInput.value || '0');
+      const taxableIncome = evalFormula(taxableIncomeInput.value) || 0;
       const summary = TaxCalculator.computeFiscalMetrics({
         household: {
           maritalStatus: statusSelect.value as MaritalStatus,
@@ -669,7 +670,7 @@ export class SettingsModalView {
 
   _collectProfileData(form: HTMLFormElement): TaxProfileInput {
     const formData = new FormData(form);
-    const taxableIncome = Number.parseFloat(formData.get('taxableIncome') as string || '0');
+    const taxableIncome = evalFormula(formData.get('taxableIncome') as string) || 0;
     const maritalStatus = formData.get('maritalStatus') as MaritalStatus;
     const childrenCount = Number.parseInt(formData.get('childrenCount') as string || '0', 10);
     const alternateChildrenCount = Number.parseInt(formData.get('alternateChildrenCount') as string || '0', 10);

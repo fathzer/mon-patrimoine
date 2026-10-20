@@ -1,4 +1,5 @@
-import { BasePlacementEditor } from '../../../ui/BasePlacementEditor.js';
+import { BasePlacementEditor, amountInputAttrs } from '../../../ui/BasePlacementEditor.js';
+import { evalFormula } from '../../../core/Formula.js';
 import { I18n } from '../../../core/I18n.js';
 import { HelpPopover } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../BasePlacement.js';
@@ -42,7 +43,7 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
     return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${(placement as SavingsAccountModule)?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${(placement as SavingsAccountModule)?.currentValue || 0}" required />
       </div>
     `;
   }
@@ -54,13 +55,13 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
       <div class="form-group">
         <label>${labels.interestAmount} ${interestHelp}</label>
         <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-          <input type="number" step="0.01" name="interestAmount" class="form-control" value="${(placement as SavingsAccountModule)?.interestAmount || 0}" />
+          <input ${amountInputAttrs()} name="interestAmount" class="form-control" value="${(placement as SavingsAccountModule)?.interestAmount || 0}" />
           <button type="button" id="btn-calculator" class="btn-secondary" title="${labels.calculator}">🔢</button>
         </div>
         <div id="calculator-panel" style="display: none; padding: 0.75rem; background: rgba(0,0,0,0.05); border-radius: 4px;">
           <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 0.5rem;">${labels.interestRateWarning}</p>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="number" step="0.01" name="grossRate" class="form-control" placeholder="${labels.grossRate}" />
+            <input ${amountInputAttrs()} name="grossRate" class="form-control" placeholder="${labels.grossRate}" />
             <button type="button" id="btn-close-calculator" class="btn-secondary" title="${labels.closeCalculator}">✕</button>
           </div>
         </div>
@@ -121,8 +122,8 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
 
     if (!grossRateInput || !currentValueInput || !interestInput) return;
 
-    const rate = Number(grossRateInput.value) || 0;
-    const currentValue = Number(currentValueInput.value) || 0;
+    const rate = evalFormula(grossRateInput.value) || 0;
+    const currentValue = evalFormula(currentValueInput.value) || 0;
     const elapsedFortnights = this.getElapsedFortnights(new Date());
     const interest = currentValue * (rate / 100) * (elapsedFortnights / 24);
     interestInput.value = interest.toFixed(2);
@@ -142,8 +143,8 @@ export abstract class SavingsAccountBaseEditor extends BasePlacementEditor {
 
   protected override collectData(): Record<string, unknown> {
     return {
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
-      interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0
+      currentValue: this.readAmount('currentValue') || 0,
+      interestAmount: this.readAmount('interestAmount') || 0
     };
   }
 }

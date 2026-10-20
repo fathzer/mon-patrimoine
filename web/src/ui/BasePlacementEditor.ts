@@ -1,8 +1,19 @@
 import { I18n } from '../core/I18n.js';
+import { evalFormula } from '../core/Formula.js';
 import type { BasePlacement } from '../placements/BasePlacement.js';
 
 export type EditorData = Record<string, unknown>;
 export type ValidityCallback = (isValid: boolean) => void;
+
+/**
+ * HTML attributes shared by every amount input: text mode so that infix
+ * formulas are accepted (e.g. `1000*(1+5%)`), a decimal keypad hint, the
+ * `data-amount` marker enabling automatic validation by the base editor,
+ * and a tooltip advertising formula entry.
+ */
+export function amountInputAttrs(): string {
+  return `type="text" inputmode="decimal" data-amount title="${I18n.t('form.amountHint')}"`;
+}
 
 /**
  * Base class for all placement editors.
@@ -147,8 +158,37 @@ export class BasePlacementEditor {
    */
   isValid(): boolean {
     const input = this.container.querySelector<HTMLInputElement>('input[name="institution"]');
-    const baseValid = input ? input.checkValidity() : true;
+    const baseValid = (input ? input.checkValidity() : true) && this.amountsValid();
     return baseValid && this.isPlacementValid();
+  }
+
+  /**
+   * Validates every `data-amount` input rendered by the current editor:
+   * empty is allowed only when the field is not required, otherwise the
+   * content must evaluate to a finite number (plain number or formula).
+   */
+  private amountsValid(): boolean {
+    const inputs = this.container.querySelectorAll<HTMLInputElement>('input[data-amount]');
+    return Array.from(inputs).every(input => this.amountInputValid(input));
+  }
+
+  /**
+   * Validates a single amount input in place.
+   */
+  protected amountInputValid(input: HTMLInputElement | null): boolean {
+    if (!input) return true;
+    if (input.value.trim() === '') return !input.required;
+    return Number.isFinite(evalFormula(input.value));
+  }
+
+  /**
+   * Reads the value of an amount input by name — accepts plain numbers and
+   * infix formulas (e.g. `1000*(1+5%)`). Returns NaN when the field is
+   * missing or the expression is invalid.
+   */
+  protected readAmount(name: string): number {
+    const input = this.container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+    return input ? evalFormula(input.value) : Number.NaN;
   }
 
   /**

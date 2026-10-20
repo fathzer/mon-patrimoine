@@ -1,5 +1,5 @@
 import { SavingsAccountBaseEditor } from './SavingsAccountBaseEditor.js';
-import { ToggleSwitch } from '../../kit/v1/index.js';
+import { ToggleSwitch, amountInputAttrs } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { SavingsAccountModule } from './module.js';
 
@@ -31,7 +31,7 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
     return `
       <div class="form-group" id="promotional-interest-group" style="display: ${taxExempt ? 'none' : 'block'};">
         <label>${labels.promotionalInterest}</label>
-        <input type="number" step="0.01" name="promotionalInterest" class="form-control" value="${value}" />
+        <input ${amountInputAttrs()} name="promotionalInterest" class="form-control" value="${value}" />
       </div>
     `;
   }
@@ -53,9 +53,9 @@ export class SavingsAccountEditor extends SavingsAccountBaseEditor {
     const taxExempt = this.container.querySelector<HTMLInputElement>('input[name="taxExempt"]')?.checked ?? true;
     return {
       ...super.collectData(),
-      interestAmount: Number(this.container.querySelector<HTMLInputElement>('input[name="interestAmount"]')?.value) || 0,
+      interestAmount: this.readAmount('interestAmount') || 0,
       taxExempt,
-      promotionalInterest: taxExempt ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="promotionalInterest"]')?.value) || 0)
+      promotionalInterest: taxExempt ? 0 : (this.readAmount('promotionalInterest') || 0)
     };
   }
 }

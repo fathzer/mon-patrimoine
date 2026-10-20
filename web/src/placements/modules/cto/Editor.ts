@@ -1,4 +1,4 @@
-import { BasePlacementEditor } from '../../kit/v1/index.js';
+import { BasePlacementEditor, amountInputAttrs } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { CtoModule } from './module.js';
 
@@ -14,15 +14,15 @@ export class CtoEditor extends BasePlacementEditor {
     return `
       <div class="form-group">
         <label>${labels.currentCtoValue}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.acquisitionValue}</label>
-        <input type="number" step="0.01" name="acquisitionValue" class="form-control" value="${p?.acquisitionValue || 0}" />
+        <input ${amountInputAttrs()} name="acquisitionValue" class="form-control" value="${p?.acquisitionValue || 0}" />
       </div>
       <div class="form-group">
         <label>${labels.cashBalance}</label>
-        <input type="number" step="0.01" name="cashBalance" class="form-control" value="${p?.cashBalance || 0}" />
+        <input ${amountInputAttrs()} name="cashBalance" class="form-control" value="${p?.cashBalance || 0}" />
       </div>
     `;
   }
@@ -41,9 +41,9 @@ export class CtoEditor extends BasePlacementEditor {
 
   protected override collectData(): Record<string, unknown> {
     return {
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
-      acquisitionValue: Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionValue"]')?.value) || 0,
-      cashBalance: Number(this.container.querySelector<HTMLInputElement>('input[name="cashBalance"]')?.value) || 0
+      currentValue: this.readAmount('currentValue') || 0,
+      acquisitionValue: this.readAmount('acquisitionValue') || 0,
+      cashBalance: this.readAmount('cashBalance') || 0
     };
   }
 }

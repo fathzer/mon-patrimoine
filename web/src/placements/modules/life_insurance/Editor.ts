@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, amountInputAttrs } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { LifeInsuranceModule } from './module.js';
 
@@ -24,19 +24,19 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
       </div>
       <div class="form-group">
         <label>${labels.totalPremiums}</label>
-        <input type="number" step="0.01" name="totalPremiums" class="form-control" value="${p?.totalPremiums || 0}" required />
+        <input ${amountInputAttrs()} name="totalPremiums" class="form-control" value="${p?.totalPremiums || 0}" required />
       </div>
       <div class="form-group" id="pre-2017-group" style="display: ${showPre2017 ? 'block' : 'none'};">
         <label>${labels.pre2017Premiums}</label>
-        <input type="number" step="0.01" name="pre2017Premiums" class="form-control" value="${p?.pre2017Premiums || 0}" />
+        <input ${amountInputAttrs()} name="pre2017Premiums" class="form-control" value="${p?.pre2017Premiums || 0}" />
       </div>
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.euroFundsValue}</label>
-        <input type="number" step="0.01" name="euroFundsValue" class="form-control" value="${p?.euroFundsValue || 0}" required />
+        <input ${amountInputAttrs()} name="euroFundsValue" class="form-control" value="${p?.euroFundsValue || 0}" required />
       </div>
       <div class="form-group" style="font-size: 0.8rem; color: var(--danger);">
         ${labels.lifeInsuranceWarning}
@@ -84,10 +84,10 @@ export class LifeInsuranceEditor extends BasePlacementEditor {
     const isPre2017 = this.isPre2017(openingDate);
     return {
       openingDate,
-      totalPremiums: Number(this.container.querySelector<HTMLInputElement>('input[name="totalPremiums"]')?.value) || 0,
-      pre2017Premiums: isPre2017 ? (Number(this.container.querySelector<HTMLInputElement>('input[name="pre2017Premiums"]')?.value) || 0) : 0,
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
-      euroFundsValue: Number(this.container.querySelector<HTMLInputElement>('input[name="euroFundsValue"]')?.value) || 0
+      totalPremiums: this.readAmount('totalPremiums') || 0,
+      pre2017Premiums: isPre2017 ? (this.readAmount('pre2017Premiums') || 0) : 0,
+      currentValue: this.readAmount('currentValue') || 0,
+      euroFundsValue: this.readAmount('euroFundsValue') || 0
     };
   }
 }

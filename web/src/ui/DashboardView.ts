@@ -370,15 +370,17 @@ export class DashboardView {
   }
 
   /**
-   * Dates the history ◀/▶ arrows cycle through: every recorded placement
-   * point (asOf and history entries), every closure date, every
-   * annotation, and today.
+   * Dates the history ◀/▶ arrows cycle through: every recorded point of the
+   * placements matching the active category/institution filters (asOf,
+   * history entries and closure dates), every annotation, and today —
+   * filtered-out placements leave no navigable trace.
    */
   _navigableDates(): string[] {
+    const placements = this.store.state.placements.filter(p => this._assetTableView.matchesFilters(p));
     return sortedUniqueDates(
       todayString(),
       this.store.state.annotations.map(a => a.date),
-      ...this.store.state.placements.flatMap(p => [p.getHistoryDates(), p.closedAt])
+      ...placements.flatMap(p => [p.getHistoryDates(), p.closedAt])
     );
   }
 

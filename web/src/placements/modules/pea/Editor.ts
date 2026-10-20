@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n, ToggleSwitch, MaritalStatus } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, ToggleSwitch, MaritalStatus, amountInputAttrs, evalFormula } from '../../kit/v1/index.js';
 import { checkPerPlanCap, checkCombinedCap } from './Caps.js';
 import type { BasePlacement, AppStore } from '../../kit/v1/index.js';
 import type { PeaModule, PeaType } from './module.js';
@@ -43,11 +43,11 @@ export class PeaEditor extends BasePlacementEditor {
     return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.totalDeposits}</label>
-        <input type="number" step="0.01" name="totalDeposits" class="form-control" value="${p?.totalDeposits || 0}" />
+        <input ${amountInputAttrs()} name="totalDeposits" class="form-control" value="${p?.totalDeposits || 0}" />
       </div>
       <div id="pea-cap-warning" class="form-group text-muted" style="font-size: 0.8rem; display: none; color: var(--danger);">
       </div>
@@ -118,7 +118,7 @@ export class PeaEditor extends BasePlacementEditor {
     if (!warning) return;
 
     const selectedType = this.getSelectedPeaType();
-    const currentDeposits = Number(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value) || 0;
+    const currentDeposits = evalFormula(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value ?? '') || 0;
     const isCouple = MaritalStatus.isCouple(this.store?.getTaxProfile()?.household?.maritalStatus);
 
     const { peaDeposits, peaPmeDeposits } = this.collectAllDeposits(selectedType, currentDeposits);
@@ -175,8 +175,8 @@ export class PeaEditor extends BasePlacementEditor {
 
   protected override collectData(): Record<string, unknown> {
     return {
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
-      totalDeposits: Number(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value) || 0,
+      currentValue: this.readAmount('currentValue') || 0,
+      totalDeposits: this.readAmount('totalDeposits') || 0,
       openingDate: this.container.querySelector<HTMLInputElement>('input[name="openingDate"]')?.value || '',
       peaType: this.getSelectedPeaType()
     };

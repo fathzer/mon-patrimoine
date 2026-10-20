@@ -80,7 +80,8 @@ export const fr = {
       generic: "Champ requis"
     },
     acquisitionDate: "Date d'acquisition",
-    acquisitionPrice: "Prix d'acquisition (€)"
+    acquisitionPrice: "Prix d'acquisition (€)",
+    amountHint: "Vous pouvez saisir une formule, ex. 1000*(1+5%)"
   },
   alerts: {
     saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",
