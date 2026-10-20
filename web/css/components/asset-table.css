@@ -73,6 +73,27 @@
   box-shadow: inset 3px 0 0 0 var(--color-action);
 }
 
+/* Constant-euros notice: a full-width row between the header and the first
+   displayed placement — only rendered when rows exist. */
+.asset-table td.inflation-banner-cell {
+  /* justify-content centers the flex cell in the mobile card layout. */
+  justify-content: center;
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+/* The popover icon's superscript offset would sit too high in the cell;
+   the flex `gap` that spaces it in the card banners does not apply here. */
+.inflation-banner-cell .help-popover.help-popover-icon {
+  top: 0;
+  vertical-align: middle;
+  margin-left: var(--space-xs);
+}
+
 .tag-category {
   display: inline-block;
   padding: 0.25rem 0.6rem;
@@ -175,6 +196,12 @@
   .asset-table tr:has(td:nth-child(4):not(:empty))::before,
   .asset-table tr:has(td:nth-child(5):not(:empty))::before {
     display: block;
+  }
+
+  /* The inflation row is a simple strip, not a per-asset card. */
+  .asset-table tr.inflation-banner-row {
+    display: block;
+    padding: var(--space-xs) var(--space-md);
   }
 
   .asset-table td {

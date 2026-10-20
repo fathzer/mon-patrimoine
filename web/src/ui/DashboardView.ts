@@ -10,6 +10,7 @@ import { HistoryPanelView } from './HistoryPanelView.js';
 import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
 import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { getWarning } from '../i18n/commonTaxExplanations.js';
+import { getInflationDisplayBanner } from './inflationBanner.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
 
@@ -121,8 +122,8 @@ export class DashboardView {
     this._pageContent!.innerHTML = `
       <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
-      <section id="summary-totals" class="summary-totals"></section>
       <section id="summary-history" class="summary-history"></section>
+      <section id="summary-totals" class="summary-totals"></section>
       <section id="summary-breakdown" class="summary-breakdown"></section>
       <div id="assets-container"></div>
     `;
@@ -176,9 +177,11 @@ export class DashboardView {
     const totals = this._pageContent!.querySelector('#summary-totals') as HTMLElement | null;
     if (!totals) return;
 
-    const displayed = this._getDisplayedTotals();
+    const view = this._viewSummary();
+    const displayed = this._getDisplayedTotals(view);
 
     totals.innerHTML = `
+      ${(view.priceLevelFactor ?? 1) !== 1 ? `<div class="inflation-banner">${getInflationDisplayBanner(view.priceLevelBaseMonth!)}</div>` : ''}
       <div class="totals-group">
         <div class="total-item">
           <div class="label">${I18n.t('summary.totalGross')}</div>
@@ -213,9 +216,11 @@ export class DashboardView {
 
     if (this._breakdownVisible) {
       breakdown.style.display = 'block';
-      breakdown.innerHTML = '<div id="breakdown-container"></div>';
+      const view = this._viewSummary();
+      const inflationBanner = (view.priceLevelFactor ?? 1) !== 1 ? `<div class="inflation-banner">${getInflationDisplayBanner(view.priceLevelBaseMonth!)}</div>` : '';
+      breakdown.innerHTML = `${inflationBanner}<div id="breakdown-container"></div>`;
       this._breakdownView.setContainer(breakdown.querySelector('#breakdown-container') as HTMLElement);
-      this._breakdownView.render(this._viewSummary());
+      this._breakdownView.render(view);
     } else {
       breakdown.style.display = 'none';
       breakdown.innerHTML = '';
@@ -449,8 +454,7 @@ export class DashboardView {
       });
   }
 
-  _getDisplayedTotals(): { gross: number; net: number } {
-    const view = this._viewSummary();
+  _getDisplayedTotals(view: GlobalSummary = this._viewSummary()): { gross: number; net: number } {
     const factor = view.priceLevelFactor ?? 1;
     if (!this._filterTotals) {
       return { gross: (view.totalGross || 0) * factor, net: (view.finalNetValue || 0) * factor };

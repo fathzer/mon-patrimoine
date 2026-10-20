@@ -5,6 +5,7 @@ import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
 import { getInflationDisplayWarning } from '../i18n/commonTaxExplanations.js';
+import { getInflationDisplayBanner } from './inflationBanner.js';
 import type { AppStore, EvaluationEntry, GlobalSummary } from '../core/AppStore.js';
 import type { BasePlacement, Evaluation } from '../placements/BasePlacement.js';
 
@@ -244,7 +245,13 @@ export class AssetTableView {
     `;
     });
 
-    return [...activeRows, ...inactiveRows].join('');
+    // The constant-euros notice sits between the header and the first row —
+    // only when at least one placement is displayed.
+    const inflationRow = this._displayFactor !== 1 && this.summary?.priceLevelBaseMonth
+      ? `<tr class="inflation-banner-row"><td colspan="7" class="inflation-banner-cell">${getInflationDisplayBanner(this.summary.priceLevelBaseMonth)}</td></tr>`
+      : '';
+
+    return inflationRow + [...activeRows, ...inactiveRows].join('');
   }
 
   _bindStaticEvents(): void {

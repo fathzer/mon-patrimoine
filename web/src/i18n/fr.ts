@@ -190,5 +190,11 @@ export const fr = {
     annotationSave: "Enregistrer",
     annotationDelete: "Supprimer",
     annotationCancel: "Annuler"
+  },
+  inflation: {
+    banner: "Attention, montants affichés en euros constants (base {month})",
+    bannerHelpTitle: "Montants en euros constants",
+    bannerHelpBody: "Les montants affichés sont exprimés en euros constants (pouvoir d'achat de {month}), d'après l'indice des prix à la consommation INSEE sélectionné. Les données enregistrées restent en euros de l'époque : seul l'affichage est concerné.",
+    bannerHelpWhere: "Vous pouvez revenir aux montants nominaux, ou choisir un autre indice, grâce au menu « {inflationMenu} » de la carte « {historyCard} »."
   }
 };
