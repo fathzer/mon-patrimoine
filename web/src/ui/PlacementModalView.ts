@@ -256,7 +256,12 @@ export class PlacementModalView {
     const evolving = new Set(Object.keys(this._placement?.getEvolvingValues() ?? {}));
     form.querySelectorAll<FormControlElement>('[name]')
       .forEach(el => {
-        if (!el.disabled && !evolving.has(el.name)) {
+        // Same evolving test as _setHistoryFieldsEditable: a name match or
+        // the data-evolving marker — otherwise point-scoped values (PER
+        // compartment amounts) would be captured as globals and re-applied
+        // over the freshly rendered point.
+        const isEvolving = evolving.has(el.name) || el.dataset.evolving !== undefined;
+        if (!el.disabled && !isEvolving) {
           this._pendingGlobals.set(el.name,
             el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el.value);
         }
