@@ -80,7 +80,8 @@ export const fr = {
       generic: "Champ requis"
     },
     acquisitionDate: "Date d'acquisition",
-    acquisitionPrice: "Prix d'acquisition (€)"
+    acquisitionPrice: "Prix d'acquisition (€)",
+    amountHint: "Vous pouvez saisir une formule, ex. 1000*(1+5%)"
   },
   alerts: {
     saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",
@@ -150,6 +151,7 @@ export const fr = {
     lockPoint: "Verrouiller la modification de ce point",
     prevPoint: "Point précédent",
     nextPoint: "Point suivant",
+    recordedPoint: "Un état de cet actif est enregistré à cette date",
     deletePoint: "Supprimer ce point",
     confirmDeletePoint: "Supprimer l'état enregistré au {date} ? À cette date, l'actif reprendra l'état connu précédent.",
     lockedNote: "Seuls les champs datés sont modifiables ici. Les champs globaux (nom, établissement, dates de contrat…) se modifient à la date du jour.",
@@ -188,5 +190,11 @@ export const fr = {
     annotationSave: "Enregistrer",
     annotationDelete: "Supprimer",
     annotationCancel: "Annuler"
+  },
+  inflation: {
+    banner: "Attention, montants affichés en euros constants (base {month})",
+    bannerHelpTitle: "Montants en euros constants",
+    bannerHelpBody: "Les montants affichés sont exprimés en euros constants (pouvoir d'achat de {month}), d'après l'indice des prix à la consommation INSEE sélectionné. Les données enregistrées restent en euros de l'époque : seul l'affichage est concerné.",
+    bannerHelpWhere: "Vous pouvez revenir aux montants nominaux, ou choisir un autre indice, grâce au menu « {inflationMenu} » de la carte « {historyCard} »."
   }
 };

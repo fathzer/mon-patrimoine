@@ -1,6 +1,6 @@
 import { I18n } from '../core/I18n.js';
 import { UiState } from '../core/UiState.js';
-import { todayString } from '../core/DatedHistory.js';
+import { todayString, sortedUniqueDates } from '../core/DatedHistory.js';
 import { TopBarView } from './TopBarView.js';
 import { SettingsModalView } from './SettingsModalView.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
@@ -10,6 +10,7 @@ import { HistoryPanelView } from './HistoryPanelView.js';
 import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
 import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { getWarning } from '../i18n/commonTaxExplanations.js';
+import { getInflationDisplayBanner } from './inflationBanner.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
 
@@ -59,7 +60,8 @@ export class DashboardView {
       getInflationState: () => this._inflation,
       getAnnotations: () => this.store.state.annotations,
       onAnnotationSave: (date, text) => this.store.setAnnotation(date, text),
-      onAnnotationDelete: (date) => this.store.removeAnnotation(date)
+      onAnnotationDelete: (date) => this.store.removeAnnotation(date),
+      getNavDates: () => this._navigableDates()
     });
     this._historyChartView = new HistoryChartView({ onPickDate: (date) => this._onChartDatePick(date) });
     this._variationsView = new HistoryVariationsView();
@@ -120,8 +122,8 @@ export class DashboardView {
     this._pageContent!.innerHTML = `
       <input type="file" id="input-import" accept=".json,application/json" style="display: none;" />
 
-      <section id="summary-totals" class="summary-totals"></section>
       <section id="summary-history" class="summary-history"></section>
+      <section id="summary-totals" class="summary-totals"></section>
       <section id="summary-breakdown" class="summary-breakdown"></section>
       <div id="assets-container"></div>
     `;
@@ -155,6 +157,8 @@ export class DashboardView {
   }
 
   _renderAssetTable(): void {
+    // Rows of placements recorded at the viewed date get the tint marker.
+    this._assetTableView.setViewDate(this._historyDate);
     this._assetTableView.render(
       this._viewSummary(),
       this._modalRoot!,
@@ -173,9 +177,11 @@ export class DashboardView {
     const totals = this._pageContent!.querySelector('#summary-totals') as HTMLElement | null;
     if (!totals) return;
 
-    const displayed = this._getDisplayedTotals();
+    const view = this._viewSummary();
+    const displayed = this._getDisplayedTotals(view);
 
     totals.innerHTML = `
+      ${(view.priceLevelFactor ?? 1) !== 1 ? `<div class="inflation-banner">${getInflationDisplayBanner(view.priceLevelBaseMonth!)}</div>` : ''}
       <div class="totals-group">
         <div class="total-item">
           <div class="label">${I18n.t('summary.totalGross')}</div>
@@ -210,9 +216,11 @@ export class DashboardView {
 
     if (this._breakdownVisible) {
       breakdown.style.display = 'block';
-      breakdown.innerHTML = '<div id="breakdown-container"></div>';
+      const view = this._viewSummary();
+      const inflationBanner = (view.priceLevelFactor ?? 1) !== 1 ? `<div class="inflation-banner">${getInflationDisplayBanner(view.priceLevelBaseMonth!)}</div>` : '';
+      breakdown.innerHTML = `${inflationBanner}<div id="breakdown-container"></div>`;
       this._breakdownView.setContainer(breakdown.querySelector('#breakdown-container') as HTMLElement);
-      this._breakdownView.render(this._viewSummary());
+      this._breakdownView.render(view);
     } else {
       breakdown.style.display = 'none';
       breakdown.innerHTML = '';
@@ -366,6 +374,21 @@ export class DashboardView {
     this._ensureInflationIndexLoaded();
   }
 
+  /**
+   * Dates the history ◀/▶ arrows cycle through: every recorded point of the
+   * placements matching the active category/institution filters (asOf,
+   * history entries and closure dates), every annotation, and today —
+   * filtered-out placements leave no navigable trace.
+   */
+  _navigableDates(): string[] {
+    const placements = this.store.state.placements.filter(p => this._assetTableView.matchesFilters(p));
+    return sortedUniqueDates(
+      todayString(),
+      this.store.state.annotations.map(a => a.date),
+      ...placements.flatMap(p => [p.getHistoryDates(), p.closedAt])
+    );
+  }
+
   _onHistoryDateChange(date: string | null): void {
     if (!this._summary) return;
     // Picking today means the current view — keep no history date at all.
@@ -431,8 +454,7 @@ export class DashboardView {
       });
   }
 
-  _getDisplayedTotals(): { gross: number; net: number } {
-    const view = this._viewSummary();
+  _getDisplayedTotals(view: GlobalSummary = this._viewSummary()): { gross: number; net: number } {
     const factor = view.priceLevelFactor ?? 1;
     if (!this._filterTotals) {
       return { gross: (view.totalGross || 0) * factor, net: (view.finalNetValue || 0) * factor };

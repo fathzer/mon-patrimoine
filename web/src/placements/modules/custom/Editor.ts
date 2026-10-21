@@ -1,4 +1,4 @@
-import { BasePlacementEditor, Category, CategoryValues, I18n } from '../../kit/v1/index.js';
+import { BasePlacementEditor, Category, CategoryValues, I18n, amountInputAttrs } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { CustomModule } from './module.js';
 
@@ -12,7 +12,7 @@ const labels = {
 };
 
 const escapeHtml = (s: string): string =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 export class CustomEditor extends BasePlacementEditor {
   /** The base renders a mandatory institution field; ours is optional. */
@@ -45,15 +45,15 @@ export class CustomEditor extends BasePlacementEditor {
       </div>
       <div class="form-group">
         <label>${labels.grossValue}</label>
-        <input type="number" step="0.01" name="grossValue" class="form-control" value="${p?.grossValue || 0}" required />
+        <input ${amountInputAttrs()} name="grossValue" class="form-control" value="${p?.grossValue || 0}" required />
       </div>
       <div class="form-group">
         <label>${labels.socialCharges}</label>
-        <input type="number" step="0.01" name="socialCharges" class="form-control" value="${p?.socialCharges || 0}" />
+        <input ${amountInputAttrs()} name="socialCharges" class="form-control" value="${p?.socialCharges || 0}" />
       </div>
       <div class="form-group">
         <label>${labels.incomeTax}</label>
-        <input type="number" step="0.01" name="incomeTax" class="form-control" value="${p?.incomeTax || 0}" />
+        <input ${amountInputAttrs()} name="incomeTax" class="form-control" value="${p?.incomeTax || 0}" />
       </div>
     `;
   }
@@ -74,9 +74,9 @@ export class CustomEditor extends BasePlacementEditor {
   protected override collectData(): Record<string, unknown> {
     const categoryValue = this.container.querySelector<HTMLSelectElement>('select[name="category"]')?.value;
     return {
-      grossValue: Number(this.container.querySelector<HTMLInputElement>('input[name="grossValue"]')?.value) || 0,
-      socialCharges: Number(this.container.querySelector<HTMLInputElement>('input[name="socialCharges"]')?.value) || 0,
-      incomeTax: Number(this.container.querySelector<HTMLInputElement>('input[name="incomeTax"]')?.value) || 0,
+      grossValue: this.readAmount('grossValue') || 0,
+      socialCharges: this.readAmount('socialCharges') || 0,
+      incomeTax: this.readAmount('incomeTax') || 0,
       category: categoryValue || Category.OTHER,
       description: this.container.querySelector<HTMLTextAreaElement>('textarea[name="description"]')?.value.trim() || undefined
     };

@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n, ToggleSwitch, HelpPopover } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, ToggleSwitch, HelpPopover, amountInputAttrs } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { PeeModule } from './module.js';
 
@@ -19,7 +19,7 @@ export class PeeEditor extends BasePlacementEditor {
     return `
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div class="form-group">
         <div style="display: flex; align-items: center; gap: var(--space-sm);">
@@ -33,11 +33,11 @@ export class PeeEditor extends BasePlacementEditor {
       </div>
       <div class="form-group" id="total-deposits-group" style="display: ${depositsDisplay};">
         <label>${labels.totalDeposits}</label>
-        <input type="number" step="0.01" name="totalDeposits" class="form-control" value="${p?.totalDeposits || 0}" />
+        <input ${amountInputAttrs()} name="totalDeposits" class="form-control" value="${p?.totalDeposits || 0}" />
       </div>
       <div class="form-group" id="net-value-group" style="display: ${netValueDisplay};">
         <label>${labels.netValue}</label>
-        <input type="number" step="0.01" name="netValue" class="form-control" value="${p?.netValue || 0}" />
+        <input ${amountInputAttrs()} name="netValue" class="form-control" value="${p?.netValue || 0}" />
       </div>
     `;
   }
@@ -76,9 +76,9 @@ export class PeeEditor extends BasePlacementEditor {
   protected override collectData(): Record<string, unknown> {
     const knowsNetValue = this.container.querySelector<HTMLInputElement>('input[name="knowsNetValue"]')?.checked ?? false;
     return {
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
-      totalDeposits: knowsNetValue ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="totalDeposits"]')?.value) || 0),
-      netValue: knowsNetValue ? (Number(this.container.querySelector<HTMLInputElement>('input[name="netValue"]')?.value) || 0) : 0,
+      currentValue: this.readAmount('currentValue') || 0,
+      totalDeposits: knowsNetValue ? 0 : (this.readAmount('totalDeposits') || 0),
+      netValue: knowsNetValue ? (this.readAmount('netValue') || 0) : 0,
       knowsNetValue
     };
   }

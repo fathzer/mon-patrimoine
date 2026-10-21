@@ -60,6 +60,40 @@
   background: var(--hover-bg);
 }
 
+/* The placement has a recorded point at the displayed history date. */
+.asset-table tbody tr.recorded-at td {
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.asset-table tbody tr.recorded-at:hover td {
+  background: var(--hover-bg);
+}
+
+.asset-table tbody tr.recorded-at td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--color-action);
+}
+
+/* Constant-euros notice: a full-width row between the header and the first
+   displayed placement — only rendered when rows exist. */
+.asset-table td.inflation-banner-cell {
+  /* justify-content centers the flex cell in the mobile card layout. */
+  justify-content: center;
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+/* The popover icon's superscript offset would sit too high in the cell;
+   the flex `gap` that spaces it in the card banners does not apply here. */
+.inflation-banner-cell .help-popover.help-popover-icon {
+  top: 0;
+  vertical-align: middle;
+  margin-left: var(--space-xs);
+}
+
 .tag-category {
   display: inline-block;
   padding: 0.25rem 0.6rem;
@@ -90,10 +124,10 @@
   justify-content: center;
   width: 1.1rem;
   height: 1.1rem;
-  border: 1px solid var(--text-muted);
+  border: 1px solid var(--color-action);
   border-radius: 50%;
   background: none;
-  color: var(--text-muted);
+  color: var(--color-action);
   font-size: 0.75rem;
   font-weight: var(--font-weight-semibold);
   line-height: 1;
@@ -102,8 +136,7 @@
 }
 
 .tax-help-btn:hover {
-  border-color: var(--color-action);
-  color: var(--color-action);
+  background: rgba(217, 119, 6, 0.12);
 }
 
 /* The closed-placements toggle uses a shorter label on narrow screens. */
@@ -163,6 +196,12 @@
   .asset-table tr:has(td:nth-child(4):not(:empty))::before,
   .asset-table tr:has(td:nth-child(5):not(:empty))::before {
     display: block;
+  }
+
+  /* The inflation row is a simple strip, not a per-asset card. */
+  .asset-table tr.inflation-banner-row {
+    display: block;
+    padding: var(--space-xs) var(--space-md);
   }
 
   .asset-table td {

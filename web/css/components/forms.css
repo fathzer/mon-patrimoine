@@ -30,6 +30,13 @@
   font-size: var(--font-size-base);
 }
 
+/* Date fields render their native parts (picker popup, calendar
+   indicator) per the app scheme — a dark calendar icon on the dark
+   field would be nearly invisible. */
+input[type="date"] {
+  color-scheme: var(--controls-color-scheme);
+}
+
 /* Textareas always span the form width (horizontal resizing is off) and
    can only grow/shrink vertically, never below a single text line. */
 textarea.form-control {

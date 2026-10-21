@@ -36,6 +36,29 @@ body {
   text-align: center;
 }
 
+/* Strip flush with a card's rounded top edge, flagging that its figures are
+   displayed in constant (inflation-adjusted) euros — negative margins bleed
+   through the card's padding, small font keeps the card compact. */
+.inflation-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) var(--space-md);
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+/* The popover icon's superscript offset would poke out of the thin strip. */
+.inflation-banner .help-popover.help-popover-icon {
+  top: 0;
+}
+
 .top-bar {
   display: flex;
   justify-content: space-between;

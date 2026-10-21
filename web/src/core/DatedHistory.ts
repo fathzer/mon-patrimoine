@@ -39,6 +39,43 @@ export function compareDates(a: string, b: string): number {
 }
 
 /**
+ * Union of several date sources, deduplicated and sorted ascending.
+ * Each source may be a single date or an array; null/undefined are skipped.
+ */
+export function sortedUniqueDates(...sources: (string | string[] | null | undefined)[]): string[] {
+  const set = new Set<string>();
+  for (const source of sources) {
+    if (source == null) continue;
+    for (const d of typeof source === 'string' ? [source] : source) set.add(d);
+  }
+  return [...set].sort(compareDates);
+}
+
+/**
+ * Neighbours of `current` in `items` (sorted ascending per `compare`):
+ * the closest item before/after it, or null at the edges. Works on any
+ * sortable item type — ISO dates, income years, ...
+ */
+export function neighbours<T>(
+  items: readonly T[],
+  current: T,
+  compare: (a: T, b: T) => number
+): { prev: T | null; next: T | null } {
+  return {
+    prev: [...items].reverse().find(d => compare(d, current) < 0) ?? null,
+    next: items.find(d => compare(d, current) > 0) ?? null
+  };
+}
+
+/**
+ * Neighbours of `current` in `dates` (sorted ascending): the closest
+ * recorded date before/after it, or null at the edges.
+ */
+export function dateNeighbours(dates: string[], current: string): { prev: string | null; next: string | null } {
+  return neighbours(dates, current, compareDates);
+}
+
+/**
  * Returns the last entry with `entry.date <= date`, or null when none applies
  * (D predates the first known state).
  * @param entries history sorted by date (ascending).

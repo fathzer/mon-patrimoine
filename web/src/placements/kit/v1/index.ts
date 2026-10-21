@@ -16,7 +16,8 @@ export { BasePlacement } from '../../BasePlacement.js';
 export type { PlacementData, Evaluation, PlacementEditorConstructor, PlacementModuleStatic, TaxExplanationProvider } from '../../BasePlacement.js';
 
 // --- Editor base classes ---
-export { BasePlacementEditor } from '../../../ui/BasePlacementEditor.js';
+export { BasePlacementEditor, amountInputAttrs } from '../../../ui/BasePlacementEditor.js';
+export { evalFormula } from '../../../core/Formula.js';
 
 // --- Categories ---
 export { Category, CategoryValues } from '../../../core/Categories.js';

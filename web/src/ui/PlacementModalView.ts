@@ -1,7 +1,8 @@
 import { I18n } from '../core/I18n.js';
-import { todayString, compareDates } from '../core/DatedHistory.js';
+import { todayString, compareDates, sortedUniqueDates, dateNeighbours } from '../core/DatedHistory.js';
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { bindDatedInput } from './datedInput.js';
+import { navInputBar, bindNavInput } from './navInput.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
@@ -58,6 +59,8 @@ export class PlacementModalView {
   _ctx: DateContext | null = null;
   /** The live placement — `ctx.display` is only its dated reconstruction. */
   _placement: BasePlacement | null = null;
+  /** Re-syncs the ◀/▶ disabled state after programmatic date changes. */
+  _refreshNav: (() => void) | null = null;
   /**
    * Pending edits to global (non-evolving) fields. They are attributes of
    * the placement, not of a point: they survive the form rebuild that
@@ -111,9 +114,8 @@ export class PlacementModalView {
     const recorded = placement.getHistoryDates();
     // Navigable points: every recorded state (asOf included), plus today —
     // a "new point" candidate even when nothing is recorded there yet.
-    const dates = [...new Set([...recorded, today])].sort(compareDates);
-    const prevDate = [...dates].reverse().find(d => d < viewDate) ?? null;
-    const nextDate = dates.find(d => d > viewDate) ?? null;
+    const dates = sortedUniqueDates(recorded, today);
+    const { prev: prevDate, next: nextDate } = dateNeighbours(dates, viewDate);
     const resolved = placement.getDataAt(viewDate);
     const prefill = resolved
       ?? placement.getDataAt(prevDate ?? nextDate ?? viewDate)
@@ -160,12 +162,14 @@ export class PlacementModalView {
 
   _renderDateBar(viewDate: string, ctx: DateContext): string {
     return `
-      <div class="history-date-bar" id="asset-date-bar">
-        <button type="button" id="hist-prev" class="btn-secondary" title="${I18n.t('history.prevPoint')}" ${ctx.prevDate ? '' : 'disabled'}>◀</button>
-        <input type="date" id="hist-date" class="form-control" value="${viewDate}" />
-        <button type="button" id="hist-next" class="btn-secondary" title="${I18n.t('history.nextPoint')}" ${ctx.nextDate ? '' : 'disabled'}>▶</button>
-        <span id="hist-point-meta">${this._renderPointMeta(ctx)}</span>
-      </div>
+      ${navInputBar({
+        barId: 'asset-date-bar',
+        prevId: 'hist-prev', inputId: 'hist-date', nextId: 'hist-next',
+        inputType: 'date',
+        value: viewDate,
+        prevTitle: I18n.t('history.prevPoint'), nextTitle: I18n.t('history.nextPoint'),
+        metaId: 'hist-point-meta', metaHtml: this._renderPointMeta(ctx)
+      })}
       <div class="history-locked-note" ${ctx.isRetro ? '' : 'hidden'}>${I18n.t('history.lockedNote')}</div>`;
   }
 
@@ -252,7 +256,12 @@ export class PlacementModalView {
     const evolving = new Set(Object.keys(this._placement?.getEvolvingValues() ?? {}));
     form.querySelectorAll<FormControlElement>('[name]')
       .forEach(el => {
-        if (!el.disabled && !evolving.has(el.name)) {
+        // Same evolving test as _setHistoryFieldsEditable: a name match or
+        // the data-evolving marker — otherwise point-scoped values (PER
+        // compartment amounts) would be captured as globals and re-applied
+        // over the freshly rendered point.
+        const isEvolving = evolving.has(el.name) || el.dataset.evolving !== undefined;
+        if (!el.disabled && !isEvolving) {
           this._pendingGlobals.set(el.name,
             el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el.value);
         }
@@ -346,15 +355,22 @@ export class PlacementModalView {
    */
   _bindBarEvents(placement: BasePlacement): void {
     const bar = this.container.querySelector('#asset-date-bar') as HTMLElement;
+    const dateInput = bar.querySelector('#hist-date') as HTMLInputElement;
+
+    // ◀/▶ cycle through the placement's recorded points plus today.
+    const prevBtn = bar.querySelector('#hist-prev') as HTMLButtonElement;
+    const nextBtn = bar.querySelector('#hist-next') as HTMLButtonElement;
+    this._refreshNav = bindNavInput<string>(dateInput, prevBtn, nextBtn, {
+      getItems: () => sortedUniqueDates(placement.getHistoryDates(), placement.closedAt, todayString()),
+      parse: (raw) => raw || null,
+      compare: compareDates,
+      onNavigate: (d) => this._navigateTo(placement, d)
+    });
 
     bar.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       const current = this._ctx!;
-      if (target.closest('#hist-prev') && current.prevDate) {
-        this._navigateTo(placement, current.prevDate);
-      } else if (target.closest('#hist-next') && current.nextDate) {
-        this._navigateTo(placement, current.nextDate);
-      } else if (target.closest('#hist-lock')) {
+      if (target.closest('#hist-lock')) {
         current.unlocked = !current.unlocked;
         this._renderMeta(current);
         this._renderForm(placement, current);
@@ -369,7 +385,6 @@ export class PlacementModalView {
       }
     });
 
-    const dateInput = bar.querySelector('#hist-date') as HTMLInputElement;
     bindDatedInput(dateInput, EARLIEST_FISCAL_DATE, todayString, (newDate) => {
       if (newDate && newDate !== this._ctx!.viewDate) {
         this._navigateTo(placement, newDate);
@@ -394,10 +409,7 @@ export class PlacementModalView {
     this._ctx = ctx;
     const input = this.container.querySelector('#hist-date') as HTMLInputElement | null;
     if (input) input.value = viewDate;
-    const prev = this.container.querySelector('#hist-prev') as HTMLButtonElement | null;
-    const next = this.container.querySelector('#hist-next') as HTMLButtonElement | null;
-    if (prev) prev.disabled = !ctx.prevDate;
-    if (next) next.disabled = !ctx.nextDate;
+    this._refreshNav?.();
     this._renderMeta(ctx);
     this._renderForm(placement, ctx);
   }

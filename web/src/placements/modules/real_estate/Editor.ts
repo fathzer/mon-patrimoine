@@ -1,4 +1,4 @@
-import { BasePlacementEditor, I18n, ToggleSwitch } from '../../kit/v1/index.js';
+import { BasePlacementEditor, I18n, ToggleSwitch, amountInputAttrs } from '../../kit/v1/index.js';
 import { getAcquisitionFeesHelp } from './TaxExplanation.js';
 import type { BasePlacement, AppStore } from '../../kit/v1/index.js';
 import type { RealEstateModule } from './module.js';
@@ -57,7 +57,7 @@ export class RealEstateEditor extends BasePlacementEditor {
       </div>
       <div class="form-group">
         <label>${I18n.t('form.currentValue')}</label>
-        <input type="number" step="0.01" name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
+        <input ${amountInputAttrs()} name="currentValue" class="form-control" value="${p?.currentValue || 0}" required />
       </div>
       <div id="acquisition-details" style="display: ${displayDetails};">
         <div class="form-group">
@@ -74,15 +74,15 @@ export class RealEstateEditor extends BasePlacementEditor {
         </div>
         <div class="form-group">
           <label>${I18n.t('form.acquisitionPrice')} ${getAcquisitionFeesHelp('?', true)}</label>
-          <input type="number" step="0.01" name="acquisitionPrice" class="form-control" value="${acquisitionPriceValue}" ${required} ${disabled} />
+          <input ${amountInputAttrs()} name="acquisitionPrice" class="form-control" value="${acquisitionPriceValue}" ${required} ${disabled} />
         </div>
         <div class="form-group">
           <label>${labels.acquisitionFees}</label>
-          <input type="number" step="0.01" name="acquisitionFees" class="form-control" value="${acquisitionFeesValue}" ${disabled} />
+          <input ${amountInputAttrs()} name="acquisitionFees" class="form-control" value="${acquisitionFeesValue}" ${disabled} />
         </div>
         <div class="form-group">
           <label>${labels.works}</label>
-          <input type="number" step="0.01" name="works" class="form-control" value="${worksValue}" ${disabled} />
+          <input ${amountInputAttrs()} name="works" class="form-control" value="${worksValue}" ${disabled} />
         </div>
       </div>
     `;
@@ -152,17 +152,17 @@ export class RealEstateEditor extends BasePlacementEditor {
 
   protected override collectData(): Record<string, unknown> {
     const primaryResidence = this.container.querySelector<HTMLInputElement>('input[name="primaryResidence"]')?.checked ?? false;
-    const acquisitionPrice = primaryResidence ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionPrice"]')?.value) || 0);
+    const acquisitionPrice = primaryResidence ? 0 : (this.readAmount('acquisitionPrice') || 0);
     const acquisitionDate = primaryResidence ? '' : (this.container.querySelector<HTMLInputElement>('input[name="acquisitionDate"]')?.value || '');
 
     return {
       primaryResidence,
-      currentValue: Number(this.container.querySelector<HTMLInputElement>('input[name="currentValue"]')?.value) || 0,
+      currentValue: this.readAmount('currentValue') || 0,
       acquisitionDate,
       acquisitionPrice,
       freeAcquisition: primaryResidence ? false : (this.container.querySelector<HTMLInputElement>('input[name="freeAcquisition"]')?.checked ?? false),
-      acquisitionFees: primaryResidence ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="acquisitionFees"]')?.value) || 0),
-      works: primaryResidence ? 0 : (Number(this.container.querySelector<HTMLInputElement>('input[name="works"]')?.value) || 0)
+      acquisitionFees: primaryResidence ? 0 : (this.readAmount('acquisitionFees') || 0),
+      works: primaryResidence ? 0 : (this.readAmount('works') || 0)
     };
   }
 }

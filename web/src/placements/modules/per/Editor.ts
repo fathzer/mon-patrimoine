@@ -1,4 +1,4 @@
-import { BasePlacementEditor, ToggleSwitch, HelpPopover } from '../../kit/v1/index.js';
+import { BasePlacementEditor, ToggleSwitch, HelpPopover, amountInputAttrs, evalFormula } from '../../kit/v1/index.js';
 import type { BasePlacement } from '../../kit/v1/index.js';
 import type { PerModule, PerCompartmentData } from './module.js';
 
@@ -28,7 +28,7 @@ export class PerEditor extends BasePlacementEditor {
     return `
       <div class="form-group">
         <label>${labels.grossValue}</label>
-        <input type="number" step="0.01" name="grossValue" class="form-control" value="${p?.grossValue || 0}" required />
+        <input ${amountInputAttrs()} name="grossValue" class="form-control" value="${p?.grossValue || 0}" required />
       </div>
       <div class="form-group">
         <div style="display: flex; align-items: center; gap: var(--space-sm);">
@@ -42,7 +42,7 @@ export class PerEditor extends BasePlacementEditor {
       </div>
       <div class="form-group" id="net-value-group" style="display: ${netValueDisplay};">
         <label>${labels.netValue}</label>
-        <input type="number" step="0.01" name="netValue" class="form-control" value="${p?.netValue || 0}" />
+        <input ${amountInputAttrs()} name="netValue" class="form-control" value="${p?.netValue || 0}" />
       </div>
       ${this.renderCompartment('deducted', labels.compartment1Deducted, p?.deducted)}
       ${this.renderCompartment('non_deducted', labels.compartment1NonDeducted, p?.nonDeducted)}
@@ -74,11 +74,11 @@ export class PerEditor extends BasePlacementEditor {
         <legend style="font-weight: 600; padding: 0 0.5rem;">${title}${helpPopover}</legend>
         <div class="form-group">
           <label>${labels.contributions}</label>
-          <input type="number" step="0.01" name="${key}_contributions" class="form-control" data-evolving value="${contributions}" required />
+          <input ${amountInputAttrs()} name="${key}_contributions" class="form-control" data-evolving value="${contributions}" required />
         </div>
         <div class="form-group">
           <label>${labels.gain} <span style="font-weight: normal; font-size: 0.85rem; color: var(--text-muted, #666);">(${labels.gainOptional})</span> ${HelpPopover.getHtml({ content: labels.gainHelp, label: '?', icon: true })}</label>
-          <input type="number" step="0.01" name="${key}_gain" class="form-control" data-evolving value="${gainValue}" />
+          <input ${amountInputAttrs()} name="${key}_gain" class="form-control" data-evolving value="${gainValue}" />
         </div>
       </fieldset>
     `;
@@ -122,8 +122,8 @@ export class PerEditor extends BasePlacementEditor {
     const knowsNetValue = this.container.querySelector<HTMLInputElement>('input[name="knowsNetValue"]')?.checked ?? false;
 
     return {
-      grossValue: Number(this.container.querySelector<HTMLInputElement>('input[name="grossValue"]')?.value) || 0,
-      netValue: knowsNetValue ? (Number(this.container.querySelector<HTMLInputElement>('input[name="netValue"]')?.value) || 0) : 0,
+      grossValue: this.readAmount('grossValue') || 0,
+      netValue: knowsNetValue ? (this.readAmount('netValue') || 0) : 0,
       knowsNetValue,
       deducted: this.collectCompartment('deducted'),
       nonDeducted: this.collectCompartment('non_deducted'),
@@ -132,9 +132,9 @@ export class PerEditor extends BasePlacementEditor {
   }
 
   private collectCompartment(key: string): PerCompartmentData {
-    const contributions = Number(this.container.querySelector<HTMLInputElement>(`input[name="${key}_contributions"]`)?.value) || 0;
+    const contributions = this.readAmount(`${key}_contributions`) || 0;
     const gainRaw = this.container.querySelector<HTMLInputElement>(`input[name="${key}_gain"]`)?.value;
-    const gain = gainRaw === '' || gainRaw == null ? undefined : Number(gainRaw) || 0;
+    const gain = gainRaw === '' || gainRaw == null ? undefined : evalFormula(gainRaw) || 0;
     return { contributions, gain };
   }
 }
