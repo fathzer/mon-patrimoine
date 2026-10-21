@@ -59,6 +59,10 @@
   --radius-xl: 12px;
   --radius-pill: 20px;
 
+  /* Native form controls (date pickers, calendar indicator…): flip this
+     single token when a light theme is introduced. */
+  --controls-color-scheme: dark;
+
   /* Effects */
   --shadow-overlay: 0 10px 30px rgba(0, 0, 0, 0.45);
   --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.35);

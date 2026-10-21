@@ -36,10 +36,12 @@ export interface NavInputBarOptions {
 export function navInputBar(options: NavInputBarOptions): string {
   return `
     <div class="history-date-bar"${options.barId ? ` id="${options.barId}"` : ''}${options.hidden ? ' hidden' : ''}>
-      ${options.label ? `<label for="${options.inputId}">${options.label}</label>` : ''}
-      <button type="button" id="${options.prevId}" class="btn-secondary" title="${options.prevTitle}">◀</button>
-      <input type="${options.inputType}" id="${options.inputId}" class="form-control"${options.inputAttrs ? ` ${options.inputAttrs}` : ''} value="${options.value}" />
-      <button type="button" id="${options.nextId}" class="btn-secondary" title="${options.nextTitle}">▶</button>
+      <span class="nav-input-group">
+        ${options.label ? `<label for="${options.inputId}">${options.label}</label>` : ''}
+        <button type="button" id="${options.prevId}" class="btn-secondary" title="${options.prevTitle}">◀</button>
+        <input type="${options.inputType}" id="${options.inputId}" class="form-control"${options.inputAttrs ? ` ${options.inputAttrs}` : ''} value="${options.value}" />
+        <button type="button" id="${options.nextId}" class="btn-secondary" title="${options.nextTitle}">▶</button>
+      </span>
       ${options.metaId ? `<span id="${options.metaId}">${options.metaHtml ?? ''}</span>` : ''}
     </div>`;
 }

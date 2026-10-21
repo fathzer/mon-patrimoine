@@ -38,4 +38,15 @@ export function bindDatedInput(
       commit();
     }
   });
+  // Touch devices get no virtual keyboard for date fields: the native
+  // picker is the only editing affordance, so a tap anywhere on the
+  // field opens it — the small calendar icon is not the only way in.
+  input.addEventListener('click', () => {
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    try {
+      input.showPicker();
+    } catch {
+      // NotAllowedError when the call lacks transient activation — ignore.
+    }
+  });
 }
