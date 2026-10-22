@@ -1,3 +1,4 @@
+import { bindOverlayClose } from '../ui/overlayClose.js';
 import { StorageProvider } from './StorageProvider.js';
 import type { StorageStatus } from './StorageProvider.js';
 
@@ -267,9 +268,7 @@ export class GoogleDriveProvider extends StorageProvider {
 
       reconnectBtn?.addEventListener('click', () => close(true));
       cancelBtn?.addEventListener('click', () => close(false));
-      overlay?.addEventListener('click', (e) => {
-        if (e.target === overlay) close(false);
-      });
+      if (overlay) bindOverlayClose(overlay, () => close(false));
     });
   }
 
@@ -326,9 +325,7 @@ export class GoogleDriveProvider extends StorageProvider {
 
       retryBtn?.addEventListener('click', () => close(true));
       cancelBtn?.addEventListener('click', () => close(false));
-      overlay?.addEventListener('click', (e) => {
-        if (e.target === overlay) close(false);
-      });
+      if (overlay) bindOverlayClose(overlay, () => close(false));
     });
   }
 

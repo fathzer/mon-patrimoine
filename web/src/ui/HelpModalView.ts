@@ -1,3 +1,4 @@
+import { bindOverlayClose } from './overlayClose.js';
 import type { StorageManager } from '../storage/StorageManager.js';
 
 export class HelpModalView {
@@ -169,15 +170,13 @@ export class HelpModalView {
 
   _bindEvents(): void {
     const closeBtn = this.container.querySelector('#btn-close-help');
-    const overlay = this.container.querySelector('.modal-overlay');
+    const overlay = this.container.querySelector<HTMLElement>('.modal-overlay');
 
     const close = (): void => {
       this.container.innerHTML = '';
     };
 
     closeBtn?.addEventListener('click', close);
-    overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
+    if (overlay) bindOverlayClose(overlay, close);
   }
 }

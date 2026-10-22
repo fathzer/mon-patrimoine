@@ -3,6 +3,7 @@ import { todayString, compareDates, sortedUniqueDates, dateNeighbours } from '..
 import { EARLIEST_FISCAL_DATE } from '../fiscality/rates.js';
 import { bindDatedInput } from './datedInput.js';
 import { navInputBar, bindNavInput } from './navInput.js';
+import { bindOverlayClose } from './overlayClose.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
@@ -343,10 +344,8 @@ export class PlacementModalView {
 
   /** Shell-level bindings: overlay close only (bound once — the bar persists). */
   _bindShellEvents(): void {
-    const overlay = this.container.querySelector('.modal-overlay');
-    overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) this.container.innerHTML = '';
-    });
+    const overlay = this.container.querySelector<HTMLElement>('.modal-overlay');
+    if (overlay) bindOverlayClose(overlay, () => this.container.innerHTML = '');
   }
 
   /**
@@ -546,8 +545,14 @@ export class PlacementModalView {
       form.querySelectorAll('input, select, textarea').forEach(el => {
         const input = el as HTMLInputElement;
         if (!input.checkValidity()) {
-          const key = `form.errors.${input.name}`;
-          errors.push(I18n.t(key) === key ? I18n.t('form.errors.generic') : I18n.t(key));
+          // Custom validity carries the full message (invalid amounts
+          // name their own field); native failures map by input name.
+          if (input.validity.customError) {
+            errors.push(input.validationMessage);
+          } else {
+            const key = `form.errors.${input.name}`;
+            errors.push(I18n.t(key) === key ? I18n.t('form.errors.generic') : I18n.t(key));
+          }
         }
       });
     }

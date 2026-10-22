@@ -37,6 +37,12 @@ input[type="date"] {
   color-scheme: var(--controls-color-scheme);
 }
 
+/* A data-amount field holding an invalid formula is flagged by
+   validateAmountInput. */
+input.invalid-amount {
+  border-color: var(--danger);
+}
+
 /* Textareas always span the form width (horizontal resizing is off) and
    can only grow/shrink vertically, never below a single text line. */
 textarea.form-control {

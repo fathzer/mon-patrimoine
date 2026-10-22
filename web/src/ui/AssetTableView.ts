@@ -3,6 +3,7 @@ import { UiState } from '../core/UiState.js';
 import type { SortLevel, SortField } from '../core/UiState.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import { PlacementModalView } from './PlacementModalView.js';
+import { bindOverlayClose } from './overlayClose.js';
 import { ToggleSwitch } from './ToggleSwitch.js';
 import { getInflationDisplayWarning } from '../i18n/commonTaxExplanations.js';
 import { getInflationDisplayBanner } from './inflationBanner.js';
@@ -533,10 +534,8 @@ export class AssetTableView {
     };
 
     this.modalRoot!.querySelector('#btn-close-tax')?.addEventListener('click', close);
-    const overlay = this.modalRoot!.querySelector('.modal-overlay');
-    overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
+    const overlay = this.modalRoot!.querySelector<HTMLElement>('.modal-overlay');
+    if (overlay) bindOverlayClose(overlay, close);
   }
 
   _saveUiState(): void {

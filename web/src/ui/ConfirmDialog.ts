@@ -1,4 +1,5 @@
 import { I18n } from '../core/I18n.js';
+import { bindOverlayClose } from './overlayClose.js';
 
 export class ConfirmDialog {
   static ask(message: string, container: HTMLElement = document.body): Promise<boolean> {
@@ -40,11 +41,9 @@ export class ConfirmDialog {
         resolve(true);
       });
 
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          cleanup();
-          resolve(false);
-        }
+      bindOverlayClose(overlay, () => {
+        cleanup();
+        resolve(false);
       });
     });
   }
@@ -98,11 +97,9 @@ export class ConfirmDialog {
         resolve(date);
       });
 
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          cleanup();
-          resolve(null);
-        }
+      bindOverlayClose(overlay, () => {
+        cleanup();
+        resolve(null);
       });
     });
   }

@@ -1,5 +1,10 @@
 # TODO List
 
+## Le process d'authentification sur Google Drive est complétement bancal
+Il y a un problème de poule et d'oeuf : on ne peut pas se connecter sans avoir autorisé les pop-ups. Par défaut, les pop-up sont interdits par les navigateurs. De ce fait, le navigateur affiche un pop-up qui est bloqué. Si l'utilisateur autorise les pop-ups, c'est trop tard, le pop-up de connexion ne s'affiche pas. Il doit recharger la page pour que la connexion se fasse.
+
+## Skin white theme
+
 ## ~~Refaire le parcours d'accueil pour forcer le renseignement du profil fiscal.~~ ✅ Fait
 L'absence de `taxProfile` dans le fichier *est* le flag « profil jamais renseigné » : `_getDefaultData()` l'omet, `_hydrateState` pose `state.profileConfigured`, `updateTaxProfile` le lève (et `getExportPayload` ne réintroduit la clé qu'une fois le profil fourni). `DashboardView.render()` ouvre `SettingsModalView` en mode `mandatory` tant que le flag est faux — sans barre d'année ni « Fermer »/« Enregistrer sans fermer », ni fermeture par clic sur l'overlay : seul « Enregistrer » débloque. Les fichiers existants (profil présent) ne voient rien ; le mode démo non plus (le Gist a un profil).
 
@@ -11,9 +16,9 @@ Voir https://claude.ai/chat/08d0e5ac-f6a8-4397-88ff-166f65390cce
 ## ~~Dans le module "Actions gratuites", plutôt que répartir les plafonds entre les différentes attributions éligibles, il faudrait les épuiser dans l'ordre de l'abattement max, ça devrait donner l'optimum, et rien n'empêche la cigale de tout vider en deux ordres séparés d'une journée ou deux.~~ ✅ Fait
 `StockGrantModule._allocateThreshold()` remplace la répartition proportionnelle : les attributions éligibles (≥ 31/12/2016) sont triées par abattement sous-seuil décroissant (`StockGrant.getBelowThresholdAbattement` — détention 50/65 % pour 2017, 50 % uniforme dès 2018) et le seuil de 300 k€ est épuisé sur chacune à tour de rôle, plafonné au gain d'acquisition. Glouton = optimal : chaque euro de seuil retranche `abattement` € d'assiette. Les prélèvements sociaux sont invariants à la répartition (même écart de taux sous/au-dessus du seuil pour tout euro déplacé) ; à égalité d'abattement, l'ordre de déclaration l'emporte (tri stable). `TaxExplanation` précise que le seuil s'apprécie par année de cession (étaler sur 2 années = 2 × 300 k€).
 
-## Un truc pas mal serait d'avoir la possibilité de marquer les placements non mis à jour le jour courant et d'avoir une icône pour les identifier.
-Pour ce faire, il faut ajouter un timestamp de dernière mise à jour dans les placements.
-Ce pourrait aussi être très utile pour la synchronisation ... qui serait un plus.
+## Un truc pas mal serait d'avoir la possibilité de marquer les placements non mis à jour le jour courant et d'avoir une icône pour les identifier. ✅ Fait (partiellement)
+Pour ce faire, on aurait pu ajouter un timestamp de dernière mise à jour dans les placements qui aurait aussi été très utile pour la synchronisation ... qui serait un plus.
+Mais la possibilité de choisir une date dans l'historique permet d'identifier les placements mis à jour à cette date, et donc par contraste, ceux qui ne le sont pas.
 
 ## ~~Ajout de test case pour les calculs de prélèvements~~ ✅ Fait
 ### ~~Reprendre lifeInsuranceModule.test.js pour vérifier que le module est correctement appelé, plutôt que de tester directement l'impôt calculé~~

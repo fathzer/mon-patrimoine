@@ -7,7 +7,9 @@ import { getPfuHelpPopover, getUnvotedScheduleWarning } from '../i18n/commonTaxE
 import { HelpPopover } from '../ui/HelpPopover.js';
 import { ToggleSwitch } from '../ui/ToggleSwitch.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
+import { validateAmountInput } from './BasePlacementEditor.js';
 import { navInputBar, bindNavInput } from './navInput.js';
+import { bindOverlayClose } from './overlayClose.js';
 import { TAX_ICON, LOCK_ICON, UNLOCK_ICON, TRASH_ICON } from './icons.js';
 import type { AppStore, TaxProfileInput } from '../core/AppStore.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
@@ -416,11 +418,11 @@ export class SettingsModalView {
 
   /** Shell-level bindings: overlay close and the year bar (delegated — the meta is rebuilt on navigation). */
   _bindShellEvents(): void {
-    const overlay = this.container.querySelector('.modal-overlay');
-    overlay?.addEventListener('click', (e) => {
-      // Mandatory mode (first-run onboarding) has no escape: the profile
-      // must be saved once.
-      if (e.target === overlay && !this._mandatory) this.container.innerHTML = '';
+    const overlay = this.container.querySelector<HTMLElement>('.modal-overlay');
+    // Mandatory mode (first-run onboarding) has no escape: the profile
+    // must be saved once.
+    if (overlay) bindOverlayClose(overlay, () => {
+      if (!this._mandatory) this.container.innerHTML = '';
     });
 
     const bar = this.container.querySelector('#profile-year-bar') as HTMLElement;
@@ -632,7 +634,10 @@ export class SettingsModalView {
     caseLInput?.addEventListener('change', updateFiscalSummary);
     declarantCaseInput?.addEventListener('change', updateFiscalSummary);
     spouseCaseInput?.addEventListener('change', updateFiscalSummary);
-    taxableIncomeInput?.addEventListener('input', updateFiscalSummary);
+    taxableIncomeInput?.addEventListener('input', () => {
+      validateAmountInput(taxableIncomeInput);
+      updateFiscalSummary();
+    });
 
     // Apply the initial disabled look for the spouse case select
     updateDisabilityCases();
@@ -645,13 +650,22 @@ export class SettingsModalView {
     // on year navigation): assigning onsubmit replaces the previous handler —
     // addEventListener would stack one handler per visited year, each writing
     // at its own captured year.
+    // An invalid amount formula must never reach the store (the collect
+    // path would silently coerce it to 0): block and report on the field.
+    const incomeValid = (): boolean => {
+      const ok = validateAmountInput(taxableIncomeInput);
+      if (!ok) taxableIncomeInput.reportValidity();
+      return ok;
+    };
     form.onsubmit = (e) => {
       e.preventDefault();
       // A locked retro year must never write to the store.
       if (ctx.isRetro && !ctx.unlocked) return;
+      if (!incomeValid()) return;
       this._save(ctx, true);
     };
     form.querySelector('#btn-save-stay')?.addEventListener('click', () => {
+      if (!incomeValid()) return;
       this._save(ctx, false);
     });
   }
