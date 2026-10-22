@@ -16,6 +16,38 @@ export function amountInputAttrs(): string {
 }
 
 /**
+ * Validates a `data-amount` input in place: empty is allowed only when the
+ * field is not required, otherwise the content must evaluate to a finite
+ * number (plain number or infix formula). The result is reflected on the
+ * input itself — a custom validity message naming the field, plus the
+ * `invalid-amount` class — so `checkValidity`, the error collector and
+ * the user all see the same verdict.
+ */
+export function validateAmountInput(input: HTMLInputElement | null): boolean {
+  if (!input) return true;
+  const empty = input.value.trim() === '';
+  const invalid = !empty && !Number.isFinite(evalFormula(input.value));
+  input.setCustomValidity(invalid ? amountErrorMessage(input) : '');
+  input.classList.toggle('invalid-amount', invalid);
+  return empty ? !input.required : !invalid;
+}
+
+/** Builds the error message for an invalid amount, prefixed with the
+ *  field's own wording (fieldset legend and/or label, popovers stripped). */
+function amountErrorMessage(input: HTMLInputElement): string {
+  const clean = (el: Element | null | undefined): string => {
+    if (!el) return '';
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('.help-popover').forEach(n => n.remove());
+    return (clone.textContent ?? '').trim();
+  };
+  const label = clean(input.labels?.[0] ?? input.closest('.form-group')?.querySelector('label'));
+  const legend = clean(input.closest('fieldset')?.querySelector('legend'));
+  const field = [legend, label].filter(s => s !== '').join(' · ');
+  return `${field ? `${field} : ` : ''}${I18n.t('form.errors.invalidAmount')}`;
+}
+
+/**
  * Base class for all placement editors.
  *
  * An editor is responsible for rendering the form fields that let the user
@@ -169,16 +201,16 @@ export class BasePlacementEditor {
    */
   private amountsValid(): boolean {
     const inputs = this.container.querySelectorAll<HTMLInputElement>('input[data-amount]');
-    return Array.from(inputs).every(input => this.amountInputValid(input));
+    // Every input is evaluated (no every() short-circuit): validation
+    // marks each invalid field on the input itself.
+    return Array.from(inputs).map(input => this.amountInputValid(input)).every(Boolean);
   }
 
   /**
    * Validates a single amount input in place.
    */
   protected amountInputValid(input: HTMLInputElement | null): boolean {
-    if (!input) return true;
-    if (input.value.trim() === '') return !input.required;
-    return Number.isFinite(evalFormula(input.value));
+    return validateAmountInput(input);
   }
 
   /**

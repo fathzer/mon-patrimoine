@@ -77,7 +77,8 @@ export const fr = {
       institution: "Établissement requis",
       currentValue: "Valeur actuelle requise",
       openingDate: "Date d'ouverture incorrecte",
-      generic: "Champ requis"
+      generic: "Champ requis",
+      invalidAmount: "Montant ou formule invalide"
     },
     acquisitionDate: "Date d'acquisition",
     acquisitionPrice: "Prix d'acquisition (€)",
