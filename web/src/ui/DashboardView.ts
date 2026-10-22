@@ -257,7 +257,10 @@ export class DashboardView {
     const placements = this._filterTotals
       ? this.store.state.placements.filter(p => this._assetTableView.matchesFilters(p))
       : this.store.state.placements;
-    const dates = collectChartDates(placements, todayString());
+    // With an inflation index the display factor changes monthly: the
+    // chart samples every month-start so the curve steps there instead
+    // of accumulating the drift into a jump at the next recorded point.
+    const dates = collectChartDates(placements, todayString(), this._inflationIndex != null);
     const nominal: ChartPoint[] = this.store.getValueSeries(dates, placements);
     const index = this._inflationIndex;
     const points = index

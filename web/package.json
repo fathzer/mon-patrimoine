@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsc --watch & python3 -m http.server 5500",
     "build": "tsc",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
     "bun-types": "^1.4.2",
