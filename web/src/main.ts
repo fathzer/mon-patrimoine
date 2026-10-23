@@ -54,11 +54,11 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
     wasAuthenticated = summary.isAuthenticated;
     dashboard.render(summary);
     // Remember the session kind so a reload can restore the demo.
-    UiState.save({
-      lastSession: summary.isAuthenticated
-        ? (storageManager.currentProvider.isReadOnly() ? 'demo' : 'account')
-        : null
-    });
+    let sessionKind: 'demo' | 'account' | null = null;
+    if (summary.isAuthenticated) {
+      sessionKind = storageManager.currentProvider.isReadOnly() ? 'demo' : 'account';
+    }
+    UiState.save({ lastSession: sessionKind });
   });
   store.on('state:loading', (isLoading) => dashboard.showLoading(isLoading));
   store.on('save:error', () => window.alert(I18n.t('alerts.saveError')));
@@ -75,14 +75,19 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
   if (store.state.isAuthenticated) return;
   if (params.has('connect')) {
     // The landing's Connexion link leads here: start the auth flow right
-    // away. A blocked popup, a cancel or an error goes back to the landing
-    // where a real click can retry.
+    // away. On success the ?connect marker is dropped from the URL; on
+    // failure (blocked/closed popup, error) the card explains how to
+    // retry via the top-right connect button.
     try {
       await store.login();
     } catch (error) {
       console.error('Authentication failed:', error);
     }
-    if (!store.state.isAuthenticated) window.location.replace('./');
+    if (store.state.isAuthenticated) {
+      window.history.replaceState(null, '', window.location.pathname);
+    } else {
+      dashboard.showConnectFailed();
+    }
     return;
   }
   if (UiState.load().lastSession === 'demo') {

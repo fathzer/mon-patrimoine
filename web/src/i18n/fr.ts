@@ -8,7 +8,17 @@ export const fr = {
     logoutBtn: "Déconnexion",
     demoBtn: "ou tester Mon Patrimoine en mode démo",
     waiting: "En attente de connexion...",
-    popupWarning: "La connexion à votre espace de stockage s'effectue dans une fenêtre pop-up. Si rien ne s'ouvre, vérifiez que votre navigateur n'a pas bloqué les pop-up pour ce site."
+    connectFailed: "La connexion a échoué.",
+    connectRetry: "Vous pouvez ensuite réessayer en cliquant sur le bouton de connexion en haut à droite de la page.",
+    // One wording per AuthFailureKind — the provider classifies its native
+    // error, this table owns the message (see storage/AuthFailure.ts).
+    failure: {
+      popupBlocked: "Une cause probable : votre navigateur a bloqué la fenêtre pop-up nécessaire à la connexion.",
+      popupBlockedHow: "Pour l'autoriser : cliquez sur l'icône de pop-up bloqué dans la barre d'adresse du navigateur, ou ouvrez les réglages du site (icône à gauche de l'adresse) et autorisez les fenêtres pop-up. Dans l'application installée, ce réglage se trouve dans les paramètres du site depuis le menu de l'application.",
+      popupClosed: "La fenêtre de connexion a été fermée avant la fin de l'authentification.",
+      accessDenied: "L'accès à votre espace de stockage a été refusé.",
+      error: "Une erreur est survenue pendant la connexion."
+    }
   },
   demo: {
     banner: "Mode démo — vos modifications ne sont pas sauvegardées"

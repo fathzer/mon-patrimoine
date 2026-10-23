@@ -10,6 +10,7 @@ import { HistoryPanelView } from './HistoryPanelView.js';
 import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
 import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { getWarning } from '../i18n/commonTaxExplanations.js';
+import { authFailureExplanation } from '../storage/AuthFailure.js';
 import { getInflationDisplayBanner } from './inflationBanner.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
@@ -38,6 +39,9 @@ export class DashboardView {
   /** Set once the mandatory tax-profile onboarding has been opened — render()
    *  fires on every state:changed and must not stack modals. */
   _mandatoryProfileOpen: boolean;
+  /** Set when a ?connect OAuth attempt failed — the connecting card then
+   *  explains how to retry instead of staying on the "waiting" text. */
+  _connectFailed: boolean;
 
   constructor(container: HTMLElement, store: AppStore) {
     this.container = container;
@@ -67,6 +71,7 @@ export class DashboardView {
     this._variationsView = new HistoryVariationsView();
     this._layoutInitialized = false;
     this._mandatoryProfileOpen = false;
+    this._connectFailed = false;
     this._topBarContainer = null;
     this._pageContent = null;
     this._modalRoot = null;
@@ -151,9 +156,20 @@ export class DashboardView {
         <div class="landing-login">
           <p class="text-muted">${I18n.t('auth.waiting')}</p>
         </div>
-        ${getWarning(`<p>${I18n.t('auth.popupWarning')}</p>`)}
+        ${this._connectFailed ? getWarning(`
+          <p><strong>${I18n.t('auth.connectFailed')}</strong></p>
+          ${authFailureExplanation(this.store.storageManager.currentProvider.getAuthFailure())}
+          <p>${I18n.t('auth.connectRetry')}</p>
+        `) : ''}
       </div>
     `;
+  }
+
+  /** A ?connect attempt ended unauthenticated (blocked/closed popup or
+   *  error): the card switches from "waiting" to the retry instructions. */
+  showConnectFailed(): void {
+    this._connectFailed = true;
+    if (this._pageContent) this._renderConnectingCard();
   }
 
   _renderAssetTable(): void {

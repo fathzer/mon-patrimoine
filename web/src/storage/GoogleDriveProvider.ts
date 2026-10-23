@@ -1,6 +1,7 @@
 import { bindOverlayClose } from '../ui/overlayClose.js';
 import { StorageProvider } from './StorageProvider.js';
 import type { StorageStatus } from './StorageProvider.js';
+import type { AuthFailure, AuthFailureKind } from './AuthFailure.js';
 
 // Minimal type declarations for the Google Identity Services (GIS) client.
 // Loaded dynamically from https://accounts.google.com/gsi/client.
@@ -53,6 +54,10 @@ export class GoogleDriveProvider extends StorageProvider {
   fileId: string | null;
   _fileNameCache: { fileId: string; name: string } | null;
   _lastError: GisErrorCallbackPayload | null;
+  /** Settled attempt hook: error_callback (blocked/closed popup) never
+   *  reaches `callback`, so authenticate() resolves through this instead. */
+  _pendingAuthError: ((error: GisErrorCallbackPayload) => void) | null;
+  _authFailure: AuthFailure | null;
 
   constructor(clientId: string) {
     super();
@@ -65,6 +70,12 @@ export class GoogleDriveProvider extends StorageProvider {
     this.fileId = null;
     this._fileNameCache = null;
     this._lastError = null;
+    this._pendingAuthError = null;
+    this._authFailure = null;
+  }
+
+  override getAuthFailure(): AuthFailure | null {
+    return this._authFailure;
   }
 
   override async init(): Promise<boolean> {
@@ -94,6 +105,7 @@ export class GoogleDriveProvider extends StorageProvider {
       error_callback: (error: GisErrorCallbackPayload) => {
         console.error('Google token client error:', error);
         this._lastError = error;
+        this._pendingAuthError?.(error);
       }
     });
     resolve(true);
@@ -103,15 +115,24 @@ export class GoogleDriveProvider extends StorageProvider {
     if (!this.tokenClient) await this.initGis();
     return new Promise((resolve) => {
       this.tokenClient!.callback = async (resp: GisTokenResponse) => {
-        if (resp.error) return resolve(false);
+        this._pendingAuthError = null;
+        if (resp.error) {
+          this._authFailure = resp.error === 'access_denied'
+            ? { kind: 'accessDenied' }
+            : { kind: 'error', detail: typeof resp.error === 'string' ? resp.error : JSON.stringify(resp.error) };
+          return resolve(false);
+        }
 
         // Google's granular consent lets the user uncheck the Drive access
         // (it may even be unchecked by default). A token without the scope is
         // useless, so inform the user and restart the authentication.
         if (!this._hasGrantedRequiredScopes(resp)) {
           const retry = await this._showMissingScopesDialog();
+          if (!retry) this._authFailure = { kind: 'accessDenied' };
           return resolve(retry ? await this.authenticate() : false);
         }
+
+        this._authFailure = null;
 
         this._saveToken(resp.access_token!);
         // The account may have changed, the cached file id is no longer valid
@@ -123,6 +144,18 @@ export class GoogleDriveProvider extends StorageProvider {
 
         resolve(true);
       };
+      // A blocked or user-closed popup triggers error_callback instead of
+      // callback — without this hook the promise would hang forever.
+      this._pendingAuthError = (error) => {
+        const kinds: Record<string, AuthFailureKind> = {
+          popup_failed_to_open: 'popupBlocked',
+          popup_closed: 'popupClosed'
+        };
+        const kind = kinds[error.type ?? ''];
+        this._authFailure = kind ? { kind } : { kind: 'error', detail: error.type };
+        resolve(false);
+      };
+      this._authFailure = null;
       this.tokenClient!.requestAccessToken({ prompt: 'consent' });
     });
   }

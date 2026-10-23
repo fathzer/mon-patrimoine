@@ -1,3 +1,5 @@
+import type { AuthFailure } from './AuthFailure.js';
+
 export interface StorageStatus {
   isConnected: boolean;
   providerName: string;
@@ -31,4 +33,10 @@ export abstract class StorageProvider {
    * the user that changes live in memory only.
    */
   isReadOnly(): boolean { return false; }
+
+  /**
+   * Why the last interactive authenticate() attempt failed, classified for
+   * the UI (see AuthFailure.ts). Null when no attempt failed.
+   */
+  getAuthFailure(): AuthFailure | null { return null; }
 }
