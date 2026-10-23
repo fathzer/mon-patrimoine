@@ -45,8 +45,11 @@ const esc = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
  * Dates before EARLIEST_FISCAL_DATE are excluded — the app cannot evaluate
  * taxation before that date; when the history starts earlier, the curve
  * begins at EARLIEST_FISCAL_DATE with the state resolved at that date.
+ * `monthly` also samples every covered month-start: with an inflation
+ * index active the display factor changes monthly and must step there,
+ * not accumulate into a single jump at the next recorded point.
  */
-export function collectChartDates(placements: readonly DatedPlacement[], today: string): string[] {
+export function collectChartDates(placements: readonly DatedPlacement[], today: string, monthly = false): string[] {
   const set = new Set<string>();
   let hasPreFiscalPoints = false;
   for (const p of placements) {
@@ -55,6 +58,7 @@ export function collectChartDates(placements: readonly DatedPlacement[], today: 
   if (hasPreFiscalPoints) set.add(EARLIEST_FISCAL_DATE);
   set.add(today);
   addYearBoundaries(set);
+  if (monthly) addMonthBoundaries(set);
   return thinSamples([...set].sort(compareDates), today);
 }
 
@@ -89,6 +93,25 @@ function addYearBoundaries(set: Set<string>): void {
   for (let y = Number(dates[0].slice(0, 4)) + 1; y <= Number(dates.at(-1)!.slice(0, 4)); y++) {
     const jan1 = `${y}-01-01`;
     if (jan1 > dates[0] && jan1 < dates.at(-1)!) set.add(jan1);
+  }
+}
+
+/**
+ * Adds the 1st of each covered month to the sample set — the inflation
+ * index is published monthly, so its factor can only change there.
+ */
+function addMonthBoundaries(set: Set<string>): void {
+  const dates = [...set].sort(compareDates);
+  if (dates.length < 2) return;
+  let year = Number(dates[0].slice(0, 4));
+  let month = Number(dates[0].slice(5, 7)) + 1;
+  const last = dates.at(-1)!;
+  while (true) {
+    if (month > 12) { year++; month = 1; }
+    const first = `${year}-${String(month).padStart(2, '0')}-01`;
+    if (first >= last) break;
+    set.add(first);
+    month++;
   }
 }
 

@@ -1,3 +1,5 @@
+// DEAD CODE — never tested, not referenced by StorageManager. Kept as a
+// minimal StorageProvider example (see STORAGE_PROVIDERS.md).
 import { StorageProvider } from './StorageProvider.js';
 import type { StorageStatus } from './StorageProvider.js';
 

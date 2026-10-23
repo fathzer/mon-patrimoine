@@ -1,3 +1,6 @@
+// DEAD CODE — never tested, not referenced by StorageManager. Kept only as
+// a rough sketch of a redirect-based provider; rewrite from scratch when
+// adding pCloud support (see STORAGE_PROVIDERS.md).
 import { StorageProvider } from './StorageProvider.js';
 import type { StorageStatus } from './StorageProvider.js';
 

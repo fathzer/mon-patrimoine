@@ -53,7 +53,7 @@ class TestPlacement extends BasePlacement {
     };
   }
 
-  getEvolvingValues(): Record<string, unknown> {
+  override getEvolvingValues(): Record<string, unknown> {
     return { currentValue: this.currentValue };
   }
 
@@ -289,7 +289,7 @@ describe("AppStore placement lifecycle", () => {
     });
     store.state.placements.push(p);
 
-    store.updatePlacement("p1", { id: "p1", type: "test", currentValue: 50, asOf: "2024-06-01" });
+    store.updatePlacement("p1", { id: "p1", type: "test", currentValue: 50, asOf: "2024-06-01" } as TestData);
 
     const saved = store.state.placements[0] as TestPlacement;
     expect(saved.extra).toEqual({ nestedHistory: [{ date: "2024-01-01", price: 80 }] });
@@ -410,6 +410,28 @@ describe("AppStore getValueSeries (history chart)", () => {
     expect(series[3]).toEqual({ date: "2026-01-01", gross: 140, net: 140 });
   });
 
+  it("collectChartDates samples month-starts when inflation is active", () => {
+    const store = makeAuthedStore();
+    // Two recorded points a quarter apart: without the monthly mesh the
+    // inflation factor drift would show as one jump at the second point.
+    store.state.placements.push(new TestPlacement({
+      id: "p1", currentValue: 100, asOf: "2025-01-01",
+      history: [{ date: "2024-10-15", values: { currentValue: 90 } }]
+    }));
+
+    const sparse = collectChartDates(store.state.placements, "2025-01-10");
+    expect(sparse).not.toContain("2024-11-01");
+    expect(sparse).not.toContain("2024-12-01");
+
+    const monthly = collectChartDates(store.state.placements, "2025-01-10", true);
+    expect(monthly).toContain("2024-11-01");
+    expect(monthly).toContain("2024-12-01");
+    expect(monthly).toContain("2025-01-01");
+    // Month-starts outside the covered range are not added.
+    expect(monthly).not.toContain("2024-10-01");
+    expect(monthly).not.toContain("2025-02-01");
+  });
+
   it("collectChartDates never samples before the earliest fiscal date", () => {
     const store = makeAuthedStore();
     // A placement attributed before 2019 (e.g. an old stock grant): the
@@ -472,11 +494,11 @@ describe("AppStore getValueSeries (history chart)", () => {
     const batch = placement.getDataSeriesAt(dates);
     dates.forEach((d, i) => {
       expect(batch[i]?.asOf ?? null).toBe(placement.getDataAt(d)?.asOf ?? null);
-      expect(batch[i]?.currentValue ?? null).toBe(placement.getDataAt(d)?.currentValue ?? null);
+      expect((batch[i] as TestData | null)?.currentValue ?? null).toBe((placement.getDataAt(d) as TestData | null)?.currentValue ?? null);
     });
     expect(batch[0]).toBeNull();
-    expect(batch[3]!.currentValue).toBe(300);
-    expect(batch[4]!.currentValue).toBe(500);
+    expect((batch[3] as TestData).currentValue).toBe(300);
+    expect((batch[4] as TestData).currentValue).toBe(500);
   });
 });
 
