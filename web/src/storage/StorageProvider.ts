@@ -8,6 +8,7 @@ export interface StorageStatus {
 
 export interface StorageConfig {
   googleClientId?: string;
+  dropboxAppKey?: string;
 }
 
 /**
@@ -17,6 +18,24 @@ export interface StorageConfig {
 export abstract class StorageProvider {
   init(): Promise<boolean> { return Promise.resolve(false); }
   abstract authenticate(): Promise<boolean>;
+
+  /**
+   * Query-string parameters this provider produces on the OAuth return URL
+   * (redirect flows only — e.g. ['code','state','error']). They are stripped
+   * by the URL cleanup once consumed. Providers with a JS-callback flow
+   * (Google GIS popup) keep the empty default.
+   */
+  readonly authResponseParams: string[] = [];
+
+  /**
+   * Redirect-flow providers: consumes the OAuth return parameters present in
+   * the URL after the provider sent the browser back (exchanges the code,
+   * checks the anti-CSRF state...). Returns 'none' when the URL carries
+   * nothing this provider recognizes, true/false for the auth verdict.
+   * Popup-flow providers keep the default no-op.
+   */
+  resumeAuth(_url: URL): Promise<boolean | 'none'> { return Promise.resolve('none'); }
+
   disconnect(): Promise<void> { return Promise.resolve(); }
   abstract loadData(): Promise<unknown>;
   abstract saveData(data: unknown): Promise<boolean>;

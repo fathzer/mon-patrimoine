@@ -16,7 +16,7 @@ Voici la structure globale :
 - Certaines données sont partagées par certains placements (prélèvement forfaitaire, CSG, par exemple). Elles font l'objet d'un module séparé éventuellement utilisé par les autres modules.
 - Il n'y a pas de connexion directe aux banques (ce serait trop ambitieux), tous les montants doivent pouvoir être saisis.
 - L'application garde l'historique daté de chaque placement afin de produire des graphes d'évolution brut/net (périodes 1M/6M/Année/1A/5A/10A/Max), un tableau de variations annuelles. Elle permet également d'ajouter des annotations pour mentionner des événements importants affectant le patrimoine (ex: Dons), d'effectuer des corrections rétroactives (une valeur saisie dans le passé peut être corrigée), et d'afficher en euros constants via les indices INSEE.
-- Les données sont stockées sous forme d'un simple fichier json dans le Cloud (les premiers fournisseurs disponibles seront Google Drive et pCloud). Des composants génériques (qui implémentent une même API) permettent l'authentification et la sauvegarde/relecture du fichier.
+- Les données sont stockées sous forme d'un simple fichier json dans le Cloud (Dropbox et Google Drive sont disponibles). Des composants génériques (qui implémentent une même API) permettent l'authentification et la sauvegarde/relecture du fichier — voir [STORAGE_PROVIDERS.md](STORAGE_PROVIDERS.md).
 
 ## Notes développeurs
 
@@ -68,6 +68,22 @@ Exécution locale — affiche le JSON sans mettre à jour le Gist si `GIST_TOKEN
 ```bash
 python3 scripts/fetch_insee_cpi.py
 ```
+
+### Dropbox
+
+L'intégration Dropbox utilise un flow OAuth2 par redirection avec PKCE (client public, sans secret applicatif). Pour déclarer l'application dans la [console Dropbox](https://www.dropbox.com/developers/console/apps) :
+
+1. Créez une application avec l'API **Dropbox API**, le type d'accès **App folder** (ce choix est définitif) et le nom de votre choix.
+2. Dans l'onglet **Settings** :
+   - Activez l'option **Allow public clients (PKCE)** — l'application est un client public JavaScript.
+   - Ajoutez chaque URL de retour dans **Redirect URIs**, en correspondance exacte avec `<origine>/app/?connect=dropbox`, par exemple :
+     - `http://localhost:5500/app/?connect=dropbox` pour le serveur de développement
+     - `https://mon-domaine.com/app/?connect=dropbox` pour un hébergement en ligne
+   - Attention : Dropbox refuse les query strings non « form-urlencoded » dans ces URIs — une URI se terminant par `?connect` (sans `=`) est refusée, d'où le `?connect=dropbox` qui identifie en prime le provider au retour.
+3. Dans l'onglet **Permissions**, cochez `account_info.read`, `files.content.read` et `files.content.write`.
+4. Reportez l'**App key** (pas le secret) dans `web/src/main.ts` (`DROPBOX_APP_KEY`).
+
+En statut *Development*, seul le compte du développeur peut lier l'application par défaut ; le bouton **Enable additional users** porte la limite à 500 comptes (une demande de statut *Production* n'est nécessaire qu'au-delà de 50 utilisateurs actifs).
 
 ### Google Drive
 

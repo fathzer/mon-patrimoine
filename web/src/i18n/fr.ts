@@ -8,8 +8,9 @@ export const fr = {
     logoutBtn: "Déconnexion",
     demoBtn: "ou tester Mon Patrimoine en mode démo",
     waiting: "En attente de connexion...",
+    chooseProvider: "Choisissez le service de stockage de vos données :",
     connectFailed: "La connexion a échoué.",
-    connectRetry: "Vous pouvez ensuite réessayer en cliquant sur le bouton de connexion en haut à droite de la page.",
+    connectRetry: "Vous pouvez réessayer en cliquant sur le bouton de connexion en haut à droite de la page.",
     // One wording per AuthFailureKind — the provider classifies its native
     // error, this table owns the message (see storage/AuthFailure.ts).
     failure: {

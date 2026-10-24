@@ -49,6 +49,18 @@ export class HelpModalView {
                 </h4>
                 <p id="help-data-location" class="help-provider-text" style="display: none;"></p>
                 <div class="help-provider-block">
+                  <strong class="help-provider-title">• Dropbox</strong>
+                  <p class="help-provider-text">
+                    Les données sont conservées dans le fichier <code>patrimoine_data.json</code> placé dans le dossier applicatif dédié de votre Dropbox (<em>"Applications/&lt;nom de l'application&gt;"</em>).
+                  </p>
+                  <ul class="help-provider-list">
+                    <li><strong>Isolation stricte :</strong> L'accès accordé à l'application est limité exclusivement à son dossier applicatif (type d'accès <code>App folder</code>). Elle n'a aucun accès au reste de vos documents.</li>
+                    <li><strong>Renommage toléré :</strong> Vous pouvez renommer le fichier : l'application continue de le retrouver grâce à son identifiant interne. Il doit en revanche rester dans le dossier applicatif, seule zone accessible à l'application.</li>
+                    <li><strong>Pourquoi l'email est demandé :</strong> L'adresse email sert uniquement à identifier le compte utilisé (affiché ci-dessus lorsque vous êtes connecté). Elle n'est stockée que localement dans votre navigateur et n'est jamais transmise à nos serveurs.</li>
+                    <li><strong>Session durable :</strong> Contrairement à Google, Dropbox délivre un jeton de renouvellement de longue durée : aucune reconnexion périodique ni fenêtre furtive n'est nécessaire.</li>
+                  </ul>
+                </div>
+                <div class="help-provider-block">
                   <strong class="help-provider-title">• Google Drive</strong>
                   <p class="help-provider-text">
                     Les données sont conservées dans le fichier <code>patrimoine_data.json</code> placé par défaut à la racine de votre espace (<em>"Mon Drive"</em>).

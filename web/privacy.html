@@ -24,13 +24,17 @@
             <p>L'application <strong data-i18n="app.title">Mon Patrimoine</strong> est une application web s'exécutant intégralement dans votre navigateur web (architecture <em>Full Client-Side JavaScript</em>).</p>
             <p><strong>Absolument aucune donnée</strong> saisie dans l'application, aucun identifiant, ni aucun jeton d'authentification ne transite ni n'est stocké sur un quelconque serveur tiers ou hébergeur intermédiaire.</p>
 
-            <h2>2. Intégration Google Drive</h2>
-            <p>Lorsque vous choisissez d'activer la synchronisation du stockage cloud via Google Drive :</p>
+            <h2>2. Intégration des services de stockage cloud</h2>
+            <p>Lorsque vous choisissez d'activer la synchronisation via un service de stockage cloud (Dropbox ou Google Drive), les principes suivants s'appliquent quel que soit le service :</p>
             <ul>
-                <li>La connexion s'effectue directement et exclusivement entre votre navigateur et les serveurs sécurisés de Google via l'API officielle OAuth 2.0.</li>
-                <li>L'application demande uniquement les autorisations <code>drive.file</code> et <code>userinfo.email</code>, ce qui la limite strictement à la lecture et à l'écriture des fichiers qu'elle a elle-même créés et à la récupération de votre adresse email.</li>
-                <li>L'application n'a aucun accès au reste de votre Google Drive. Votre adresse email est utilisée uniquement pour vous reconnecter automatiquement à votre compte Google Drive.</li>
-                <li>Vos fichiers de données patrimoniales restent exclusivement dans votre propre espace de stockage Google Drive personnel.</li>
+                <li>La connexion s'effectue directement et exclusivement entre votre navigateur et les serveurs sécurisés du service choisi, via le protocole standard OAuth 2.0. Aucune donnée ni identifiant ne transite par un serveur intermédiaire.</li>
+                <li>Vos fichiers de données patrimoniales restent exclusivement dans votre propre espace de stockage personnel ; l'application n'a strictement aucun accès au reste de vos fichiers.</li>
+                <li>Votre adresse email n'est utilisée que pour identifier le compte connecté (reconnexion automatique, affichage dans l'aide) ; elle n'est conservée que localement dans votre navigateur.</li>
+            </ul>
+            <p>Seules les autorisations strictement nécessaires sont demandées ; elles diffèrent selon le service :</p>
+            <ul>
+                <li><strong>Dropbox :</strong> authentification par redirection avec PKCE (client public, sans secret applicatif) ; autorisations <code>files.content.read</code>, <code>files.content.write</code> et <code>account_info.read</code>, dont la portée est limitée au dossier applicatif dédié (<em>App folder</em>).</li>
+                <li><strong>Google Drive :</strong> autorisations <code>drive.file</code> et <code>userinfo.email</code>, dont la portée est limitée aux fichiers que l'application a elle-même créés.</li>
             </ul>
 
             <h2>3. Données personnelles et cookies</h2>
