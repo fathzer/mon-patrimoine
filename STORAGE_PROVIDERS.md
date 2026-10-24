@@ -183,6 +183,61 @@ Rappel : avec un redirect il n'y a **pas de pop-up à bloquer**. Les échecs typ
 | Durée du token | refresh token longue durée | refresh token longue durée, **rotatif** | ~1 h, re-consent/silent | access token sans expiration |
 | Réponse dans | query `?` | query `?` | callback JS | hash `#access_token=` |
 
+## Piste : moteur de synchronisation (projet futur)
+
+Objectif : extraire la couche storage dans une **lib réutilisable** pour une seconde
+application (même architecture SPA + cloud), avec en plus le mode **hors ligne** et la
+**synchro multi-appareils**. Décisions arrêtées :
+
+### Contrat révisionné (prérequis, quel que soit le provider)
+
+`load() → { data, rev }` et `save(data, baseRev) → 'saved' | 'conflict'`, adossé aux
+mécanismes natifs de concurrence optimiste : Dropbox `files/upload` avec
+`mode: {'.tag':'update', update:'<rev>'}` (409 si périmé), Drive `PATCH` + `If-Match: <etag>`
+(412), Graph `PUT` + `if-match: <eTag>` (412). Aujourd'hui les trois providers écrasent
+inconditionnellement — dernier écrivain gagne, silencieusement.
+
+### Merge par grains (pas de snapshot complet)
+
+- Le `rev` du fichier est recopié dans chaque **grain** au chargement, persisté *dans* les
+  données (champ `rev` par item) ; la lib marque « sale » tout grain modifié
+  (`touch(id)` ou `dirtyIds` fournis — à trancher dans l'API).
+- Au sync : grain remote `rev != base` + grain local intact → prendre remote ;
+  local sale + remote intact → pousser ; les deux bougés → conflit.
+- **Tombstones** obligatoires : `id` + rev de base des grains supprimés, conservés
+  jusqu'au sync réussi — sinon « supprimé localement » et « créé en remote » sont
+  indiscernables.
+- Données hors grains (profil…) : chaque unité syncable porte son `rev` — le reste du
+  fichier peut être vu comme un grain unique.
+
+### Politique d'orchestration : pull avide + push explicite
+
+- **Pull avide** : en fond, la lib lit les métadonnées (cheap) et notifie l'app quand
+  `remote != base` ; le merge peut être pré-calculé *avant* le prochain Save — le conflit
+  est déjà identifié quand l'utilisateur clique.
+- **Push explicite** (sur action Save de l'utilisateur) avec verdict
+  `saved | queued | conflict | error` ; `queued` est un succès (données durables en local),
+  pas un échec.
+- La boucle auto **se gare** sur vrai conflit (état exposé, retry stoppé — sinon
+  ping-pong) ; résolution via l'UI.
+- **Canal de statut** (`pending` count + dernière erreur) : les saves `queued` se
+  terminent plus tard, l'UI doit voir la file se vider.
+- **Détection offline** : l'échec réseau de l'appel API est la vérité
+  (`navigator.onLine` ment — captive portals) ; retry sur `online`,
+  `visibilitychange` et backoff.
+- Persistance locale en **IndexedDB** (outbox + données), pas `localStorage`
+  (trop petit, synchrone).
+
+### Répartition lib / app
+
+- **Lib** : transport révisionné + `SyncEngine` (snapshot local, `base`/`baseRev`,
+  outbox, boucle retry, tombstones) + providers. `disconnect()`/changement de compte
+  purge base + outbox.
+- **App** : politique de merge `{ base, local, remote } → merged | 'unreconcilable'`
+  (connaissance métier des grains), UI de conflit, déclencheur Save.
+- **Packaging** : repo dédié, consommé via dépendance git ou npm ; *vendoring* du
+  `dist/` dans `web/vendor/` (l'app n'a pas de bundler — imports relatifs requis).
+
 ## Code mort
 
 `PCloudProvider.ts` et `LocalStorageProvider.ts` sont **non référencés** et **jamais testés**

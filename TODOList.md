@@ -1,8 +1,5 @@
 # TODO List
 
-## Le process d'authentification sur Google Drive est complétement bancal
-Il y a un problème de poule et d'oeuf : on ne peut pas se connecter sans avoir autorisé les pop-ups. Par défaut, les pop-up sont interdits par les navigateurs. De ce fait, le navigateur affiche un pop-up qui est bloqué. Si l'utilisateur autorise les pop-ups, c'est trop tard, le pop-up de connexion ne s'affiche pas. Il doit recharger la page pour que la connexion se fasse.
-
 ## Skin white theme
 
 ## ~~Refaire le parcours d'accueil pour forcer le renseignement du profil fiscal.~~ ✅ Fait
@@ -24,7 +21,10 @@ Mais la possibilité de choisir une date dans l'historique permet d'identifier l
 ### ~~Reprendre lifeInsuranceModule.test.js pour vérifier que le module est correctement appelé, plutôt que de tester directement l'impôt calculé~~
 Les tests de module vérifient désormais le **contrat** `getTaxableIncomes()` (assiette, `eligiblePfu`, `tauxSpecifique`, `deductionRevenus`) plutôt que `evaluation.imposition` (impôt calculé par `TaxCalculator`, couvert par ses propres tests + les tests OpenFisca). Convertis : `life_insurance` (10 assertions) et `per` (3). Contrat ajouté pour les modules qui en manquaient : `pea` (exonération à 5 ans, borne incluse), `home_savings` (PEL >12 ans pré-2018 / CEL jamais / post-2018), `real_estate` (RP exonérée, abattement 6 %/an IR, exonération 22 ans), `cto` + `savings_account` (gains PFU, exonération Livret A), `checking_account`/`pee` (`[]` — exonérés). `custom` conserve sa fiscalité saisie à la main. Au passage : `pea` n'émet plus de revenu à assiette 0 (garde `> 0`, comme `cto`).
 
-## Ajout d'autres StorageProvider (pCloud, One Drive, etc...)
+## Ajout d'un StorageProvider pCloud
+
+## Extraction de la couche storage en lib réutilisable (offline + synchro multi-appareils)
+Design arrêté : voir « Piste : moteur de synchronisation » dans STORAGE_PROVIDERS.md (contrat révisionné, merge par grains, pull avide + push explicite).
 
 ## ~~Annotations sur le graphe d'historique~~ ✅ Fait (étape 7)
 `state.annotations: { date, text }[]` persisté dans le payload ; bouton ✎ dans la carte Historique → éditeur inline à la date de vue ; losange ambre sur la courbe nette + texte dans le tooltip.
