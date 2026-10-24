@@ -16,7 +16,7 @@ Voici la structure globale :
 - Certaines données sont partagées par certains placements (prélèvement forfaitaire, CSG, par exemple). Elles font l'objet d'un module séparé éventuellement utilisé par les autres modules.
 - Il n'y a pas de connexion directe aux banques (ce serait trop ambitieux), tous les montants doivent pouvoir être saisis.
 - L'application garde l'historique daté de chaque placement afin de produire des graphes d'évolution brut/net (périodes 1M/6M/Année/1A/5A/10A/Max), un tableau de variations annuelles. Elle permet également d'ajouter des annotations pour mentionner des événements importants affectant le patrimoine (ex: Dons), d'effectuer des corrections rétroactives (une valeur saisie dans le passé peut être corrigée), et d'afficher en euros constants via les indices INSEE.
-- Les données sont stockées sous forme d'un simple fichier json dans le Cloud (Dropbox et Google Drive sont disponibles). Des composants génériques (qui implémentent une même API) permettent l'authentification et la sauvegarde/relecture du fichier — voir [STORAGE_PROVIDERS.md](STORAGE_PROVIDERS.md).
+- Les données sont stockées sous forme d'un simple fichier json dans le Cloud (Dropbox, Microsoft OneDrive et Google Drive sont disponibles). Des composants génériques (qui implémentent une même API) permettent l'authentification et la sauvegarde/relecture du fichier — voir [STORAGE_PROVIDERS.md](STORAGE_PROVIDERS.md).
 
 ## Notes développeurs
 
@@ -84,6 +84,19 @@ L'intégration Dropbox utilise un flow OAuth2 par redirection avec PKCE (client 
 4. Reportez l'**App key** (pas le secret) dans `web/src/main.ts` (`DROPBOX_APP_KEY`).
 
 En statut *Development*, seul le compte du développeur peut lier l'application par défaut ; le bouton **Enable additional users** porte la limite à 500 comptes (une demande de statut *Production* n'est nécessaire qu'au-delà de 50 utilisateurs actifs).
+
+### Microsoft OneDrive
+
+L'intégration OneDrive utilise un flow OAuth2 par redirection avec PKCE (client public, sans secret applicatif), via l'endpoint `consumers` — l'application ne cible que les comptes Microsoft personnels (OneDrive Personal). Pour déclarer l'application dans le [portail Microsoft Entra](https://entra.microsoft.com/) (*App registrations*) :
+
+1. Créez une application avec les types de comptes **Personal Microsoft accounts only** (ou incluant les comptes personnels).
+2. Ajoutez une plateforme de type **Single-page application** — c'est ce type de plateforme qui autorise le flow code + PKCE sans secret (une plateforme « Web » exigerait un secret côté serveur).
+   - Déclarez chaque URL de retour, en correspondance exacte avec `<origine>/app/`, par exemple :
+     - `http://localhost:5500/app/` pour le serveur de développement
+     - `https://mon-domaine.com/app/` pour un hébergement en ligne
+   - Attention : contrairement à Dropbox, Microsoft interdit les query strings dans les URIs de redirection SPA — pas de `?connect=onedrive` (le nom du provider est transporté par le paramètre `state` à la place).
+3. Dans **API permissions**, ajoutez les autorisations déléguées Microsoft Graph `Files.ReadWrite.AppFolder`, `User.Read` et `offline_access` (celle-ci délivre le refresh token de longue durée).
+4. Reportez l'**Application (client) ID** dans `web/src/main.ts` (`ONEDRIVE_CLIENT_ID`).
 
 ### Google Drive
 

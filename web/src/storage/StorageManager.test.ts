@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { StorageManager } from "./StorageManager.js";
 import { DropboxProvider } from "./DropboxProvider.js";
+import { OneDriveProvider } from "./OneDriveProvider.js";
 
 // Bun has no DOM storage: install minimal in-memory shims before the
 // providers (which read localStorage in their constructor) are built.
@@ -16,7 +17,7 @@ class FakeStorage {
 const g = globalThis as unknown as { localStorage: FakeStorage; sessionStorage: FakeStorage; fetch: typeof fetch };
 const realFetch = globalThis.fetch;
 
-const CONFIG = { googleClientId: "google-id", dropboxAppKey: "dropbox-key" };
+const CONFIG = { googleClientId: "google-id", dropboxAppKey: "dropbox-key", oneDriveClientId: "onedrive-id" };
 
 beforeEach(() => {
   g.localStorage = new FakeStorage();
@@ -30,7 +31,7 @@ afterEach(() => {
 describe("StorageManager providers", () => {
   it("lists every configured provider", () => {
     const manager = new StorageManager(CONFIG);
-    expect(manager.availableProviders().map(p => p.name)).toEqual(["dropbox", "gdrive"]);
+    expect(manager.availableProviders().map(p => p.name)).toEqual(["dropbox", "onedrive", "gdrive"]);
   });
 
   it("hides providers missing their credentials", () => {
@@ -67,5 +68,14 @@ describe("StorageManager.resumeAuth", () => {
     const verdict = await manager.resumeAuth(new URL("https://example.com/app/?connect=dropbox&code=c&state=s"));
     expect(verdict).toBe(false);
     expect(manager.currentProvider).toBeInstanceOf(DropboxProvider);
+  });
+
+  it("falls back on the provider prefix in state when neither marker nor connect exists", async () => {
+    // OneDrive's bare redirect URI carries no connect param; the provider
+    // name is prefixed inside the state instead.
+    const manager = new StorageManager(CONFIG);
+    const verdict = await manager.resumeAuth(new URL("https://example.com/app/?code=c&state=onedrive:s"));
+    expect(verdict).toBe(false);
+    expect(manager.currentProvider).toBeInstanceOf(OneDriveProvider);
   });
 });

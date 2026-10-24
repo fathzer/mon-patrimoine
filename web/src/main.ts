@@ -8,8 +8,9 @@ import { UiState } from './core/UiState.js';
 
 const GOOGLE_CLIENT_ID = '1075597097575-9q8l4dvvahrpqn4l7dvu1999i0259ct8.apps.googleusercontent.com';
 const DROPBOX_APP_KEY = 'zvz86dayzn4qkt8';
+const ONEDRIVE_CLIENT_ID = '59ee9063-c01a-49c7-b23e-a175d153b85e';
 
-const STORAGE_CONFIG = { googleClientId: GOOGLE_CLIENT_ID, dropboxAppKey: DROPBOX_APP_KEY };
+const STORAGE_CONFIG = { googleClientId: GOOGLE_CLIENT_ID, dropboxAppKey: DROPBOX_APP_KEY, oneDriveClientId: ONEDRIVE_CLIENT_ID };
 
 document.addEventListener('DOMContentLoaded', () => {
   const appRoot = document.getElementById('app-root');
@@ -108,9 +109,13 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
       url.searchParams.delete(param);
     }
     // On success the connect marker goes with the OAuth params; on failure it
-    // stays — the URL then documents the failed attempt (and a reload retries
-    // the same provider through the connect=<name> deep link).
-    if (verdict) url.searchParams.delete('connect');
+    // is kept or restored — the URL then documents the failed attempt and a
+    // reload retries the same provider through the connect=<name> deep link.
+    if (verdict) {
+      url.searchParams.delete('connect');
+    } else {
+      url.searchParams.set('connect', storageManager.providerName);
+    }
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
     await store.init();
     if (!verdict) dashboard.showConnectFailed();
@@ -123,8 +128,9 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
     // A named provider (?connect=dropbox) is a deep link straight into its
     // auth flow; a bare ?connect shows the picker card instead.
     const wanted = params.get('connect');
-    if (wanted === 'gdrive' || wanted === 'dropbox') {
-      await dashboard.onProviderPick?.(wanted);
+    const provider = storageManager.availableProviders().find(p => p.name === wanted);
+    if (provider) {
+      await dashboard.onProviderPick?.(provider.name);
     } else {
       dashboard.showProviderPicker();
     }

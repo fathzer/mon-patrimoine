@@ -1,6 +1,7 @@
 import { StorageProvider } from './StorageProvider.js';
 import type { StorageStatus } from './StorageProvider.js';
 import type { AuthFailure } from './AuthFailure.js';
+import { generateVerifier, pkceChallenge } from './pkce.js';
 
 interface DropboxTokenResponse {
   access_token?: string;
@@ -82,8 +83,8 @@ export class DropboxProvider extends StorageProvider {
    * are kept in sessionStorage for resumeAuth() on the way back.
    */
   override async authenticate(): Promise<boolean> {
-    const verifier = this._generateVerifier();
-    const challenge = await this._pkceChallenge(verifier);
+    const verifier = generateVerifier();
+    const challenge = await pkceChallenge(verifier);
     const state = crypto.randomUUID();
     // The redirect URI carries this provider's name in the connect param:
     // it is form-urlencoded (a bare "?connect" is rejected by Dropbox), and on
@@ -152,22 +153,6 @@ export class DropboxProvider extends StorageProvider {
     sessionStorage.removeItem('dbx_redirect_uri');
   }
 
-  _generateVerifier(): string {
-    const bytes = crypto.getRandomValues(new Uint8Array(32));
-    return this._base64Url(bytes);
-  }
-
-  async _pkceChallenge(verifier: string): Promise<string> {
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-    return this._base64Url(new Uint8Array(digest));
-  }
-
-  _base64Url(bytes: Uint8Array): string {
-    let binary = '';
-    for (const b of bytes) binary += String.fromCharCode(b);
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
   async _exchangeCode(code: string, verifier: string, redirectUri: string): Promise<void> {
     const res = await fetch(DropboxProvider.TOKEN_URL, {
       method: 'POST',
@@ -182,7 +167,8 @@ export class DropboxProvider extends StorageProvider {
     });
     const token = await res.json() as DropboxTokenResponse;
     if (!res.ok || !token.access_token || !token.refresh_token) {
-      throw new Error(`Dropbox token exchange failed: ${token.error ?? `HTTP ${res.status}`}`);
+      const reason = token.error ?? `HTTP ${res.status}`;
+      throw new Error(`Dropbox token exchange failed: ${reason}`);
     }
     this._saveTokens(token);
   }
@@ -208,7 +194,8 @@ export class DropboxProvider extends StorageProvider {
         // The refresh token was revoked or is dead: the session is over.
         this._clearSession();
       }
-      throw new Error(`Dropbox token refresh failed: ${token.error ?? `HTTP ${res.status}`}`);
+      const reason = token.error ?? `HTTP ${res.status}`;
+      throw new Error(`Dropbox token refresh failed: ${reason}`);
     }
     this._saveTokens(token);
   }

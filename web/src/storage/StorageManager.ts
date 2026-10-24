@@ -1,9 +1,10 @@
 import { GoogleDriveProvider } from './GoogleDriveProvider.js';
 import { DropboxProvider } from './DropboxProvider.js';
+import { OneDriveProvider } from './OneDriveProvider.js';
 import type { StorageProvider, StorageConfig, StorageStatus } from './StorageProvider.js';
 
 /** Names identifying each account-level storage provider. */
-export type ProviderName = 'gdrive' | 'dropbox';
+export type ProviderName = 'gdrive' | 'dropbox' | 'onedrive';
 
 export class StorageManager {
   /** localStorage key remembering which provider holds the account session. */
@@ -17,6 +18,11 @@ export class StorageManager {
   _config: StorageConfig;
   _currentName: ProviderName;
 
+  /** Name of the provider currently selected (last picked or remembered). */
+  get providerName(): ProviderName {
+    return this._currentName;
+  }
+
   constructor(config: StorageConfig = {}) {
     this._config = config;
     this._currentName = this._rememberedName();
@@ -25,13 +31,16 @@ export class StorageManager {
   }
 
   _rememberedName(): ProviderName {
-    return localStorage.getItem(StorageManager.PROVIDER_KEY) === 'dropbox' ? 'dropbox' : 'gdrive';
+    const saved = localStorage.getItem(StorageManager.PROVIDER_KEY);
+    return saved === 'dropbox' || saved === 'onedrive' ? saved : 'gdrive';
   }
 
   _createProvider(name: ProviderName): StorageProvider {
-    return name === 'dropbox'
-      ? new DropboxProvider(this._config.dropboxAppKey as string)
-      : new GoogleDriveProvider(this._config.googleClientId as string);
+    switch (name) {
+      case 'dropbox': return new DropboxProvider(this._config.dropboxAppKey as string);
+      case 'onedrive': return new OneDriveProvider(this._config.oneDriveClientId as string);
+      default: return new GoogleDriveProvider(this._config.googleClientId as string);
+    }
   }
 
   /** The providers offered by the provider picker — only those the app was
@@ -39,6 +48,7 @@ export class StorageManager {
   availableProviders(): { name: ProviderName; label: string }[] {
     const providers: { name: ProviderName; label: string }[] = [];
     if (this._config.dropboxAppKey) providers.push({ name: 'dropbox', label: 'Dropbox' });
+    if (this._config.oneDriveClientId) providers.push({ name: 'onedrive', label: 'OneDrive' });
     if (this._config.googleClientId) providers.push({ name: 'gdrive', label: 'Google Drive' });
     return providers;
   }
@@ -102,8 +112,11 @@ export class StorageManager {
    */
   async resumeAuth(url: URL): Promise<boolean | 'none'> {
     const pending = sessionStorage.getItem(StorageManager.PENDING_KEY)
-      ?? url.searchParams.get('connect');
-    if (pending === 'gdrive' || pending === 'dropbox') {
+      ?? url.searchParams.get('connect')
+      // Providers whose redirect URI cannot carry the connect marker
+      // (OneDrive — Microsoft forbids query strings) prefix it into state.
+      ?? url.searchParams.get('state')?.split(':')[0];
+    if (pending === 'gdrive' || pending === 'dropbox' || pending === 'onedrive') {
       this.useProviderByName(pending);
     }
     const verdict = await this.currentProvider.resumeAuth(url);

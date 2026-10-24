@@ -25,7 +25,7 @@
             <p><strong>Absolument aucune donnée</strong> saisie dans l'application, aucun identifiant, ni aucun jeton d'authentification ne transite ni n'est stocké sur un quelconque serveur tiers ou hébergeur intermédiaire.</p>
 
             <h2>2. Intégration des services de stockage cloud</h2>
-            <p>Lorsque vous choisissez d'activer la synchronisation via un service de stockage cloud (Dropbox ou Google Drive), les principes suivants s'appliquent quel que soit le service :</p>
+            <p>Lorsque vous choisissez d'activer la synchronisation via un service de stockage cloud (Dropbox, Microsoft OneDrive ou Google Drive), les principes suivants s'appliquent quel que soit le service :</p>
             <ul>
                 <li>La connexion s'effectue directement et exclusivement entre votre navigateur et les serveurs sécurisés du service choisi, via le protocole standard OAuth 2.0. Aucune donnée ni identifiant ne transite par un serveur intermédiaire.</li>
                 <li>Vos fichiers de données patrimoniales restent exclusivement dans votre propre espace de stockage personnel ; l'application n'a strictement aucun accès au reste de vos fichiers.</li>
@@ -34,6 +34,7 @@
             <p>Seules les autorisations strictement nécessaires sont demandées ; elles diffèrent selon le service :</p>
             <ul>
                 <li><strong>Dropbox :</strong> authentification par redirection avec PKCE (client public, sans secret applicatif) ; autorisations <code>files.content.read</code>, <code>files.content.write</code> et <code>account_info.read</code>, dont la portée est limitée au dossier applicatif dédié (<em>App folder</em>).</li>
+                <li><strong>Microsoft OneDrive :</strong> authentification par redirection avec PKCE (client public, sans secret applicatif) ; autorisations <code>Files.ReadWrite.AppFolder</code> et <code>User.Read</code>, dont la portée est limitée au dossier applicatif dédié.</li>
                 <li><strong>Google Drive :</strong> autorisations <code>drive.file</code> et <code>userinfo.email</code>, dont la portée est limitée aux fichiers que l'application a elle-même créés.</li>
             </ul>
 

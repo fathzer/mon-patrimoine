@@ -9,6 +9,7 @@ export interface StorageStatus {
 export interface StorageConfig {
   googleClientId?: string;
   dropboxAppKey?: string;
+  oneDriveClientId?: string;
 }
 
 /**
