@@ -29,7 +29,6 @@
 
 .asset-table {
   width: 100%;
-  border-collapse: collapse;
   text-align: left;
 }
 
@@ -41,9 +40,6 @@
   text-transform: uppercase;
   padding: var(--space-md);
   border-bottom: 1px solid var(--card-border);
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 .asset-table td {
@@ -182,8 +178,10 @@
     position: relative;
   }
 
-  .asset-table tr::before {
-    display: none;
+  /* Dashed frame around the social/tax cell pair — only when it exists. */
+  .asset-table tr:has(td:nth-child(4):not(:empty))::before,
+  .asset-table tr:has(td:nth-child(5):not(:empty))::before {
+    display: block;
     content: '';
     grid-column: social-start / tax-end;
     grid-row: social-start / social-end;
@@ -193,9 +191,36 @@
     z-index: 0;
   }
 
-  .asset-table tr:has(td:nth-child(4):not(:empty))::before,
-  .asset-table tr:has(td:nth-child(5):not(:empty))::before {
-    display: block;
+  /* In the card layout, the recorded highlight covers the whole card (the
+     tint is layered over the card background): tinting each cell would
+     leave the grid gaps dark, and the left band spans the card height
+     rather than just the asset-name cell. */
+  .asset-table tbody tr.recorded-at {
+    background:
+      linear-gradient(rgba(217, 119, 6, 0.08), rgba(217, 119, 6, 0.08)),
+      var(--card-bg);
+    box-shadow: inset 3px 0 0 0 var(--color-action);
+  }
+
+  .asset-table tbody tr.recorded-at:hover {
+    background: var(--hover-bg);
+  }
+
+  .asset-table tbody tr.recorded-at td {
+    background: transparent;
+  }
+
+  /* The card carries the band now — needs a dedicated selector to outrank
+     the desktop td:first-child band above. */
+  .asset-table tbody tr.recorded-at td:first-child {
+    box-shadow: none;
+  }
+
+  /* The category chip keeps its filled look but receives the same tint. */
+  .asset-table tbody tr.recorded-at .tag-category {
+    background:
+      linear-gradient(rgba(217, 119, 6, 0.08), rgba(217, 119, 6, 0.08)),
+      var(--card-border);
   }
 
   /* The inflation row is a simple strip, not a per-asset card. */
@@ -229,20 +254,18 @@
   .asset-table td:nth-child(1) {
     grid-area: asset;
     display: block;
-    padding-top: 0;
-  }
-
-  .asset-table td:nth-child(1)::before {
-    display: none;
   }
 
   .asset-table td:nth-child(2) {
     grid-area: category;
     justify-content: flex-end;
+  }
+
+  .asset-table td:nth-child(-n+2) {
     padding-top: 0;
   }
 
-  .asset-table td:nth-child(2)::before {
+  .asset-table td:nth-child(-n+2)::before {
     display: none;
   }
 
@@ -269,6 +292,73 @@
 
   .asset-table td.tax-info-cell {
     cursor: pointer;
+  }
+}
+
+/* Wide screens: the table is a grid whose thead, tbody and rows share the
+   same column tracks via subgrid — columns size to content like a normal
+   auto-layout table. Only the tbody scrolls; the last track is wide enough
+   for the body's scrollbar to overlay it without hiding the icon. The name
+   column absorbs the slack, the others take what their content needs. */
+@media (min-width: 769px) {
+  .asset-table-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .asset-table {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns:
+      minmax(min-content, 1fr)
+      minmax(0, max-content)
+      repeat(4, minmax(min-content, max-content))
+      4.5rem;
+  }
+
+  /* Compact side padding: the amount columns have a rigid min-content
+     (unbreakable numbers), so every pixel freed here goes to the flexible
+     columns. */
+  .asset-table th,
+  .asset-table td {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+
+  .asset-table thead,
+  .asset-table tbody,
+  .asset-table tr {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+
+  /* overflow-y: auto alone would compute overflow-x to auto — and rows are
+     scrollbar-width wider than the scrolling box, so a horizontal bar would
+     appear. Clip it: the overflow lives under the vertical scrollbar. */
+  .asset-table tbody {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  /* Colspans mean nothing in a grid — banner and empty-state cells span
+     all the tracks explicitly. */
+  .asset-table td[colspan] {
+    grid-column: 1 / -1;
+  }
+
+  /* If a column ever gets narrower than the category chip under pressure,
+     the chip truncates instead of overflowing into the next column. */
+  .asset-table .tag-category {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
   }
 }
 

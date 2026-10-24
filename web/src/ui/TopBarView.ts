@@ -9,6 +9,9 @@ interface TopBarCallbacks {
   onExport?: () => void;
   onImportClick?: () => void;
   onSettings?: () => void;
+  /** Starts the login UX (provider picker, or a direct retry of the provider
+   *  named in the URL); falls back to store.login() when absent. */
+  onLoginRequest?: () => void;
 }
 
 export class TopBarView {
@@ -99,7 +102,10 @@ export class TopBarView {
   }
 
   _bindEvents(): void {
-    this._container!.querySelector('#btn-top-login')?.addEventListener('click', () => this.store.login());
+    this._container!.querySelector('#btn-top-login')?.addEventListener('click', () => {
+      if (this._callbacks.onLoginRequest) this._callbacks.onLoginRequest();
+      else void this.store.login();
+    });
     this._container!.querySelector('#btn-logout')?.addEventListener('click', () => this.store.logout());
 
     this._container!.querySelector('#btn-help')?.addEventListener('click', () => {

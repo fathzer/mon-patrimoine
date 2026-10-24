@@ -2,20 +2,33 @@
 
 Ce document décrit le contrat entre `main.ts` (orchestrateur), `StorageManager` et les
 `StorageProvider`, en particulier pour l'authentification. Il sert de référence pour
-l'ajout de nouveaux providers (Dropbox, pCloud…).
+l'ajout de nouveaux providers (pCloud…).
 
 ## État actuel
 
-- **Un seul provider actif** : `GoogleDriveProvider` (GIS *token client*, flow en popup).
+- **Trois providers actifs** : `DropboxProvider` et `OneDriveProvider` (redirect OAuth2
+  code + PKCE, refresh tokens) et `GoogleDriveProvider` (GIS *token client*, flow en popup).
 - **Interface** : `web/src/storage/StorageProvider.ts` — `init()`, `authenticate(): Promise<boolean>`,
-  `disconnect()`, `loadData()`, `saveData()`, `getStatus()`, `isReadOnly()`.
-- **Sélection** : `StorageManager` instancie le provider par défaut ; `useProvider()`
-  permet d'en changer dynamiquement (mode démo).
-- **Orchestration** (`main.ts`) : à l'URL `app/?connect`, l'app appelle `store.login()`,
-  puis selon le résultat :
-  - succès → `history.replaceState` retire `?connect` (pas de rechargement) ;
-  - échec → `dashboard.showConnectFailed()` affiche la carte d'erreur, l'utilisateur
-    peut réessayer via le bouton de connexion en haut à droite.
+  `disconnect()`, `loadData()`, `saveData()`, `getStatus()`, `isReadOnly()`,
+  `resumeAuth(url)` et `authResponseParams` (voir « reprise après redirect » plus bas).
+- **Sélection** : `StorageManager` instancie les providers par nom (`useProviderByName`) ;
+  le dernier provider de compte utilisé est mémorisé (`localStorage mp_provider`) pour la
+  restauration de session, avec repli sur tout autre provider ayant une session stockée ;
+  `useProvider()` sert pour les providers éphémères (mode démo).
+- **Choix utilisateur** : à l'URL `app/?connect`, `DashboardView.showProviderPicker()`
+  affiche la mini-carte de sélection (un bouton par provider configuré — un seul provider
+  configuré démarre directement sans picker). Le bouton de connexion de la top bar mène au
+  même picker.
+- **Orchestration** (`main.ts`) :
+  - retour d'un redirect OAuth → `storageManager.resumeAuth(url)` consomme les paramètres,
+    nettoie l'URL (`authResponseParams` + `connect` en cas de succès — `connect=<nom>`
+    est conservé après un échec, un rechargement retente alors le même provider),
+    puis `store.init()` charge les données ; verdict négatif → `dashboard.showConnectFailed()` ;
+  - `?connect` → le picker ; `?connect=<nom>` (ex. `dropbox`) → deep link qui lance
+    directement l'auth du provider nommé. La sélection remonte au handler
+    `dashboard.onProviderPick` qui lance `store.login()` puis : succès →
+    `history.replaceState` retire `?connect` ; échec → carte d'erreur avec réessai
+    via le bouton de connexion en haut à droite.
 - **Échec détecté** : `GoogleDriveProvider.authenticate()` pose un `_pendingAuthError`
   appelé par `error_callback` de GIS — la promesse se résout toujours (pop-up bloquée
   `popup_failed_to_open`, fermée `popup_closed`, erreur OAuth dans `resp.error`).
@@ -35,51 +48,102 @@ L'échec est un événement JS (`error_callback`). **La promesse doit toujours s
 c'était le bug corrigé en 2025-07 : sans branchement de `error_callback`, `store.login()`
 restait pendu indéfiniment.
 
-### 2. Redirect pleine page (Dropbox, pCloud en `response_type=code|token`)
+### 2. Redirect pleine page (Dropbox, OneDrive, pCloud en `response_type=code|token`)
 
 `authenticate()` navigue vers `https://provider/oauth2/authorize?...&redirect_uri=<app>`.
 **La promesse ne résout jamais : la page quitte.** L'utilisateur revient sur l'app avec les
 paramètres de retour dans l'URL (`?code=`, `#access_token=` pour l'implicit, `?error=` en cas
 de refus). Le verdict se lit **au boot suivant**.
 
-Implications :
-- `?connect` ne survit pas forcément au round-trip — le `state` OAuth ou la présence des
-  paramètres de retour (`code`/`error`) suffisent à identifier la reprise ;
-- le provider doit exposer une méthode de reprise qui consomme ses paramètres d'URL,
-  échange le code si besoin, et retourne le verdict ;
-- le nettoyage d'URL (`replaceState`) doit retirer **les paramètres OAuth** en plus de
-  `connect` — le provider déclare ceux qui lui appartiennent.
+Implémenté pour Dropbox :
+
+- `authenticate()` génère le `state` anti-CSRF et le couple PKCE
+  (`code_verifier`/`code_challenge` S256), les stocke en `sessionStorage` avec l'URI de
+  redirection exacte (`<origin><pathname>?connect=dropbox`, construite dynamiquement —
+  chaque origine doit être enregistrée telle quelle dans la console Dropbox), puis
+  navigue via `location.assign` et retourne une promesse intentionnellement pendante.
+  Le `connect=dropbox` sert de triple rôle : il rend la query string form-urlencoded
+  (un `?connect` nu est **rejeté** par Dropbox), il identifie le provider propriétaire
+  des paramètres de retour, et `app/?connect=<nom>` fonctionne comme *deep link* lançant
+  directement l'auth du provider nommé, sans passer par la mini-carte de sélection ;
+- `StorageManager.authenticate()` marque le provider en attente
+  (`sessionStorage mp_pending_provider`) quand `authResponseParams` est non vide — au
+  boot suivant, `resumeAuth` route l'URL vers ce provider, avec replis sur la valeur de
+  `connect` présente dans l'URL de retour puis sur le préfixe provider du `state` ;
+- `DropboxProvider.resumeAuth()` valide le `state`, échange le code
+  (`POST /oauth2/token`, `code_verifier`, sans secret — client public PKCE) et stocke
+  l'access token (≈4 h) et le refresh token (longue durée) en `localStorage` ;
+- `token_access_type=offline` dans l'URL d'autorisation est ce qui fait délivrer le
+  refresh token ;
+- le nettoyage d'URL (`replaceState`) retire `code`, `state`, `error`,
+  `error_description` (déclarés dans `authResponseParams`) en plus de `connect` ;
+- fichier de données : pas d'équivalent aux `appProperties` de Drive — le fichier est
+  adressé par son **identifiant Dropbox** (la valeur `id` renvoyée par l'API, préfixée
+  `id:`, est utilisable directement comme `path` dans `files/download` / `files/upload`),
+  qui survit au renommage ; repli sur le nom `/patrimoine_data.json` puis re-découverte
+  de l'id à chaque réponse API ;
+- restauration : `init()` retourne vrai dès qu'un refresh token est stocké ; l'access
+  token expiré est rafraîchi paresseusement au premier appel API — pas de re-consentement
+  périodique comme chez Google ;
+- `disconnect()` révoque le token (`/auth/token/revoke`, qui invalide aussi le refresh
+  token associé) puis efface le stockage local.
+
+Implémenté aussi pour **OneDrive** sur les mêmes mécanismes, avec les différences
+propres à Microsoft :
+
+- endpoint `login.microsoftonline.com/consumers` (comptes personnels uniquement —
+  l'app doit autoriser les comptes Microsoft personnels et la redirect URI doit être
+  déclarée sur une plateforme **Single-page application**, condition du PKCE sans secret) ;
+- redirect URI **sans query string** (interdite par Microsoft pour les plateformes
+  SPA) : `<origine>/app/` nue — le nom du provider ne peut pas voyager dans un
+  `connect=<nom>` comme chez Dropbox, il est préfixé dans le `state`
+  (`onedrive:<uuid>`, retourné verbatim) ; `StorageManager.resumeAuth` l'utilise
+  comme repli de routage quand ni le marqueur sessionStorage ni `connect` ne
+  désignent le provider, et `main.ts` réinjecte `connect=<nom>` dans l'URL après
+  un échec pour conserver la sémantique de réessai ;
+- scopes `offline_access User.Read Files.ReadWrite.AppFolder` — `offline_access` joue
+  le rôle du `token_access_type=offline` de Dropbox ;
+- **rotation du refresh token** : Microsoft en émet un nouveau à chaque refresh — il
+  est persisté à chaque fois (clés `od_*` en localStorage) ;
+- fichier adressé par l'`id` du drive item (`/me/drive/items/<id>/content`) dès qu'il
+  est connu — récupéré une fois via `GET /me/drive/special/approot:/<nom>:` après un
+  premier téléchargement par nom — sinon par `/me/drive/special/approot:/<nom>:/content` ;
+- pas d'endpoint de révocation exploitable par un client public : `disconnect()` se
+  contente de l'effacement local des identifiants.
 
 ### 3. Popup scrutée (variante pCloud du SDK officiel)
 
 `window.open` + polling de `window.closed` / lecture de `popup.location` une fois revenue
 sur l'origine. Échec = fenêtre fermée détectée par polling (pas de `error_callback`).
 
-## Contrat proposé (évolution de `StorageProvider`)
+## Contrat implémenté (évolution de `StorageProvider`)
 
 ```ts
-type AuthOutcome =
-  | { status: 'success' }
-  | { status: 'cancelled' }            // utilisateur : popup fermée, consentement refusé
-  | { status: 'failed'; reason?: string }; // erreur technique ou réseau
+// Inchangé : true = authentifié. Pour un provider redirect, la promesse ne
+// résout jamais (la page quitte) — le verdict arrive par resumeAuth().
+authenticate(): Promise<boolean>;
 
-// Remplace authenticate(): Promise<boolean>
-authenticate(): Promise<AuthOutcome>;
-
-// Nouveau : consomme les paramètres OAuth présents dans l'URL au retour
-// d'un redirect. No-op (success nul / 'none') pour les flows popup.
-resumeAuth(url: URL): Promise<AuthOutcome | 'none'>;
+// Consomme les paramètres OAuth présents dans l'URL au retour d'un redirect.
+// 'none' = l'URL ne porte rien pour ce provider ; no-op pour les flows popup.
+resumeAuth(url: URL): Promise<boolean | 'none'>;
 
 // Paramètres d'URL que le provider consomme (pour le nettoyage replaceState)
-readonly authResponseParams: string[]; // ex. ['code','state','error'] ou hash '#access_token'
+readonly authResponseParams: string[]; // ex. ['code','state','error','error_description']
 
-// Déjà implémenté : classification de l'échec pour l'UI (AuthFailure.ts)
+// Classification de l'échec pour l'UI (AuthFailure.ts)
 getAuthFailure(): AuthFailure | null;
 ```
 
+Le verdict détaillé `AuthOutcome` (success/cancelled/failed + reason) proposé
+initialement n'est pas retenu pour l'instant : le couple `boolean` + `getAuthFailure()`
+couvre les besoins actuels. À reconsidérer si un provider a besoin de distinguer plus
+finement « annulé » de « en échec ».
+
 **Règle d'or** : `login()` doit **toujours** se conclure par un verdict, d'où qu'il vienne
 (`error_callback`, polling `window.closed`, paramètres de retour au boot). Jamais de promesse
-pendante, jamais d'état « en attente » sans issue.
+pendante, jamais d'état « en attente » sans issue — pour les flows redirect, la promesse
+d'`authenticate()` reste pendante *par construction* et le verdict est produit par
+`resumeAuth()` au boot suivant.
 
 `main.ts` reste l'orchestrateur neutre : il mappe le verdict vers l'UI
 (attente → succès : nettoyage URL ; échec : carte d'erreur). Il ne connaît aucun détail
@@ -104,19 +168,20 @@ Rappel : avec un redirect il n'y a **pas de pop-up à bloquer**. Les échecs typ
 | Cause | Manifestation | Détectable ? |
 |---|---|---|
 | Refus sur la page de consentement | retour `?error=access_denied` | oui, au boot |
-| Abandon (onglet fermé chez le provider) | jamais de retour | non — rien à faire |
+| Abandon — onglet fermé chez le provider | jamais de retour | non — rien à faire |
+| Abandon — bouton retour du navigateur | restauration de la page `?connect` depuis le bfcache, figée dans l'état quitté | la carte « en attente » n'est affichée que pour les flows popup — un redirect quitte en laissant la carte de sélection, donc le retour arrière la restaure telle quelle (détectable via `pageshow`/`persisted` si besoin, inutile ici) |
 | Erreur réseau / provider indisponible | retour `?error=` ou `error_description` | oui |
 | `state` invalide (protection CSRF) | pas de correspondance avec la tentative | oui — échec de sécurité |
 
 ## Comparatif des providers envisagés
 
-| | Google Drive (actuel) | Dropbox | pCloud |
-|---|---|---|---|
-| Flow canonique | popup GIS | **redirect** OAuth2 (code + PKCE) | popup pollée ou redirect |
-| Retour d'erreur | `error_callback` | `?error=` sur l'URL de retour | `window.closed` / `?error=` |
-| Échange de code | non (token implicite) | oui, `POST /oauth2/token` (CORS OK) | oui si `response_type=code` |
-| Durée du token | ~1 h, re-consent/silent | refresh token longue durée | access token sans expiration |
-| Réponse dans | callback JS | query `?` ou hash `#` | hash `#access_token=` |
+| | Dropbox | Microsoft OneDrive | Google Drive | pCloud (non implémenté) |
+|---|---|---|---|---|
+| Flow canonique | **redirect** OAuth2 (code + PKCE) | **redirect** OAuth2 (code + PKCE) | popup GIS | popup pollée ou redirect |
+| Retour d'erreur | `?error=` sur l'URL de retour | `?error=` sur l'URL de retour | `error_callback` | `window.closed` / `?error=` |
+| Échange de code | oui, `POST /oauth2/token` (CORS OK) | oui, `POST …/oauth2/v2.0/token` (CORS OK) | non (token implicite) | oui si `response_type=code` |
+| Durée du token | refresh token longue durée | refresh token longue durée, **rotatif** | ~1 h, re-consent/silent | access token sans expiration |
+| Réponse dans | query `?` | query `?` | callback JS | hash `#access_token=` |
 
 ## Code mort
 

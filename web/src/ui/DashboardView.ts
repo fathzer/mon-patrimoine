@@ -11,6 +11,7 @@ import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryC
 import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { getWarning } from '../i18n/commonTaxExplanations.js';
 import { authFailureExplanation } from '../storage/AuthFailure.js';
+import type { ProviderName } from '../storage/StorageManager.js';
 import { getInflationDisplayBanner } from './inflationBanner.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
@@ -39,9 +40,12 @@ export class DashboardView {
   /** Set once the mandatory tax-profile onboarding has been opened — render()
    *  fires on every state:changed and must not stack modals. */
   _mandatoryProfileOpen: boolean;
-  /** Set when a ?connect OAuth attempt failed — the connecting card then
-   *  explains how to retry instead of staying on the "waiting" text. */
-  _connectFailed: boolean;
+  /** State of the unauthenticated card: provider choice, OAuth attempt in
+   *  flight, or failed attempt with the retry instructions. */
+  _connectState: 'picker' | 'waiting' | 'failed';
+  /** Set by the bootstrap orchestrator (main.ts): starts the authentication
+   *  of the picked provider and maps the verdict to the UI. */
+  onProviderPick: ((name: ProviderName) => Promise<void>) | null;
 
   constructor(container: HTMLElement, store: AppStore) {
     this.container = container;
@@ -71,7 +75,8 @@ export class DashboardView {
     this._variationsView = new HistoryVariationsView();
     this._layoutInitialized = false;
     this._mandatoryProfileOpen = false;
-    this._connectFailed = false;
+    this._connectState = 'picker';
+    this.onProviderPick = null;
     this._topBarContainer = null;
     this._pageContent = null;
     this._modalRoot = null;
@@ -80,7 +85,8 @@ export class DashboardView {
       onShowHistory: () => this._showHistory(),
       onExport: () => this._exportData(),
       onImportClick: () => this._triggerImport(),
-      onSettings: () => this._openSettings()
+      onSettings: () => this._openSettings(),
+      onLoginRequest: () => this._requestLogin()
     });
   }
 
@@ -148,15 +154,34 @@ export class DashboardView {
     }
   }
 
-  /** Shown while the OAuth flow launched by ?connect is in flight — the
-   *  landing page is the only place with real connect/demo buttons. */
+  /** Renders the unauthenticated card according to `_connectState`. */
   _renderConnectingCard(): void {
+    if (this._connectState === 'picker') {
+      const providers = this.store.storageManager.availableProviders();
+      if (providers.length === 1 && this.onProviderPick) {
+        // A single configured provider needs no picker — start it directly.
+        void this.onProviderPick(providers[0].name);
+        return;
+      }
+      this._pageContent!.innerHTML = `
+        <div class="auth-card">
+          <div class="landing-login">
+            <p class="text-muted">${I18n.t('auth.chooseProvider')}</p>
+            ${providers.map(p => `<button class="btn-primary" data-provider="${p.name}">${p.label}</button>`).join('')}
+          </div>
+        </div>
+      `;
+      this._pageContent!.querySelectorAll<HTMLElement>('[data-provider]').forEach(btn => {
+        btn.addEventListener('click', () => void this.onProviderPick?.(btn.dataset.provider as ProviderName));
+      });
+      return;
+    }
     this._pageContent!.innerHTML = `
       <div class="auth-card">
         <div class="landing-login">
           <p class="text-muted">${I18n.t('auth.waiting')}</p>
         </div>
-        ${this._connectFailed ? getWarning(`
+        ${this._connectState === 'failed' ? getWarning(`
           <p><strong>${I18n.t('auth.connectFailed')}</strong></p>
           ${authFailureExplanation(this.store.storageManager.currentProvider.getAuthFailure())}
           <p>${I18n.t('auth.connectRetry')}</p>
@@ -165,10 +190,38 @@ export class DashboardView {
     `;
   }
 
-  /** A ?connect attempt ended unauthenticated (blocked/closed popup or
-   *  error): the card switches from "waiting" to the retry instructions. */
+  /** The user picked a provider — back to the "waiting" text while its
+   *  OAuth flow runs (popup for Google, full-page redirect for Dropbox). */
+  showConnecting(): void {
+    this._connectState = 'waiting';
+    if (this._pageContent) this._renderConnectingCard();
+  }
+
+  /** An authentication attempt ended unauthenticated (blocked/closed popup,
+   *  OAuth error on the return URL...): the card switches to the retry
+   *  instructions. */
   showConnectFailed(): void {
-    this._connectFailed = true;
+    this._connectState = 'failed';
+    if (this._pageContent) this._renderConnectingCard();
+  }
+
+  /** The top-bar connect button: retries the provider named by a
+   *  `connect=<name>` left in the URL (a failed OAuth return keeps it there);
+   *  shows the picker otherwise. */
+  _requestLogin(): void {
+    const wanted = new URLSearchParams(window.location.search).get('connect');
+    const provider = this.store.storageManager.availableProviders().find(p => p.name === wanted);
+    if (provider && this.onProviderPick) {
+      void this.onProviderPick(provider.name);
+      return;
+    }
+    this.showProviderPicker();
+  }
+
+  /** The ?connect landing point: lets the user pick which storage provider
+   *  to authenticate against. */
+  showProviderPicker(): void {
+    this._connectState = 'picker';
     if (this._pageContent) this._renderConnectingCard();
   }
 
