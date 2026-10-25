@@ -189,13 +189,31 @@ Objectif : extraire la couche storage dans une **lib réutilisable** pour une se
 application (même architecture SPA + cloud), avec en plus le mode **hors ligne** et la
 **synchro multi-appareils**. Décisions arrêtées :
 
-### Contrat révisionné (prérequis, quel que soit le provider)
+### Contrat révisionné (implémenté dans `ts-cloud-storage-manager`)
 
-`load() → { data, rev }` et `save(data, baseRev) → 'saved' | 'conflict'`, adossé aux
-mécanismes natifs de concurrence optimiste : Dropbox `files/upload` avec
-`mode: {'.tag':'update', update:'<rev>'}` (409 si périmé), Drive `PATCH` + `If-Match: <etag>`
-(412), Graph `PUT` + `if-match: <eTag>` (412). Aujourd'hui les trois providers écrasent
-inconditionnellement — dernier écrivain gagne, silencieusement.
+`load() → { data, rev } | null`,
+`save(data, baseRev) → { status:'saved', rev } | { status:'conflict' }`
+(le nouveau `rev` revient dans le verdict — évite un appel métadonnées après
+chaque écriture), adossé aux mécanismes natifs de concurrence optimiste :
+Dropbox `files/upload` avec `mode: {'.tag':'update', update:'<rev>'}` (409
+`path/conflict`), Graph `PUT` + `if-match: <eTag>` (412), Drive check-then-write
+sur `version` (`If-Match` sur upload v3 n'est pas fiable — petite fenêtre de
+course documentée). `baseRev = null` → écriture inconditionnelle (première
+sauvegarde). Aujourd'hui les providers de cette app écrasent inconditionnellement —
+dernier écrivain gagne, silencieusement.
+
+`getRemoteRevision(): Promise<string | null>` — lecture des métadonnées seules,
+sans télécharger le contenu. `null` = fichier absent ou révision indéterminable ;
+une erreur d'auth est propagée pour que le SyncEngine puisse arrêter la détection.
+Un seul jeton `rev` sert à la détection **et** à la garde d'écriture :
+
+- Dropbox : `files/get_metadata` → `rev` (scope `files.metadata.read`, normalement
+  déjà inclus avec `files.content.read` — à vérifier dans la console) ;
+- OneDrive : `GET /me/drive/items/<id>?$select=eTag` → `eTag` (l'eTag sert aussi
+  au `if-match` ; il bouge sur renommage/déplacement → pull occasionnel en trop,
+  bénin. Raffinement possible : `cTag`, qui ne change qu'avec le contenu) ;
+- Drive : `files.get?fields=version` → `version` (la ressource `File` de la v3
+  n'a **pas** de champ `etag` — c'était un champ v2).
 
 ### Merge par grains (pas de snapshot complet)
 
@@ -227,6 +245,51 @@ inconditionnellement — dernier écrivain gagne, silencieusement.
   `visibilitychange` et backoff.
 - Persistance locale en **IndexedDB** (outbox + données), pas `localStorage`
   (trop petit, synchrone).
+
+#### Détection rapide des changements distants
+
+Limiter la fenêtre de divergence — cas cible : passer du PC au téléphone sans penser
+à recharger. Répartition : le **provider** porte le mécanisme, le **SyncEngine**
+l'ordonnancement, l'app ne reçoit que des événements.
+
+- **`StorageProvider`** : `getRemoteRevision()` partout ;
+  `watchRemoteChanges(onChange, signal: AbortSignal)` **optionnel** pour les providers
+  capables de push sans serveur — Dropbox encapsule son longpoll (connexion pendante,
+  timeout, réarmement = détails internes). Annulable : le SyncEngine l'arrête quand
+  l'onglet se cache, sur `disconnect()` et sur `offline`.
+- **`SyncEngine`** : décide *quand* vérifier — `watchRemoteChanges()` quand dispo,
+  sinon polling de `getRemoteRevision()` ; compare à `baseRev`, déclenche pull+merge.
+  Une erreur d'auth (ex. `invalid_grant` après révocation) **arrête la détection** et
+  remonte via le canal de statut — pas de retry.
+- **App** : `remoteChanged` / canal de statut uniquement.
+
+Déclencheurs, par ordre de retour sur investissement :
+
+1. **`visibilitychange` / `focus`** → check dès le retour au premier plan (le téléphone
+   garde l'app en arrière-plan : c'est *le* moment qui tue le cas « reload oublié ») ;
+2. **polling périodique ~30-60 s uniquement quand l'onglet est visible** (les timers
+   en arrière-plan sont bridés/gelés — inutile de poller un onglet caché) ;
+3. **longpoll Dropbox** (luxe optionnel) : `POST notify.dropboxapi.com/2/files/list_folder/longpoll`
+   — la requête reste pendante et revient dès qu'un changement arrive dans le dossier
+   applicatif ; near-real-time sans serveur. Contraintes : nécessite un **curseur**
+   (`files/list_folder/get_latest_cursor`), respecter le champ `backoff` de la réponse,
+   l'endpoint `notify` ne prend **pas** d'`Authorization`, et le signal est à l'échelle
+   du dossier → relire la révision du fichier ensuite. Drive et Graph ont des webhooks
+   mais ils exigent un endpoint HTTPS public → hors architecture ;
+4. **`BroadcastChannel` + Web Locks** pour le multi-onglets d'un même appareil : un
+   seul onglet « maître » (verrou `navigator.locks`) pousse et polle — la file
+   IndexedDB est partagée, sinon double push possible — et notifie les autres.
+
+Comportement au pull : merge par grains appliqué immédiatement. Conflit uniquement
+si un grain **sale localement** a aussi bougé remote → parcage + signal doux. Un grain
+affiché dans un formulaire ouvert mais propre est rafraîchi (avec signal doux — sinon
+l'utilisateur croit voir encore la vieille valeur). Les autres grains mettent à jour
+l'UI via un événement « données rafraîchies » sans toucher l'édition en cours.
+
+Non retenu : Web Push/FCM (exige un serveur émetteur — casse la promesse « aucune
+donnée ne transite par nos serveurs »), `periodicsync` du service worker (Chrome-only,
+PWA installée, intervalle choisi par le navigateur selon l'engagement — souvent de
+l'ordre de plusieurs heures, trop grossier).
 
 ### Répartition lib / app
 
