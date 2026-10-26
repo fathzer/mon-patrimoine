@@ -5,7 +5,7 @@ import type { HouseholdData } from '../fiscality/Household.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import type { BasePlacement, PlacementData, Evaluation } from '../placements/BasePlacement.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
-import type { StorageManager } from 'ts-cloud-storage-manager';
+import type { StorageManager, SyncStatus } from 'ts-cloud-storage-manager';
 import { ReadOnlyProvider } from 'ts-cloud-storage-manager';
 
 /** Public Gist URL serving the demo dataset. */
@@ -140,14 +140,16 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   storageManager: StorageManager;
   state: AppState;
-  /** Revision token of the remote file this state was built from — sent as
-   *  baseRev on every save so the provider refuses to overwrite a remote
-   *  file that changed in between (optimistic concurrency). */
-  baseRev: string | null = null;
+  /** Latest sync status, kept by subscription for init decisions. */
+  _syncStatus?: SyncStatus;
 
   constructor(storageManager: StorageManager) {
     super();
     this.storageManager = storageManager;
+    if (storageManager.syncEngine) {
+      storageManager.onStatus(s => { this._syncStatus = s; });
+      storageManager.onData(d => this._applySyncedData(d));
+    }
     this.state = {
       isAuthenticated: false,
       isLoading: true,
@@ -168,24 +170,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
     this.state.isAuthenticated = status.isConnected;
 
     if (this.state.isAuthenticated) {
-      let rawData: Partial<ExportPayload> | null = null;
-      let loadFailed = false;
-      try {
-        const remote = await this.storageManager.load();
-        rawData = remote?.data as Partial<ExportPayload> | null;
-        this.baseRev = remote?.rev ?? null;
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        loadFailed = true;
-        this.emit('load:error', error as Error);
-      }
-      // Only create the default file when no file exists yet. On a load failure,
-      // the existing file must not be overwritten with empty data.
-      if (!rawData && !loadFailed) {
-        rawData = this._getDefaultData();
-        const result = await this.storageManager.save(rawData, this.baseRev);
-        if (result.status === 'saved') this.baseRev = result.rev;
-      }
+      const rawData = await this._loadInitialData();
       if (rawData != null && typeof rawData === 'object') {
         this._hydrateState(rawData);
       }
@@ -194,6 +179,38 @@ export class AppStore extends EventBus<AppStoreEvents> {
     this.state.isLoading = false;
     this.emit('state:loading', false);
     this.emit('state:changed', this.getGlobalSummary());
+  }
+
+  /**
+   * The data to hydrate from on init. Through the engine when one is
+   * managed (it already pulled remote + local state inside initialize()),
+   * seeding a default file only when the remote is confirmed absent — a
+   * load failure must never seed over an existing remote file. Read-only
+   * demo sessions take the raw load path: nothing is ever seeded.
+   */
+  async _loadInitialData(): Promise<Partial<ExportPayload> | null> {
+    const engine = this.storageManager.currentProvider.isReadOnly() ? null : this.storageManager.syncEngine;
+    if (engine) {
+      const local = engine.getLocal() as Partial<ExportPayload> | null;
+      if (local == null) {
+        if (this._syncStatus?.lastError) {
+          this.emit('load:error', new Error(this._syncStatus.lastError));
+        } else {
+          const seeded = this._getDefaultData();
+          await this.storageManager.save(seeded);
+          return seeded;
+        }
+      }
+      return local;
+    }
+    try {
+      const remote = await this.storageManager.load();
+      return remote?.data as Partial<ExportPayload> | null;
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      this.emit('load:error', error as Error);
+      return null;
+    }
   }
 
   async login(): Promise<void> {
@@ -358,20 +375,31 @@ export class AppStore extends EventBus<AppStoreEvents> {
     this._persistAndEmit();
   }
 
+  /**
+   * Replaces the app state when the engine's working copy changed (merge,
+   * pull adoption, conflict resolution to remote). Demo sessions and the
+   * pre-login initial emit are ignored.
+   */
+  _applySyncedData(data: unknown): void {
+    if (!this.state.isAuthenticated || this.storageManager.currentProvider?.isReadOnly?.()) return;
+    this._hydrateState(data as Partial<ExportPayload>);
+    this.emit('state:changed', this.getGlobalSummary());
+  }
+
   _persistAndEmit(): void {
     const payload = this.getExportPayload();
-    this.storageManager.save(payload, this.baseRev)
-      .then((result) => {
-        if (result.status === 'conflict') {
-          throw new Error('Remote file changed since the last sync (conflict)');
-        }
-        this.baseRev = result.rev;
-        console.log('Data successfully saved:', payload);
-      })
-      .catch((error: Error) => {
-        console.error('Failed to save data:', error);
-        this.emit('save:error', error);
-      });
+    if (!this.storageManager.currentProvider?.isReadOnly?.()) {
+      this.storageManager.save(payload)
+        .then((verdict) => {
+          // 'saved'/'queued' are durable successes; 'conflict' is handled by
+          // the sync banner, not surfaced as an error.
+          if (verdict === 'error') throw new Error('Save failed');
+        })
+        .catch((error: Error) => {
+          console.error('Failed to save data:', error);
+          this.emit('save:error', error);
+        });
+    }
     const globalSummary = this.getGlobalSummary();
     console.log('Emitting state:changed with:', globalSummary);
     this.emit('state:changed', globalSummary);
@@ -391,10 +419,13 @@ export class AppStore extends EventBus<AppStoreEvents> {
       : { profile: rawData.taxProfile as FiscalProfile } as TaxProfileEntity;
     this.state.taxProfile = this._normalizeTaxProfile(entity.profile);
     const currentYear = new Date().getFullYear();
-    const recordedYear = ('year' in entity && entity.year != null ? entity.year : undefined)
-      ?? ('asOf' in entity && entity.asOf ? yearOf(entity.asOf) : undefined)
-      ?? currentYear;
-    this.state.taxProfileYear = Math.min(recordedYear, currentYear);
+    let recordedYear: number | undefined;
+    if ('year' in entity && entity.year != null) {
+      recordedYear = entity.year;
+    } else if ('asOf' in entity && entity.asOf) {
+      recordedYear = yearOf(entity.asOf);
+    }
+    this.state.taxProfileYear = Math.min(recordedYear ?? currentYear, currentYear);
     const entries = Array.isArray(entity.history)
       ? entity.history
           .map(e => ({

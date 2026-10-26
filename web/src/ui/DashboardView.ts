@@ -94,6 +94,7 @@ export class DashboardView {
     this.container.innerHTML = `
       <div id="demo-banner" class="demo-banner" hidden>${I18n.t('demo.banner')}</div>
       <header id="top-bar" class="top-bar"></header>
+      <div id="sync-banner-root"></div>
       <main id="page-content" class="main-content"></main>
       <div id="modal-root"></div>
     `;

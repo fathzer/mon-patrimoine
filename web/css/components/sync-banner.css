@@ -1,0 +1,23 @@
+/* Top-of-screen sync alert strip, under the top bar — conflict, save
+   retry, remote update. Same visual family as .demo-banner. */
+#sync-banner-root:empty {
+  display: none;
+}
+
+.sync-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-warning);
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.sync-banner .btn-secondary {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm, 0.85rem);
+}

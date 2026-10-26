@@ -2,7 +2,7 @@ import { I18n } from '../core/I18n.js';
 import { bindOverlayClose } from './overlayClose.js';
 
 export class ConfirmDialog {
-  static ask(message: string, container: HTMLElement = document.body): Promise<boolean> {
+  static ask(message: string, container: HTMLElement = document.body, confirmLabel?: string): Promise<boolean> {
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
@@ -11,7 +11,7 @@ export class ConfirmDialog {
           <h3 style="margin: 0 0 1.5rem; color: var(--danger);">${message}</h3>
           <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem;">
             <button type="button" class="btn-secondary confirm-dialog-cancel">${I18n.t('actions.cancel')}</button>
-            <button type="button" class="btn-danger confirm-dialog-confirm">${I18n.t('actions.delete')}</button>
+            <button type="button" class="btn-danger confirm-dialog-confirm">${confirmLabel ?? I18n.t('actions.delete')}</button>
           </div>
         </div>
       `;

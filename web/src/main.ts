@@ -4,6 +4,7 @@ import { AppStore } from './core/AppStore.js';
 import { DashboardView } from './ui/DashboardView.js';
 import { HelpModalView } from './ui/HelpModalView.js';
 import { storageConfirmDialog } from './ui/storageDialogs.js';
+import { SyncBanner } from './ui/SyncBanner.js';
 import { PlacementFactory } from './placements/PlacementFactory.js';
 import { UiState } from './core/UiState.js';
 
@@ -15,7 +16,12 @@ const STORAGE_CONFIG = {
   fileName: 'patrimoine_data.json',
   dropbox: { appKey: DROPBOX_APP_KEY },
   oneDrive: { clientId: ONEDRIVE_CLIENT_ID },
-  google: { clientId: GOOGLE_CLIENT_ID, appTag: 'patrimoine', confirmDialog: storageConfirmDialog }
+  google: { clientId: GOOGLE_CLIENT_ID, appTag: 'patrimoine', confirmDialog: storageConfirmDialog },
+  // Offline-first sync; no merge policy → every divergence parks for the
+  // user (all-or-nothing choice). eagerPull off: a detected remote update
+  // waits for the banner's "Mettre à jour" button instead of reloading the
+  // data under the user's eyes.
+  sync: { eagerPull: false }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,6 +57,7 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
   const storageManager = new StorageManager(STORAGE_CONFIG);
   const store = new AppStore(storageManager);
   const dashboard = new DashboardView(appRoot, store);
+  mountSyncBanner(storageManager);
 
   // The provider picker hands the picked name here: start its auth flow and
   // map the verdict (the redirect flows — Dropbox — never come back here:
@@ -95,7 +102,8 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
     UiState.save({ lastSession: sessionKind });
   });
   store.on('state:loading', (isLoading) => dashboard.showLoading(isLoading));
-  store.on('save:error', () => window.alert(I18n.t('alerts.saveError')));
+  // save:error is covered by the sync banner (pending + retry); load errors
+  // still warrant an explicit alert.
   store.on('load:error', () => window.alert(I18n.t('alerts.loadError')));
 
   const params = new URLSearchParams(window.location.search);
@@ -148,6 +156,18 @@ async function bootApp(appRoot: HTMLElement): Promise<void> {
   }
   // No session and nothing requested: back to the landing page.
   window.location.replace('./');
+}
+
+function mountSyncBanner(storageManager: StorageManager): void {
+  // The slot lives inside the dashboard layout, built lazily on first
+  // render — retry briefly until it exists.
+  let tries = 40;
+  const tryMount = (): void => {
+    const bannerRoot = document.getElementById('sync-banner-root');
+    if (bannerRoot) { new SyncBanner(bannerRoot, storageManager); return; }
+    if (--tries > 0) setTimeout(tryMount, 50);
+  };
+  tryMount();
 }
 
 function registerServiceWorker(): void {

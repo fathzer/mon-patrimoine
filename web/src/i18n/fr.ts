@@ -6,6 +6,7 @@ export const fr = {
   auth: {
     loginBtn: "Connexion",
     logoutBtn: "Déconnexion",
+    unsavedWarning: "Des modifications n'ont pas encore été synchronisées avec le Cloud. Elles seront perdues si vous vous déconnectez maintenant.",
     demoBtn: "ou tester Mon Patrimoine en mode démo",
     waiting: "En attente de connexion...",
     chooseProvider: "Choisissez le service de stockage de vos données :",
@@ -94,6 +95,16 @@ export const fr = {
     acquisitionDate: "Date d'acquisition",
     acquisitionPrice: "Prix d'acquisition (€)",
     amountHint: "Vous pouvez saisir une formule, ex. 1000*(1+5%)"
+  },
+  syncBanner: {
+    conflict: "Vos modifications locales sont en conflit avec la version enregistrée dans le Cloud.",
+    keepLocal: "Garder ma version",
+    keepCloud: "Garder la version Cloud",
+    savePending: "Échec de la sauvegarde — nouvelle tentative {time}.",
+    retryAt: "à {time}",
+    retrySoon: "dès que possible",
+    remoteUpdate: "Une nouvelle version de vos données est disponible dans le Cloud.",
+    update: "Mettre à jour"
   },
   alerts: {
     saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",

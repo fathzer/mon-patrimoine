@@ -1,6 +1,7 @@
 import { I18n } from '../core/I18n.js';
 import { HELP_ICON, TAX_ICON } from './icons.js';
 import { HelpModalView } from './HelpModalView.js';
+import { ConfirmDialog } from './ConfirmDialog.js';
 import type { AppStore } from '../core/AppStore.js';
 
 interface TopBarCallbacks {
@@ -106,7 +107,19 @@ export class TopBarView {
       if (this._callbacks.onLoginRequest) this._callbacks.onLoginRequest();
       else void this.store.login();
     });
-    this._container!.querySelector('#btn-logout')?.addEventListener('click', () => this.store.logout());
+    this._container!.querySelector('#btn-logout')?.addEventListener('click', async () => {
+      // A disconnect purges the sync engine's outbox — warn first when
+      // queued edits would be lost.
+      if (this.store._syncStatus?.pending) {
+        const ok = await ConfirmDialog.ask(
+          I18n.t('auth.unsavedWarning'),
+          this._container ?? document.body,
+          I18n.t('auth.logoutBtn')
+        );
+        if (!ok) return;
+      }
+      void this.store.logout();
+    });
 
     this._container!.querySelector('#btn-help')?.addEventListener('click', () => {
       if (this._modalRoot) {
