@@ -5,8 +5,12 @@ import type { HouseholdData } from '../fiscality/Household.js';
 import { PlacementFactory } from '../placements/PlacementFactory.js';
 import type { BasePlacement, PlacementData, Evaluation } from '../placements/BasePlacement.js';
 import type { FiscalProfile } from '../fiscality/TaxCalculator.js';
-import type { StorageManager } from '../storage/StorageManager.js';
-import { DemoProvider } from '../storage/DemoProvider.js';
+import type { StorageManager } from 'ts-cloud-storage-manager';
+import { ReadOnlyProvider } from 'ts-cloud-storage-manager';
+
+/** Public Gist URL serving the demo dataset. */
+export const DEMO_DATA_URL =
+  'https://gist.githubusercontent.com/fathzer/3f2d318a89d09dac58e57b2989eaaddd/raw/demo.json';
 
 export interface EvaluationEntry {
   instance: BasePlacement;
@@ -136,6 +140,10 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   storageManager: StorageManager;
   state: AppState;
+  /** Revision token of the remote file this state was built from — sent as
+   *  baseRev on every save so the provider refuses to overwrite a remote
+   *  file that changed in between (optimistic concurrency). */
+  baseRev: string | null = null;
 
   constructor(storageManager: StorageManager) {
     super();
@@ -163,7 +171,9 @@ export class AppStore extends EventBus<AppStoreEvents> {
       let rawData: Partial<ExportPayload> | null = null;
       let loadFailed = false;
       try {
-        rawData = await this.storageManager.load() as Partial<ExportPayload> | null;
+        const remote = await this.storageManager.load();
+        rawData = remote?.data as Partial<ExportPayload> | null;
+        this.baseRev = remote?.rev ?? null;
       } catch (error) {
         console.error('Failed to load data:', error);
         loadFailed = true;
@@ -173,7 +183,8 @@ export class AppStore extends EventBus<AppStoreEvents> {
       // the existing file must not be overwritten with empty data.
       if (!rawData && !loadFailed) {
         rawData = this._getDefaultData();
-        await this.storageManager.save(rawData);
+        const result = await this.storageManager.save(rawData, this.baseRev);
+        if (result.status === 'saved') this.baseRev = result.rev;
       }
       if (rawData != null && typeof rawData === 'object') {
         this._hydrateState(rawData);
@@ -196,7 +207,7 @@ export class AppStore extends EventBus<AppStoreEvents> {
    * restores the demo data.
    */
   async loginDemo(): Promise<void> {
-    this.storageManager.useProvider(new DemoProvider());
+    this.storageManager.useProvider(new ReadOnlyProvider(DEMO_DATA_URL));
     await this.init();
   }
 
@@ -349,9 +360,12 @@ export class AppStore extends EventBus<AppStoreEvents> {
 
   _persistAndEmit(): void {
     const payload = this.getExportPayload();
-    this.storageManager.save(payload)
-      .then((ok: boolean) => {
-        if (!ok) throw new Error('Storage reported a failed save');
+    this.storageManager.save(payload, this.baseRev)
+      .then((result) => {
+        if (result.status === 'conflict') {
+          throw new Error('Remote file changed since the last sync (conflict)');
+        }
+        this.baseRev = result.rev;
         console.log('Data successfully saved:', payload);
       })
       .catch((error: Error) => {

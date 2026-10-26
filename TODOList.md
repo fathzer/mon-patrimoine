@@ -25,7 +25,7 @@ Les tests de module vérifient désormais le **contrat** `getTaxableIncomes()` (
 
 ## Extraction de la couche storage en lib réutilisable (offline + synchro multi-appareils)
 Design arrêté : voir « Piste : moteur de synchronisation » dans STORAGE_PROVIDERS.md (contrat révisionné, merge par grains, pull avide + push explicite).
-**En cours** : le repo `ts-cloud-storage-manager` contient déjà les 3 providers + StorageManager extraits avec le contrat révisionné (`load/save/getRemoteRevision`, verdict conflit). Reste : basculer mon-patrimoine dessus (vendoring + imports), puis le SyncEngine (offline, merge par grains, tombstones).
+**Fait** : les 3 providers + StorageManager sont dans le repo `ts-cloud-storage-manager` (contrat révisionné `load/save/getRemoteRevision`, verdict conflit) ; mon-patrimoine la consomme via `file:` + vendoring dans `web/vendor/` (`bun run vendor`) — la détection de conflit fichier-entier est active (`AppStore.baseRev`). Reste : le SyncEngine côté lib (offline IndexedDB, merge par grains, tombstones, pull avide), la politique de merge de l'app, la détection `visibilitychange` pour l'usage PC→téléphone.
 
 ## ~~Annotations sur le graphe d'historique~~ ✅ Fait (étape 7)
 `state.annotations: { date, text }[]` persisté dans le payload ; bouton ✎ dans la carte Historique → éditeur inline à la date de vue ; losange ambre sur la courbe nette + texte dans le tooltip.

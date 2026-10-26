@@ -6,10 +6,19 @@ l'ajout de nouveaux providers (pCloud…).
 
 ## État actuel
 
+> **La couche storage a été extraite** dans la lib réutilisable
+> `ts-cloud-storage-manager` (repo séparé) : providers, `StorageProvider`,
+> `StorageManager`, contrat révisionné. L'app la consomme via une dépendance
+> `file:../../ts-cloud-storage-manager` + vendoring de `dist/` dans
+> `web/vendor/ts-cloud-storage-manager/` (`bun run vendor`, relancé par
+> `postinstall`). Seuls restent côté app : `ui/authFailure.ts` (le libellé des
+> échecs, qui dépend d'`I18n`) et les client ids injectés dans `main.ts`.
+
 - **Trois providers actifs** : `DropboxProvider` et `OneDriveProvider` (redirect OAuth2
   code + PKCE, refresh tokens) et `GoogleDriveProvider` (GIS *token client*, flow en popup).
-- **Interface** : `web/src/storage/StorageProvider.ts` — `init()`, `authenticate(): Promise<boolean>`,
-  `disconnect()`, `loadData()`, `saveData()`, `getStatus()`, `isReadOnly()`,
+- **Interface** : `StorageProvider.ts` (dans la lib) — `init()`, `authenticate(): Promise<boolean>`,
+  `disconnect()`, `load() → {data, rev}`, `save(data, baseRev)`, `getRemoteRevision()`,
+  `getStatus()`, `isReadOnly()`,
   `resumeAuth(url)` et `authResponseParams` (voir « reprise après redirect » plus bas).
 - **Sélection** : `StorageManager` instancie les providers par nom (`useProviderByName`) ;
   le dernier provider de compte utilisé est mémorisé (`localStorage mp_provider`) pour la
@@ -33,7 +42,7 @@ l'ajout de nouveaux providers (pCloud…).
   appelé par `error_callback` de GIS — la promesse se résout toujours (pop-up bloquée
   `popup_failed_to_open`, fermée `popup_closed`, erreur OAuth dans `resp.error`).
 - **Échec expliqué** : chaque provider classe son erreur native dans un `AuthFailureKind`
-  (`storage/AuthFailure.ts`) exposé via `getAuthFailure()` ; le kit
+  (`AuthFailure` dans la lib) exposé via `getAuthFailure()` ; le kit
   `authFailureExplanation()` fournit le libellé — les providers ne recodent pas leurs
   messages.
 
@@ -151,7 +160,8 @@ OAuth.
 
 ## Messages d'échec : **pas** communs à tous les providers — kit partagé
 
-Implémenté via `web/src/storage/AuthFailure.ts` :
+Implémenté via `web/src/ui/authFailure.ts` (les types `AuthFailure`/`AuthFailureKind`
+viennent de la lib ; seule la fonction de rendu reste côté app car elle dépend d'`I18n`) :
 
 - le provider classe son erreur native dans un **`AuthFailureKind`**
   (`popupBlocked` / `popupClosed` / `accessDenied` / `error`) et l'expose via
@@ -299,7 +309,10 @@ l'ordre de plusieurs heures, trop grossier).
 - **App** : politique de merge `{ base, local, remote } → merged | 'unreconcilable'`
   (connaissance métier des grains), UI de conflit, déclencheur Save.
 - **Packaging** : repo dédié, consommé via dépendance git ou npm ; *vendoring* du
-  `dist/` dans `web/vendor/` (l'app n'a pas de bundler — imports relatifs requis).
+  `dist/` (`.js` seuls) dans `web/vendor/` — l'app n'a pas de bundler : les sources
+  importent le bare specifier `ts-cloud-storage-manager`, résolu par une
+  **import map** dans les pages HTML vers les fichiers vendored (copiés aussi
+  dans `_site/vendor` par le workflow de déploiement).
 
 ## Code mort
 

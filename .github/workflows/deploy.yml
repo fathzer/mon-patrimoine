@@ -28,6 +28,22 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      # The storage library lives in a sibling repo consumed via a file:
+      # dependency (web/package.json) — check it out and build it so the
+      # postinstall vendor step finds its dist/.
+      - name: Checkout ts-cloud-storage-manager
+        uses: actions/checkout@v4
+        with:
+          repository: fathzer/ts-cloud-storage-manager
+          ref: first
+          path: ts-cloud-storage-manager
+
+      - name: Build ts-cloud-storage-manager
+        working-directory: ts-cloud-storage-manager
+        run: |
+          bun install
+          bun run build
+
       - name: Install dependencies, test and compile TypeScript
         working-directory: web
         run: |
@@ -41,6 +57,9 @@ jobs:
 
           # Copy compiled JavaScript and source maps
           cp -r web/dist/* _site/
+
+          # Copy the vendored storage library (import-mapped in the HTML pages)
+          cp -r web/vendor _site/vendor
 
           # Copy static assets
           cp web/favicon.svg _site/favicon.svg

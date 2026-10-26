@@ -1,5 +1,5 @@
 import { bindOverlayClose } from './overlayClose.js';
-import type { StorageManager } from '../storage/StorageManager.js';
+import type { StorageManager } from 'ts-cloud-storage-manager';
 
 export class HelpModalView {
   container: HTMLElement;

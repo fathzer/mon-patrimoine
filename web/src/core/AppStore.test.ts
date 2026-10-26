@@ -8,11 +8,11 @@ import { BasePlacement } from "../placements/BasePlacement.js";
 import { PlacementFactory } from "../placements/PlacementFactory.js";
 import { Category } from "./Categories.js";
 import type { PlacementData, Evaluation } from "../placements/BasePlacement.js";
-import type { StorageManager } from "../storage/StorageManager.js";
+import type { StorageManager } from "ts-cloud-storage-manager";
 import type { FiscalProfile, PlacementIncome } from "../fiscality/TaxCalculator.js";
 
 const stubStorage = {
-  save: async () => true
+  save: async () => ({ status: 'saved', rev: null })
 } as unknown as StorageManager;
 
 interface TestData extends PlacementData {

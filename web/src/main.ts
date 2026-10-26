@@ -1,8 +1,9 @@
 import { I18n } from './core/I18n.js';
-import { StorageManager } from './storage/StorageManager.js';
+import { StorageManager } from 'ts-cloud-storage-manager';
 import { AppStore } from './core/AppStore.js';
 import { DashboardView } from './ui/DashboardView.js';
 import { HelpModalView } from './ui/HelpModalView.js';
+import { storageConfirmDialog } from './ui/storageDialogs.js';
 import { PlacementFactory } from './placements/PlacementFactory.js';
 import { UiState } from './core/UiState.js';
 
@@ -10,7 +11,12 @@ const GOOGLE_CLIENT_ID = '1075597097575-9q8l4dvvahrpqn4l7dvu1999i0259ct8.apps.go
 const DROPBOX_APP_KEY = 'zvz86dayzn4qkt8';
 const ONEDRIVE_CLIENT_ID = '59ee9063-c01a-49c7-b23e-a175d153b85e';
 
-const STORAGE_CONFIG = { googleClientId: GOOGLE_CLIENT_ID, dropboxAppKey: DROPBOX_APP_KEY, oneDriveClientId: ONEDRIVE_CLIENT_ID };
+const STORAGE_CONFIG = {
+  fileName: 'patrimoine_data.json',
+  dropbox: { appKey: DROPBOX_APP_KEY },
+  oneDrive: { clientId: ONEDRIVE_CLIENT_ID },
+  google: { clientId: GOOGLE_CLIENT_ID, appTag: 'patrimoine', confirmDialog: storageConfirmDialog }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   const appRoot = document.getElementById('app-root');

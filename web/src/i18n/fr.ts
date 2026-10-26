@@ -12,7 +12,7 @@ export const fr = {
     connectFailed: "La connexion a échoué.",
     connectRetry: "Vous pouvez réessayer en cliquant sur le bouton de connexion en haut à droite de la page.",
     // One wording per AuthFailureKind — the provider classifies its native
-    // error, this table owns the message (see storage/AuthFailure.ts).
+    // error, this table owns the message (see ui/authFailure.ts).
     failure: {
       popupBlocked: "Une cause probable : votre navigateur a bloqué la fenêtre pop-up nécessaire à la connexion.",
       popupBlockedHow: "Pour l'autoriser : cliquez sur l'icône de pop-up bloqué dans la barre d'adresse du navigateur, ou ouvrez les réglages du site (icône à gauche de l'adresse) et autorisez les fenêtres pop-up. Dans l'application installée, ce réglage se trouve dans les paramètres du site depuis le menu de l'application.",
@@ -99,6 +99,28 @@ export const fr = {
     saveError: "La sauvegarde a échoué. Vos dernières modifications pourraient ne pas être conservées.",
     loadError: "Le chargement de vos données a échoué. Vos données existantes n'ont pas été modifiées.",
     importError: "Le fichier sélectionné n'est pas valide ou n'a pas pu être lu."
+  },
+  storage: {
+    dialog: {
+      whyTitle: "Pourquoi cette fenêtre ?",
+      whatTitle: "Ce que vous devez faire :",
+      cancel: "Annuler",
+      reconnect: {
+        title: "Reconnexion requise",
+        section: "Expiration du jeton d'accès",
+        why: "Votre jeton d'accès à Google Drive a expiré. Pour des raisons de sécurité, Google interdit la reconnexion automatique sans intervention utilisateur explicite à moins de faire transiter vos données de connexion sur nos serveurs. Ce transit serait une violation de notre promesse « Aucune de vos données ne nous est envoyée ».",
+        what: "Cliquez sur le bouton « Se reconnecter » ci-dessous pour autoriser à nouveau l'accès à votre Google Drive. Une fenêtre pop-up s'ouvrira pour vous demander de confirmer l'autorisation.",
+        warning: "Important : assurez-vous que votre navigateur autorise les pop-ups pour ce site, sinon la fenêtre de connexion Google ne s'ouvrira pas. Si vous voyez une icône de pop-up bloqué dans la barre d'adresse, cliquez dessus pour autoriser les pop-ups temporairement.",
+        confirm: "Se reconnecter"
+      },
+      missingScopes: {
+        title: "Autorisation manquante",
+        section: "Autorisations Google non accordées",
+        why: "Vous êtes connecté, mais vous n'avez pas accordé à l'application toutes les autorisations dont elle a besoin : l'accès aux fichiers de votre Google Drive (pour lire et enregistrer vos données) et l'accès à votre adresse e-mail (pour identifier votre compte).",
+        what: "Cliquez sur « Réessayer » pour afficher à nouveau l'écran d'autorisation de Google, puis cochez toutes les options demandées.",
+        confirm: "Réessayer"
+      }
+    }
   },
   settings: {
     title: "Profil fiscal",
