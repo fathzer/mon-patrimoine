@@ -194,7 +194,9 @@ export class AppStore extends EventBus<AppStoreEvents> {
       const local = engine.getLocal() as Partial<ExportPayload> | null;
       if (local == null) {
         if (this._syncStatus?.lastError) {
-          this.emit('load:error', new Error(this._syncStatus.lastError));
+          const error = new Error(this._syncStatus.lastError);
+          console.error('Failed to load data:', error);
+          this.emit('load:error', error);
         } else {
           const seeded = this._getDefaultData();
           await this.storageManager.save(seeded);

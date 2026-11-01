@@ -115,3 +115,5 @@ Pour permettre à l'application d'accéder à Google Drive depuis une URL donné
 5. Enregistrez les modifications. Leur prise en compte peut prendre quelques minutes.
 6. Assurez-vous également que l'**API Google Drive** est bien activée pour le projet via **APIs et services** > **Bibliothèque**.
 
+> **Note** : pCloud n'est volontairement pas supporté — il est impossible de télécharger un fichier depuis un navigateur avec son API (voir la section « Pourquoi pCloud est abandonné » de [STORAGE_PROVIDERS.md](STORAGE_PROVIDERS.md)).
+
