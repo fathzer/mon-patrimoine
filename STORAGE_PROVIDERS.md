@@ -2,17 +2,30 @@
 
 Ce document décrit le contrat entre `main.ts` (orchestrateur), `StorageManager` et les
 `StorageProvider`, en particulier pour l'authentification. Il sert de référence pour
-l'ajout de nouveaux providers (pCloud…).
+l'ajout de nouveaux providers.
 
 ## État actuel
 
+> **La couche storage a été extraite** dans la lib réutilisable
+> `ts-cloud-storage-manager` (repo séparé) : providers, `StorageProvider`,
+> `StorageManager`, contrat révisionné. L'app la consomme via une dépendance
+> `github:fathzer/ts-cloud-storage-manager#<tag>` + vendoring de `dist/` dans
+> `web/vendor/ts-cloud-storage-manager/` — artefact généré, **gitignoré**,
+> régénéré par `prepare`/`postinstall`/`predev` (`bun run vendor`). Seuls restent côté app : `ui/authFailure.ts` (le libellé des
+> échecs, qui dépend d'`I18n`) et les client ids injectés dans `main.ts`.
+> Toutes les clés persistées par la lib (localStorage, sessionStorage, base
+> IndexedDB de sync) sont préfixées par `namespace` — `'mon-patrimoine'` ici —
+> obligatoire dans `StorageConfig` pour isoler les apps partageant une origine
+> (le storage web ne dépend que de l'origine, jamais du path).
+
 - **Trois providers actifs** : `DropboxProvider` et `OneDriveProvider` (redirect OAuth2
   code + PKCE, refresh tokens) et `GoogleDriveProvider` (GIS *token client*, flow en popup).
-- **Interface** : `web/src/storage/StorageProvider.ts` — `init()`, `authenticate(): Promise<boolean>`,
-  `disconnect()`, `loadData()`, `saveData()`, `getStatus()`, `isReadOnly()`,
+- **Interface** : `StorageProvider.ts` (dans la lib) — `init()`, `authenticate(): Promise<boolean>`,
+  `disconnect()`, `load() → {data, rev}`, `save(data, baseRev)`, `getRemoteRevision()`,
+  `getStatus()`, `isReadOnly()`,
   `resumeAuth(url)` et `authResponseParams` (voir « reprise après redirect » plus bas).
 - **Sélection** : `StorageManager` instancie les providers par nom (`useProviderByName`) ;
-  le dernier provider de compte utilisé est mémorisé (`localStorage mp_provider`) pour la
+  le dernier provider de compte utilisé est mémorisé (`localStorage <ns>.provider`) pour la
   restauration de session, avec repli sur tout autre provider ayant une session stockée ;
   `useProvider()` sert pour les providers éphémères (mode démo).
 - **Choix utilisateur** : à l'URL `app/?connect`, `DashboardView.showProviderPicker()`
@@ -33,7 +46,7 @@ l'ajout de nouveaux providers (pCloud…).
   appelé par `error_callback` de GIS — la promesse se résout toujours (pop-up bloquée
   `popup_failed_to_open`, fermée `popup_closed`, erreur OAuth dans `resp.error`).
 - **Échec expliqué** : chaque provider classe son erreur native dans un `AuthFailureKind`
-  (`storage/AuthFailure.ts`) exposé via `getAuthFailure()` ; le kit
+  (`AuthFailure` dans la lib) exposé via `getAuthFailure()` ; le kit
   `authFailureExplanation()` fournit le libellé — les providers ne recodent pas leurs
   messages.
 
@@ -67,7 +80,7 @@ Implémenté pour Dropbox :
   des paramètres de retour, et `app/?connect=<nom>` fonctionne comme *deep link* lançant
   directement l'auth du provider nommé, sans passer par la mini-carte de sélection ;
 - `StorageManager.authenticate()` marque le provider en attente
-  (`sessionStorage mp_pending_provider`) quand `authResponseParams` est non vide — au
+  (`sessionStorage <ns>.pending_provider`) quand `authResponseParams` est non vide — au
   boot suivant, `resumeAuth` route l'URL vers ce provider, avec replis sur la valeur de
   `connect` présente dans l'URL de retour puis sur le préfixe provider du `state` ;
 - `DropboxProvider.resumeAuth()` valide le `state`, échange le code
@@ -104,7 +117,7 @@ propres à Microsoft :
 - scopes `offline_access User.Read Files.ReadWrite.AppFolder` — `offline_access` joue
   le rôle du `token_access_type=offline` de Dropbox ;
 - **rotation du refresh token** : Microsoft en émet un nouveau à chaque refresh — il
-  est persisté à chaque fois (clés `od_*` en localStorage) ;
+  est persisté à chaque fois (clés `<ns>.od_*` en localStorage) ;
 - fichier adressé par l'`id` du drive item (`/me/drive/items/<id>/content`) dès qu'il
   est connu — récupéré une fois via `GET /me/drive/special/approot:/<nom>:` après un
   premier téléchargement par nom — sinon par `/me/drive/special/approot:/<nom>:/content` ;
@@ -151,7 +164,8 @@ OAuth.
 
 ## Messages d'échec : **pas** communs à tous les providers — kit partagé
 
-Implémenté via `web/src/storage/AuthFailure.ts` :
+Implémenté via `web/src/ui/authFailure.ts` (les types `AuthFailure`/`AuthFailureKind`
+viennent de la lib ; seule la fonction de rendu reste côté app car elle dépend d'`I18n`) :
 
 - le provider classe son erreur native dans un **`AuthFailureKind`**
   (`popupBlocked` / `popupClosed` / `accessDenied` / `error`) et l'expose via
@@ -175,17 +189,145 @@ Rappel : avec un redirect il n'y a **pas de pop-up à bloquer**. Les échecs typ
 
 ## Comparatif des providers envisagés
 
-| | Dropbox | Microsoft OneDrive | Google Drive | pCloud (non implémenté) |
+| | Dropbox | Microsoft OneDrive | Google Drive | pCloud (abandonné) |
 |---|---|---|---|---|
-| Flow canonique | **redirect** OAuth2 (code + PKCE) | **redirect** OAuth2 (code + PKCE) | popup GIS | popup pollée ou redirect |
+| Flow canonique | **redirect** OAuth2 (code + PKCE) | **redirect** OAuth2 (code + PKCE) | popup GIS | popup pollée ou redirect implicite |
 | Retour d'erreur | `?error=` sur l'URL de retour | `?error=` sur l'URL de retour | `error_callback` | `window.closed` / `?error=` |
-| Échange de code | oui, `POST /oauth2/token` (CORS OK) | oui, `POST …/oauth2/v2.0/token` (CORS OK) | non (token implicite) | oui si `response_type=code` |
+| Échange de code | oui, `POST /oauth2/token` (CORS OK) | oui, `POST …/oauth2/v2.0/token` (CORS OK) | non (token implicite) | non — `code` exigerait le client secret |
 | Durée du token | refresh token longue durée | refresh token longue durée, **rotatif** | ~1 h, re-consent/silent | access token sans expiration |
 | Réponse dans | query `?` | query `?` | callback JS | hash `#access_token=` |
 
-## Code mort
+## Pourquoi pCloud est abandonné (tenté en 2026)
 
-`PCloudProvider.ts` et `LocalStorageProvider.ts` sont **non référencés** et **jamais testés**
-(écrits au tout début du projet). Ils sont marqués `DEAD CODE` en tête de fichier et
-conservés uniquement comme esquisses de référence — à **réécrire**, pas à réanimer, lors de
-l'ajout des providers correspondants. Suppression propre envisageable.
+Le provider a été implémenté puis supprimé : pCloud n'offre **aucun moyen de
+télécharger un fichier depuis un navigateur** — `getfilelink` exige un
+referer `pcloud.com` (7010 « Invalid link referer », vérifié aussi sur
+`Origin`, insupprimable en CORS), la famille fileops (`file_open`/`file_read`)
+répond 2003 « Access denied » sous OAuth2, et les liens de téléchargement
+vivent sur des hôtes sans CORS ouvert. Confirmé par pCloud dans
+[pcloud-sdk-js#4](https://github.com/pCloud/pcloud-sdk-js/issues/4) — détails
+dans la note « Not supported: pCloud » du README de `ts-cloud-storage-manager`.
+
+## Piste : moteur de synchronisation (projet futur)
+
+Objectif : extraire la couche storage dans une **lib réutilisable** pour une seconde
+application (même architecture SPA + cloud), avec en plus le mode **hors ligne** et la
+**synchro multi-appareils**. Décisions arrêtées :
+
+### Contrat révisionné (implémenté dans `ts-cloud-storage-manager`)
+
+`load() → { data, rev } | null`,
+`save(data, baseRev) → { status:'saved', rev } | { status:'conflict' }`
+(le nouveau `rev` revient dans le verdict — évite un appel métadonnées après
+chaque écriture), adossé aux mécanismes natifs de concurrence optimiste :
+Dropbox `files/upload` avec `mode: {'.tag':'update', update:'<rev>'}` (409
+`path/conflict`), Graph `PUT` + `if-match: <eTag>` (412), Drive check-then-write
+sur `version` (`If-Match` sur upload v3 n'est pas fiable — petite fenêtre de
+course documentée). `baseRev = null` → écriture inconditionnelle (première
+sauvegarde). Aujourd'hui les providers de cette app écrasent inconditionnellement —
+dernier écrivain gagne, silencieusement.
+
+`getRemoteRevision(): Promise<string | null>` — lecture des métadonnées seules,
+sans télécharger le contenu. `null` = fichier absent ou révision indéterminable ;
+une erreur d'auth est propagée pour que le SyncEngine puisse arrêter la détection.
+Un seul jeton `rev` sert à la détection **et** à la garde d'écriture :
+
+- Dropbox : `files/get_metadata` → `rev` (scope `files.metadata.read`, normalement
+  déjà inclus avec `files.content.read` — à vérifier dans la console) ;
+- OneDrive : `GET /me/drive/items/<id>?$select=eTag` → `eTag` (l'eTag sert aussi
+  au `if-match` ; il bouge sur renommage/déplacement → pull occasionnel en trop,
+  bénin. Raffinement possible : `cTag`, qui ne change qu'avec le contenu) ;
+- Drive : `files.get?fields=version` → `version` (la ressource `File` de la v3
+  n'a **pas** de champ `etag` — c'était un champ v2).
+
+### Merge par grains (pas de snapshot complet)
+
+- Le `rev` du fichier est recopié dans chaque **grain** au chargement, persisté *dans* les
+  données (champ `rev` par item) ; la lib marque « sale » tout grain modifié
+  (`touch(id)` ou `dirtyIds` fournis — à trancher dans l'API).
+- Au sync : grain remote `rev != base` + grain local intact → prendre remote ;
+  local sale + remote intact → pousser ; les deux bougés → conflit.
+- **Tombstones** obligatoires : `id` + rev de base des grains supprimés, conservés
+  jusqu'au sync réussi — sinon « supprimé localement » et « créé en remote » sont
+  indiscernables.
+- Données hors grains (profil…) : chaque unité syncable porte son `rev` — le reste du
+  fichier peut être vu comme un grain unique.
+
+### Politique d'orchestration : pull avide + push explicite
+
+- **Pull avide** : en fond, la lib lit les métadonnées (cheap) et notifie l'app quand
+  `remote != base` ; le merge peut être pré-calculé *avant* le prochain Save — le conflit
+  est déjà identifié quand l'utilisateur clique.
+- **Push explicite** (sur action Save de l'utilisateur) avec verdict
+  `saved | queued | conflict | error` ; `queued` est un succès (données durables en local),
+  pas un échec.
+- La boucle auto **se gare** sur vrai conflit (état exposé, retry stoppé — sinon
+  ping-pong) ; résolution via l'UI.
+- **Canal de statut** (`pending` count + dernière erreur) : les saves `queued` se
+  terminent plus tard, l'UI doit voir la file se vider.
+- **Détection offline** : l'échec réseau de l'appel API est la vérité
+  (`navigator.onLine` ment — captive portals) ; retry sur `online`,
+  `visibilitychange` et backoff.
+- Persistance locale en **IndexedDB** (outbox + données), pas `localStorage`
+  (trop petit, synchrone).
+
+#### Détection rapide des changements distants
+
+Limiter la fenêtre de divergence — cas cible : passer du PC au téléphone sans penser
+à recharger. Répartition : le **provider** porte le mécanisme, le **SyncEngine**
+l'ordonnancement, l'app ne reçoit que des événements.
+
+- **`StorageProvider`** : `getRemoteRevision()` partout ;
+  `watchRemoteChanges(onChange, signal: AbortSignal)` **optionnel** pour les providers
+  capables de push sans serveur — Dropbox encapsule son longpoll (connexion pendante,
+  timeout, réarmement = détails internes). Annulable : le SyncEngine l'arrête quand
+  l'onglet se cache, sur `disconnect()` et sur `offline`.
+- **`SyncEngine`** : décide *quand* vérifier — `watchRemoteChanges()` quand dispo,
+  sinon polling de `getRemoteRevision()` ; compare à `baseRev`, déclenche pull+merge.
+  Une erreur d'auth (ex. `invalid_grant` après révocation) **arrête la détection** et
+  remonte via le canal de statut — pas de retry.
+- **App** : `remoteChanged` / canal de statut uniquement.
+
+Déclencheurs, par ordre de retour sur investissement :
+
+1. **`visibilitychange` / `focus`** → check dès le retour au premier plan (le téléphone
+   garde l'app en arrière-plan : c'est *le* moment qui tue le cas « reload oublié ») ;
+2. **polling périodique ~30-60 s uniquement quand l'onglet est visible** (les timers
+   en arrière-plan sont bridés/gelés — inutile de poller un onglet caché) ;
+3. **longpoll Dropbox** (luxe optionnel) : `POST notify.dropboxapi.com/2/files/list_folder/longpoll`
+   — la requête reste pendante et revient dès qu'un changement arrive dans le dossier
+   applicatif ; near-real-time sans serveur. Contraintes : nécessite un **curseur**
+   (`files/list_folder/get_latest_cursor`), respecter le champ `backoff` de la réponse,
+   l'endpoint `notify` ne prend **pas** d'`Authorization`, et le signal est à l'échelle
+   du dossier → relire la révision du fichier ensuite. Drive et Graph ont des webhooks
+   mais ils exigent un endpoint HTTPS public → hors architecture ;
+4. **`BroadcastChannel` + Web Locks** pour le multi-onglets d'un même appareil : un
+   seul onglet « maître » (verrou `navigator.locks`) pousse et polle — la file
+   IndexedDB est partagée, sinon double push possible — et notifie les autres.
+
+Comportement au pull : merge par grains appliqué immédiatement. Conflit uniquement
+si un grain **sale localement** a aussi bougé remote → parcage + signal doux. Un grain
+affiché dans un formulaire ouvert mais propre est rafraîchi (avec signal doux — sinon
+l'utilisateur croit voir encore la vieille valeur). Les autres grains mettent à jour
+l'UI via un événement « données rafraîchies » sans toucher l'édition en cours.
+
+Non retenu : Web Push/FCM (exige un serveur émetteur — casse la promesse « aucune
+donnée ne transite par nos serveurs »), `periodicsync` du service worker (Chrome-only,
+PWA installée, intervalle choisi par le navigateur selon l'engagement — souvent de
+l'ordre de plusieurs heures, trop grossier).
+
+### Répartition lib / app
+
+- **Lib** : transport révisionné + `SyncEngine` (snapshot local, `base`/`baseRev`,
+  outbox, boucle retry, tombstones) + providers. `disconnect()`/changement de compte
+  purge base + outbox.
+- **App** : politique de merge `{ base, local, remote } → merged | 'unreconcilable'`
+  (connaissance métier des grains), UI de conflit, déclencheur Save.
+- **Packaging** : repo dédié, consommé via dépendance `github:` tagguée (ou npm
+  plus tard) ; *vendoring* du `dist/` (`.js` seuls) dans `web/vendor/` — dossier
+  généré, gitignoré — car l'app n'a pas de bundler : les sources importent le
+  bare specifier `ts-cloud-storage-manager`, résolu par une **import map** dans
+  les pages HTML vers les fichiers vendored (copiés aussi dans `_site/vendor`
+  par le workflow de déploiement).
+
+

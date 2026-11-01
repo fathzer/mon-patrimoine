@@ -10,8 +10,8 @@ import { HistoryPanelView } from './HistoryPanelView.js';
 import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryChartView.js';
 import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { getWarning } from '../i18n/commonTaxExplanations.js';
-import { authFailureExplanation } from '../storage/AuthFailure.js';
-import type { ProviderName } from '../storage/StorageManager.js';
+import { authFailureExplanation } from './authFailure.js';
+import type { ProviderName } from 'ts-cloud-storage-manager';
 import { getInflationDisplayBanner } from './inflationBanner.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
 import type { AppStore, GlobalSummary } from '../core/AppStore.js';
@@ -29,7 +29,7 @@ export class DashboardView {
   _breakdownVisible: boolean;
   _historyVisible: boolean;
   _showClosedPlacements: boolean;
-  _historyDate: string | null;
+  _viewDate: string | null;
   _inflation: InflationUiState;
   _inflationIndex: InflationIndex | null;
   _layoutInitialized: boolean;
@@ -58,7 +58,7 @@ export class DashboardView {
     this._breakdownVisible = ui.breakdownVisible;
     this._historyVisible = ui.historyVisible;
     this._showClosedPlacements = ui.showClosedPlacements;
-    this._historyDate = null;
+    this._viewDate = null;
     this._inflation = { ...NO_INFLATION_UI_STATE, source: ui.inflationSource };
     this._inflationIndex = this._inflation.source ? getCachedInflationIndex(this._inflation.source) : null;
     this._historyPanelView = new HistoryPanelView(null, {
@@ -94,6 +94,7 @@ export class DashboardView {
     this.container.innerHTML = `
       <div id="demo-banner" class="demo-banner" hidden>${I18n.t('demo.banner')}</div>
       <header id="top-bar" class="top-bar"></header>
+      <div id="sync-banner-root"></div>
       <main id="page-content" class="main-content"></main>
       <div id="modal-root"></div>
     `;
@@ -227,7 +228,7 @@ export class DashboardView {
 
   _renderAssetTable(): void {
     // Rows of placements recorded at the viewed date get the tint marker.
-    this._assetTableView.setViewDate(this._historyDate);
+    this._assetTableView.setViewDate(this._viewDate);
     this._assetTableView.render(
       this._viewSummary(),
       this._modalRoot!,
@@ -338,7 +339,7 @@ export class DashboardView {
           return { date: p.date, gross: p.gross * f, net: p.net * f };
         })
       : nominal;
-    this._historyChartView.render(chart, points, this._historyDate, this.store.state.annotations);
+    this._historyChartView.render(chart, points, this._viewDate, this.store.state.annotations);
     const variations = this._pageContent?.querySelector('#history-variations') as HTMLElement | null;
     if (variations) this._variationsView.render(variations, nominal, index);
   }
@@ -368,7 +369,7 @@ export class DashboardView {
     // Closing the panel returns to the current view. The closed-placements
     // toggle lives in the asset table and stays untouched.
     this._historyPanelView.reset();
-    this._historyDate = null;
+    this._viewDate = null;
     UiState.save({ historyVisible: false });
     this._renderSummary();
     this._topBarView.render(true, this._breakdownVisible, this._historyVisible);
@@ -383,14 +384,17 @@ export class DashboardView {
   }
 
   /**
-   * The summary actually displayed: reconstructed at `_historyDate` when the
-   * user picked one; the emitted current summary otherwise. The closed
-   * toggle only controls the asset table's grayed rows, not the summary.
+   * The summary actually displayed: reconstructed at `_viewDate` when the
+   * user picked a past date; the emitted current summary otherwise —
+   * picking today *is* the current view. The closed toggle only controls
+   * the asset table's grayed rows, not the summary.
    * A presentation-only `priceLevelFactor` is attached when an inflation
    * series is selected — it never alters the underlying nominal values.
    */
   _viewSummary(): GlobalSummary {
-    const base = this._historyDate == null ? this._summary! : this.store.getSummaryAt(this._historyDate);
+    const base = this._viewDate == null || this._viewDate >= todayString()
+      ? this._summary!
+      : this.store.getSummaryAt(this._viewDate);
     if (!this._inflationIndex) return base;
     const refDate = base.asOfDate ?? todayString();
     return {
@@ -463,8 +467,9 @@ export class DashboardView {
 
   _onHistoryDateChange(date: string | null): void {
     if (!this._summary) return;
-    // Picking today means the current view — keep no history date at all.
-    this._historyDate = date === todayString() ? null : date;
+    // The picked date is kept verbatim — today included — so the markers
+    // (chart line, recorded-at rows) flag it; _viewSummary picks the view.
+    this._viewDate = date;
     // No history-panel re-render: the date input keeps the focus.
     this._historyChartView.setSelectedDate(date);
     this._renderTotals();
@@ -490,7 +495,7 @@ export class DashboardView {
   _openSettings(): void {
     const settingsModal = new SettingsModalView(this._modalRoot!, this.store);
     // In history mode the settings open on the viewed income year.
-    settingsModal.show(this._historyDate ? Number.parseInt(this._historyDate.slice(0, 4), 10) : undefined);
+    settingsModal.show(this._viewDate ? Number.parseInt(this._viewDate.slice(0, 4), 10) : undefined);
   }
 
   _triggerImport(): void {

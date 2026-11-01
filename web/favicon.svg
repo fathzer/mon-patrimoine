@@ -1,22 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
-  <!-- Fond arrondi stylisé -->
-  <rect width="64" height="64" rx="14" fill="#2563eb"/>
-  
-  <g fill="#ffffff">
-    <!-- Fronton (Fronton triangulaire supérieur) -->
-    <path d="M 32 12 L 12 24 L 52 24 Z"/>
-    
-    <!-- Architrave (Poutre horizontale sous le fronton) -->
-    <rect x="14" y="26" width="36" height="3" rx="1"/>
-    
-    <!-- Colonnes (4 colonnes de la Bourse) -->
-    <rect x="17" y="31" width="5" height="17" rx="1"/>
-    <rect x="25" y="31" width="5" height="17" rx="1"/>
-    <rect x="34" y="31" width="5" height="17" rx="1"/>
-    <rect x="42" y="31" width="5" height="17" rx="1"/>
-    
-    <!-- Soubassement (Marches / Piédestal) -->
-    <rect x="14" y="49" width="36" height="3" rx="1"/>
-    <rect x="11" y="53" width="42" height="3" rx="1"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Subtle financial-growth motif -->
+  <path d="M8 46 L17 40 L25 42 L34 31 L42 34 L54 17" fill="none" stroke="#93c5fd" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+  <path d="M49 17 H54 V22" fill="none" stroke="#bfdbfe" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+  <g fill="url(#stone)" stroke="#dbeafe" stroke-width=".25">
+    <!-- pediment -->
+    <path d="M32 9.5 10.5 23.2 Q10 23.6 10.8 23.6 H53.2 Q54 23.6 53.5 23.2 Z"/>
+    <path d="M32 13.2 17.2 22.4 H46.8 Z" fill="#bfdbfe" opacity=".38"/>
+    <!-- cornice -->
+    <rect x="11.5" y="24.5" width="41" height="3.1" rx=".8"/>
+    <rect x="13.3" y="28.2" width="37.4" height="1.4" rx=".5"/>
+    <!-- columns -->
+    <rect x="15" y="30.5" width="6.2" height="17.4" rx=".8"/>
+    <rect x="23.1" y="30.5" width="6.2" height="17.4" rx=".8"/>
+    <rect x="34.7" y="30.5" width="6.2" height="17.4" rx=".8"/>
+    <rect x="42.8" y="30.5" width="6.2" height="17.4" rx=".8"/>
+    <!-- fluting -->
+    <g fill="none" stroke="#93c5fd" stroke-width=".55" opacity=".95">
+      <path d="M17 32v14.5 M19 32v14.5 M25.1 32v14.5 M27.2 32v14.5 M36.7 32v14.5 M38.7 32v14.5 M44.8 32v14.5 M46.8 32v14.5"/>
+    </g>
+    <!-- base -->
+    <rect x="12.2" y="48.5" width="39.6" height="2.7" rx=".7"/>
+    <rect x="9.5" y="52" width="45" height="3.2" rx=".8"/>
   </g>
+  <!-- small coin detail, kept subtle at favicon scale -->
+  <circle cx="32" cy="19.5" r="2.1" fill="#fbbf24" stroke="#fef3c7" stroke-width=".6"/>
+  <path d="M31.2 19.5h1.6 M32 18.7v1.6" stroke="#92400e" stroke-width=".45" stroke-linecap="round"/>
+  <!-- ground shadow -->
+  <path d="M8 57.2H56" stroke="#1e40af" stroke-width="1" opacity=".65" stroke-linecap="round"/>
 </svg>

@@ -343,6 +343,10 @@
     overflow-x: hidden;
     overflow-y: auto;
     min-height: 0;
+    /* Implicit row tracks would otherwise stretch to share the tbody's 1fr
+       height, blowing up each row when few assets are displayed. */
+    grid-auto-rows: max-content;
+    align-content: start;
   }
 
   /* Colspans mean nothing in a grid — banner and empty-state cells span
