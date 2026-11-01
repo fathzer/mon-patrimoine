@@ -1,6 +1,7 @@
 /.project
 /web/node_modules
 /web/dist
+/web/vendor
 /GoogleDriveCredentials.txt
-# Local dev link to the sibling storage library (file:../ts-cloud-storage-manager)
+# Local dev link to the sibling storage library (optional)
 /ts-cloud-storage-manager

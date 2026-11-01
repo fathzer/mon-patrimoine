@@ -7,6 +7,7 @@
   },
   "description": "Web application to track your financial wealth and its estimated net value (after social charges and taxes).",
   "scripts": {
+    "predev": "bun run vendor",
     "dev": "tsc --watch & python3 -m http.server 5500",
     "build": "tsc",
     "test": "bun test",
@@ -15,7 +16,8 @@
     "postinstall": "bun run vendor"
   },
   "type": "module",
+  "trustedDependencies": ["ts-cloud-storage-manager"],
   "dependencies": {
-    "ts-cloud-storage-manager": "file:../ts-cloud-storage-manager"
+    "ts-cloud-storage-manager": "github:fathzer/ts-cloud-storage-manager#v0.0.1-preview"
   }
 }

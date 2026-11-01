@@ -13,6 +13,9 @@ const DROPBOX_APP_KEY = 'zvz86dayzn4qkt8';
 const ONEDRIVE_CLIENT_ID = '59ee9063-c01a-49c7-b23e-a175d153b85e';
 
 const STORAGE_CONFIG = {
+  // Storage namespace: isolates this app's sessions/sync state from other
+  // apps sharing the origin (dev port, *.github.io project pages).
+  namespace: 'mon-patrimoine',
   fileName: 'patrimoine_data.json',
   dropbox: { appKey: DROPBOX_APP_KEY },
   oneDrive: { clientId: ONEDRIVE_CLIENT_ID },

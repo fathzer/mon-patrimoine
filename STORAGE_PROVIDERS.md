@@ -2,17 +2,21 @@
 
 Ce document décrit le contrat entre `main.ts` (orchestrateur), `StorageManager` et les
 `StorageProvider`, en particulier pour l'authentification. Il sert de référence pour
-l'ajout de nouveaux providers (pCloud…).
+l'ajout de nouveaux providers.
 
 ## État actuel
 
 > **La couche storage a été extraite** dans la lib réutilisable
 > `ts-cloud-storage-manager` (repo séparé) : providers, `StorageProvider`,
 > `StorageManager`, contrat révisionné. L'app la consomme via une dépendance
-> `file:../../ts-cloud-storage-manager` + vendoring de `dist/` dans
-> `web/vendor/ts-cloud-storage-manager/` (`bun run vendor`, relancé par
-> `postinstall`). Seuls restent côté app : `ui/authFailure.ts` (le libellé des
+> `github:fathzer/ts-cloud-storage-manager#<tag>` + vendoring de `dist/` dans
+> `web/vendor/ts-cloud-storage-manager/` — artefact généré, **gitignoré**,
+> régénéré par `prepare`/`postinstall`/`predev` (`bun run vendor`). Seuls restent côté app : `ui/authFailure.ts` (le libellé des
 > échecs, qui dépend d'`I18n`) et les client ids injectés dans `main.ts`.
+> Toutes les clés persistées par la lib (localStorage, sessionStorage, base
+> IndexedDB de sync) sont préfixées par `namespace` — `'mon-patrimoine'` ici —
+> obligatoire dans `StorageConfig` pour isoler les apps partageant une origine
+> (le storage web ne dépend que de l'origine, jamais du path).
 
 - **Trois providers actifs** : `DropboxProvider` et `OneDriveProvider` (redirect OAuth2
   code + PKCE, refresh tokens) et `GoogleDriveProvider` (GIS *token client*, flow en popup).
@@ -21,7 +25,7 @@ l'ajout de nouveaux providers (pCloud…).
   `getStatus()`, `isReadOnly()`,
   `resumeAuth(url)` et `authResponseParams` (voir « reprise après redirect » plus bas).
 - **Sélection** : `StorageManager` instancie les providers par nom (`useProviderByName`) ;
-  le dernier provider de compte utilisé est mémorisé (`localStorage mp_provider`) pour la
+  le dernier provider de compte utilisé est mémorisé (`localStorage <ns>.provider`) pour la
   restauration de session, avec repli sur tout autre provider ayant une session stockée ;
   `useProvider()` sert pour les providers éphémères (mode démo).
 - **Choix utilisateur** : à l'URL `app/?connect`, `DashboardView.showProviderPicker()`
@@ -76,7 +80,7 @@ Implémenté pour Dropbox :
   des paramètres de retour, et `app/?connect=<nom>` fonctionne comme *deep link* lançant
   directement l'auth du provider nommé, sans passer par la mini-carte de sélection ;
 - `StorageManager.authenticate()` marque le provider en attente
-  (`sessionStorage mp_pending_provider`) quand `authResponseParams` est non vide — au
+  (`sessionStorage <ns>.pending_provider`) quand `authResponseParams` est non vide — au
   boot suivant, `resumeAuth` route l'URL vers ce provider, avec replis sur la valeur de
   `connect` présente dans l'URL de retour puis sur le préfixe provider du `state` ;
 - `DropboxProvider.resumeAuth()` valide le `state`, échange le code
@@ -113,7 +117,7 @@ propres à Microsoft :
 - scopes `offline_access User.Read Files.ReadWrite.AppFolder` — `offline_access` joue
   le rôle du `token_access_type=offline` de Dropbox ;
 - **rotation du refresh token** : Microsoft en émet un nouveau à chaque refresh — il
-  est persisté à chaque fois (clés `od_*` en localStorage) ;
+  est persisté à chaque fois (clés `<ns>.od_*` en localStorage) ;
 - fichier adressé par l'`id` du drive item (`/me/drive/items/<id>/content`) dès qu'il
   est connu — récupéré une fois via `GET /me/drive/special/approot:/<nom>:` après un
   premier téléchargement par nom — sinon par `/me/drive/special/approot:/<nom>:/content` ;
@@ -185,13 +189,24 @@ Rappel : avec un redirect il n'y a **pas de pop-up à bloquer**. Les échecs typ
 
 ## Comparatif des providers envisagés
 
-| | Dropbox | Microsoft OneDrive | Google Drive | pCloud (non implémenté) |
+| | Dropbox | Microsoft OneDrive | Google Drive | pCloud (abandonné) |
 |---|---|---|---|---|
-| Flow canonique | **redirect** OAuth2 (code + PKCE) | **redirect** OAuth2 (code + PKCE) | popup GIS | popup pollée ou redirect |
+| Flow canonique | **redirect** OAuth2 (code + PKCE) | **redirect** OAuth2 (code + PKCE) | popup GIS | popup pollée ou redirect implicite |
 | Retour d'erreur | `?error=` sur l'URL de retour | `?error=` sur l'URL de retour | `error_callback` | `window.closed` / `?error=` |
-| Échange de code | oui, `POST /oauth2/token` (CORS OK) | oui, `POST …/oauth2/v2.0/token` (CORS OK) | non (token implicite) | oui si `response_type=code` |
+| Échange de code | oui, `POST /oauth2/token` (CORS OK) | oui, `POST …/oauth2/v2.0/token` (CORS OK) | non (token implicite) | non — `code` exigerait le client secret |
 | Durée du token | refresh token longue durée | refresh token longue durée, **rotatif** | ~1 h, re-consent/silent | access token sans expiration |
 | Réponse dans | query `?` | query `?` | callback JS | hash `#access_token=` |
+
+## Pourquoi pCloud est abandonné (tenté en 2026)
+
+Le provider a été implémenté puis supprimé : pCloud n'offre **aucun moyen de
+télécharger un fichier depuis un navigateur** — `getfilelink` exige un
+referer `pcloud.com` (7010 « Invalid link referer », vérifié aussi sur
+`Origin`, insupprimable en CORS), la famille fileops (`file_open`/`file_read`)
+répond 2003 « Access denied » sous OAuth2, et les liens de téléchargement
+vivent sur des hôtes sans CORS ouvert. Confirmé par pCloud dans
+[pcloud-sdk-js#4](https://github.com/pCloud/pcloud-sdk-js/issues/4) — détails
+dans la note « Not supported: pCloud » du README de `ts-cloud-storage-manager`.
 
 ## Piste : moteur de synchronisation (projet futur)
 
@@ -308,15 +323,11 @@ l'ordre de plusieurs heures, trop grossier).
   purge base + outbox.
 - **App** : politique de merge `{ base, local, remote } → merged | 'unreconcilable'`
   (connaissance métier des grains), UI de conflit, déclencheur Save.
-- **Packaging** : repo dédié, consommé via dépendance git ou npm ; *vendoring* du
-  `dist/` (`.js` seuls) dans `web/vendor/` — l'app n'a pas de bundler : les sources
-  importent le bare specifier `ts-cloud-storage-manager`, résolu par une
-  **import map** dans les pages HTML vers les fichiers vendored (copiés aussi
-  dans `_site/vendor` par le workflow de déploiement).
+- **Packaging** : repo dédié, consommé via dépendance `github:` tagguée (ou npm
+  plus tard) ; *vendoring* du `dist/` (`.js` seuls) dans `web/vendor/` — dossier
+  généré, gitignoré — car l'app n'a pas de bundler : les sources importent le
+  bare specifier `ts-cloud-storage-manager`, résolu par une **import map** dans
+  les pages HTML vers les fichiers vendored (copiés aussi dans `_site/vendor`
+  par le workflow de déploiement).
 
-## Code mort
 
-`PCloudProvider.ts` et `LocalStorageProvider.ts` sont **non référencés** et **jamais testés**
-(écrits au tout début du projet). Ils sont marqués `DEAD CODE` en tête de fichier et
-conservés uniquement comme esquisses de référence — à **réécrire**, pas à réanimer, lors de
-l'ajout des providers correspondants. Suppression propre envisageable.
