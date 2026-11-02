@@ -53,6 +53,28 @@
   margin-top: 0.6rem;
 }
 
+/* Provider buttons may carry a "déconseillé" note in their bottom-right
+   corner — extra bottom padding keeps it clear of the label. */
+.provider-btn {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.provider-note {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.3rem;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal, normal);
+}
+
+/* The "?" icon must stay readable on the button's orange background. */
+.provider-note .help-popover.help-popover-icon {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
 .welcome-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

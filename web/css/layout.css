@@ -36,6 +36,21 @@ body {
   text-align: center;
 }
 
+/* Same family, for sessions running on a discouraged storage provider. */
+.provider-alert-banner {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-warning);
+  color: #fff;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.provider-alert-banner .help-popover.help-popover-icon {
+  color: #fff;
+  border-color: #fff;
+}
+
 /* Strip flush with a card's rounded top edge, flagging that its figures are
    displayed in constant (inflation-adjusted) euros — negative margins bleed
    through the card's padding, small font keeps the card compact. */

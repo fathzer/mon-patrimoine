@@ -11,6 +11,7 @@ import { collectChartDates, HistoryChartView, type ChartPoint } from './HistoryC
 import { HistoryVariationsView } from './HistoryVariationsView.js';
 import { getWarning } from '../i18n/commonTaxExplanations.js';
 import { authFailureExplanation } from './authFailure.js';
+import { providerNoticeHtml, providerAlertBannerHtml } from './providerNotices.js';
 import type { ProviderName } from 'ts-cloud-storage-manager';
 import { getInflationDisplayBanner } from './inflationBanner.js';
 import { getCachedInflationIndex, loadInflationIndex, NO_INFLATION_UI_STATE, type InflationIndex, type InflationUiState } from '../core/inflation.js';
@@ -92,6 +93,7 @@ export class DashboardView {
 
   _initLayout(): void {
     this.container.innerHTML = `
+      <div id="provider-alert-banner" class="provider-alert-banner" hidden></div>
       <div id="demo-banner" class="demo-banner" hidden>${I18n.t('demo.banner')}</div>
       <header id="top-bar" class="top-bar"></header>
       <div id="sync-banner-root"></div>
@@ -122,6 +124,16 @@ export class DashboardView {
 
     this.container.querySelector<HTMLElement>('#demo-banner')!.hidden =
       !summary.isAuthenticated || !this.store.storageManager.currentProvider.isReadOnly();
+
+    // Alert strip for sessions running on a discouraged storage provider —
+    // providerName holds the remembered name even in demo mode, so the
+    // read-only guard keeps the banner out of demo sessions.
+    const providerAlertBanner = this.container.querySelector<HTMLElement>('#provider-alert-banner')!;
+    const providerAlertHtml = summary.isAuthenticated && !this.store.storageManager.currentProvider.isReadOnly()
+      ? providerAlertBannerHtml(this.store.storageManager.providerName)
+      : '';
+    providerAlertBanner.innerHTML = providerAlertHtml;
+    providerAlertBanner.hidden = !providerAlertHtml;
 
     this._topBarView.render(summary.isAuthenticated, this._breakdownVisible, this._historyVisible);
 
@@ -168,12 +180,17 @@ export class DashboardView {
         <div class="auth-card">
           <div class="landing-login">
             <p class="text-muted">${I18n.t('auth.chooseProvider')}</p>
-            ${providers.map(p => `<button class="btn-primary" data-provider="${p.name}">${p.label}</button>`).join('')}
+            ${providers.map(p => `<button class="btn-primary provider-btn" data-provider="${p.name}">${p.label}${providerNoticeHtml(p.name)}</button>`).join('')}
           </div>
         </div>
       `;
       this._pageContent!.querySelectorAll<HTMLElement>('[data-provider]').forEach(btn => {
-        btn.addEventListener('click', () => void this.onProviderPick?.(btn.dataset.provider as ProviderName));
+        btn.addEventListener('click', (event) => {
+          // A click on the "?" note opens its popover only — it must not
+          // start the provider's auth flow.
+          if ((event.target as HTMLElement).closest('.help-popover')) return;
+          void this.onProviderPick?.(btn.dataset.provider as ProviderName);
+        });
       });
       return;
     }
