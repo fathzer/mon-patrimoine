@@ -1,9 +1,10 @@
 name: Update INSEE CPI Gist
 
+# Triggered externally once a day at 05:40 UTC by the Cloudflare Worker
+# `mon-patrimoine-dispatcher` (worker/ in this repo) via workflow_dispatch.
+# GitHub's own `schedule:` was removed: it is best-effort, only read from the
+# default branch, and auto-disabled after 60 days without repository activity.
 on:
-  schedule:
-    # INSEE publishes the monthly CPI around the 15th; a daily run picks it up quickly
-    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:

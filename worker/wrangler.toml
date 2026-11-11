@@ -1,0 +1,11 @@
+name = "mon-patrimoine-dispatcher"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Non-secret identifiers — visible in the dashboard anyway.
+# Secrets live in Cloudflare: GITHUB_APP_KEY (PEM private key).
+
+[triggers]
+# Daily at 05:40 UTC — lands before the previous 06:00 schedule slot.
+crons = ["40 5 * * *"]

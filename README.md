@@ -64,7 +64,7 @@ Le script `scripts/fetch_insee_cpi.py` interroge l'API BDM de l'INSEE et publie 
 
 Les séries extraites sont listées dans `IDBANKS` en tête du script.
 
-Le workflow GitHub `fetch-insee-cpi.yml` l'exécute chaque jour (l'INSEE publie l'indice vers le 15 du mois) et met à jour le Gist uniquement si les données ont changé. Il nécessite un secret de dépôt `GIST_TOKEN` contenant un Personal Access Token (classique) avec le scope `gist`.
+Le workflow GitHub `fetch-insee-cpi.yml` est déclenché chaque jour à 05:40 UTC (l'INSEE publie l'indice vers le 15 du mois) par le Cloudflare Worker `mon-patrimoine-dispatcher` (code dans `worker/`, voir son `wrangler.toml`) via `workflow_dispatch` — le `schedule:` natif de GitHub a été retiré car il est best-effort et se désactive après 60 jours sans activité du dépôt. Le script met à jour le Gist uniquement si les données ont changé. Il nécessite un secret de dépôt `GIST_TOKEN` contenant un Personal Access Token (classique) avec le scope `gist`.
 
 Exécution locale — affiche le JSON sans mettre à jour le Gist si `GIST_TOKEN` n'est pas défini :
 
